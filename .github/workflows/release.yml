@@ -121,6 +121,10 @@ jobs:
             echo "Tag $RELEASE_TAG already exists; refusing to reuse it."
             exit 1
           fi
+          # A real tag push supplies the push event used by CurseForge's packager.
+          gh auth setup-git
+          git tag "$RELEASE_TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$RELEASE_TAG"
           gh release create "$RELEASE_TAG" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" \
-            --target "$GITHUB_SHA" --title "My Epoch $RELEASE_VERSION" --generate-notes --draft
+            --verify-tag --title "My Epoch $RELEASE_VERSION" --generate-notes --draft
           gh release edit "$RELEASE_TAG" --draft=false

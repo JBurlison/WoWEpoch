@@ -7,6 +7,7 @@
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever
+## X-Curse-Project-ID: 1785036
 
 Core.lua
 RetentionWork.lua

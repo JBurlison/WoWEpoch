@@ -189,11 +189,12 @@ function V.Graph(page,report,range,mode)
         local lastLabelRight=-math.huge
         local function annotate(i,bin,value)
             local x=left+(i-1)/count*chartWidth
-            local labelLeft=mode=="balance" and (x+104<=width and x+8 or x-104) or x-48
-            labelLeft=math.max(left,math.min(width-104,labelLeft))
+            local text=money(value);local labelWidth=math.max(48,#text*7)
+            local labelLeft=mode=="balance" and (x+labelWidth+16<=width and x+8 or x-labelWidth-8) or x-labelWidth/2
+            labelLeft=math.max(left,math.min(width-labelWidth-8,labelLeft))
             if labelLeft>=lastLabelRight+6 then
-                graphLabel(plot,money(value),labelLeft,y(mode~="balance" and value<0 and 0 or value)+8,96,mode=="balance" and "LEFT" or "CENTER")
-                lastLabelRight=labelLeft+96
+                graphLabel(plot,text,labelLeft,y(mode~="balance" and value<0 and 0 or value)+8,labelWidth,mode=="balance" and "LEFT" or "CENTER")
+                lastLabelRight=labelLeft+labelWidth
             end
             local hit=plot.hits[i]
             if not hit then hit=CreateFrame("Frame",nil,plot);hit:EnableMouse(true);plot.hits[i]=hit end

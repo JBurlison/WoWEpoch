@@ -17,6 +17,21 @@ spec.loader.exec_module(package)
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_curseforge_layout_matches_runtime_payload(self):
+        metadata = (ROOT / '.pkgmeta').read_text(encoding='utf-8')
+        self.assertIn('package-as: MyEpoch\n', metadata)
+        self.assertIn('  MyEpoch/MyEpoch: MyEpoch\n', metadata)
+        self.assertIn('enable-nolib-creation: no\n', metadata)
+        ignored = {line.strip()[2:] for line in metadata.split('ignore:\n', 1)[1].splitlines()
+                   if line.strip().startswith('- ')}
+        tracked = subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).splitlines()
+        shipped = {name for name in tracked if not name.startswith('.')
+                   and name.split('/')[0] not in ignored}
+        expected = {'MyEpoch/' + path.relative_to(ROOT / 'MyEpoch').as_posix()
+                    for path in package.package_files(ROOT / 'MyEpoch')}
+        self.assertEqual(shipped, expected, 'CurseForge must exclude all development files and retain every runtime asset')
+        self.assertIn('## X-Curse-Project-ID: 1785036', (ROOT / 'MyEpoch/MyEpoch.toc').read_text())
+
     def fixture(self, version='0.1.0'):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

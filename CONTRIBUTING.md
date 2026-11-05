@@ -18,6 +18,14 @@ PR jobs have read-only repository permissions and no release credentials. Public
 
 PR artifacts expire after seven days. Published release assets remain available separately.
 
+## CurseForge automatic packaging
+
+The project is [ME: My Epoch, ID 1785036](https://www.curseforge.com/wow/addons/me-my-epoch). Its Source setting uses this GitHub repository and **tagged commits only**. `.pkgmeta` moves the nested source folder into the installable `MyEpoch/` directory and excludes developer tools, fixtures and source evidence. The TOC records the project ID. Finished artwork and bundled licenses remain included.
+
+The post-merge workflow pushes `v<version>` only after tests and ZIP validation succeed. That push must reach a repository webhook configured according to [CurseForge's automatic packaging instructions](https://support.curseforge.com/support/solutions/articles/9000197281-automatic-packaging), using this project's ID and a CurseForge API token. Keep that token out of the repository, logs and screenshots. Subscribe only to push events and leave SSL verification enabled. PR branches do not receive release tags.
+
+The GitHub Release and CurseForge file are separate outputs. Confirm the first tag's successful delivery in GitHub Webhooks, then inspect CurseForge Builds and Files for the correct folder layout and Forever game version. New projects/files may wait for CurseForge moderation. A saved Source setting alone does not prove a successful package. If release publication fails after the tag push, inspect the existing tag and finish that same release manually; do not move or replace the tag.
+
 ## Local checks
 
 Use Python 3.13 or newer and Git. Create a virtual environment, then run:
