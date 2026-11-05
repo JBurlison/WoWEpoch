@@ -132,7 +132,9 @@ end
 function V.Graph(page,report,range,mode)
     local plot=B.Acquire(page,"plot");local width=B.Width(page);plot:SetSize(width,280); plot.textures=plot.textures or {}; plot.used=0
     plot.labels=plot.labels or {};plot.labelsUsed=0;plot.hits=plot.hits or {}
+    plot.lines=plot.lines or {};plot.linesUsed=0
     for _,t in ipairs(plot.textures) do t:Hide() end
+    for _,line in ipairs(plot.lines) do line:Hide() end
     for _,f in ipairs(plot.labels) do f:Hide() end
     for _,f in pairs(plot.hits) do f:Hide() end
     rect(plot,0,0,width,280,0.33,0.23,0.12,0.12)
@@ -190,6 +192,14 @@ function V.Graph(page,report,range,mode)
             rect(plot,x,yy,w,h,r,g,b)
             obstacles[#obstacles+1]={x=x,y=yy,w=math.max(1,w),h=math.max(1,h)}
         end
+        local function dataLine(x1,y1,x2,y2)
+            plot.linesUsed=plot.linesUsed+1
+            local line=plot.lines[plot.linesUsed]
+            if not line then line=plot:CreateLine(nil,"ARTWORK");plot.lines[plot.linesUsed]=line end
+            line:SetThickness(2);line:SetColorTexture(.34,.28,.12,1)
+            line:SetStartPoint("BOTTOMLEFT",plot,x1,y1);line:SetEndPoint("BOTTOMLEFT",plot,x2,y2);line:Show()
+            obstacles[#obstacles+1]={x=x1,y=y1,x2=x2,y2=y2}
+        end
         local function annotate(i,bin,value)
             local x=left+(i-1)/count*chartWidth
             local text=money(value);local labelWidth=math.max(48,#text*7)
@@ -215,9 +225,8 @@ function V.Graph(page,report,range,mode)
             local previous
             for i=1,count do local bin=bins[i]; if bin then
                 local x=left+(i-1)/count*chartWidth
-                if previous and previous.window==bin.window and not previous.mixed and not bin.mixed then
-                    dataRect(previous.x,y(previous.last),x-previous.x,2,0.34,0.28,0.12)
-                    dataRect(x,math.min(y(previous.last),y(bin.last)),2,math.abs(y(bin.last)-y(previous.last)),0.34,0.28,0.12)
+                if previous and previous.window and previous.window==bin.window and not previous.mixed and not bin.mixed then
+                    dataLine(previous.x,y(previous.last),x,y(bin.last))
                 end
                 if not bin.mixed then dataRect(x,y(bin.min),2,math.max(2,y(bin.max)-y(bin.min)),0.34,0.28,0.12) end
                 dataRect(x-2,y(bin.last)-2,5,5,0.53,0.34,0.10); bin.x=x; previous=bin
@@ -238,6 +247,15 @@ function V.Graph(page,report,range,mode)
             return a.i<b.i
         end)
         local function overlaps(a,b)
+            if b.x2 then
+                -- Test only the part of a diagonal under the label, rather than
+                -- treating its entire bounding rectangle as solid ink.
+                local x1,x2=math.max(a.x-5,b.x),math.min(a.x+a.w+5,b.x2)
+                if x1>x2 then return false end
+                local slope=(b.y2-b.y)/(b.x2-b.x)
+                local y1,y2=b.y+(x1-b.x)*slope,b.y+(x2-b.x)*slope
+                return math.min(y1,y2)<a.y+a.h+5 and math.max(y1,y2)>a.y-5
+            end
             return a.x<b.x+b.w+4 and a.x+a.w+4>b.x and a.y<b.y+b.h+4 and a.y+a.h+4>b.y
         end
         for _,label in ipairs(candidates) do
