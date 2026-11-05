@@ -7,6 +7,7 @@ local function text(v,max)return type(v)=='string'and #v>0 and #v<=(max or 256)a
 local function call(name,fn,...)
  local key='milestoneSnapshot.'..name
  local values=pack(A.Call(key,fn,...))
+ values.status=A.status[key]
  return values,A.status[key]=='call succeeded; client behavior still needs validation'
 end
 local slots={'Head','Neck','Shoulders','Shirt','Chest','Waist','Legs','Feet','Wrists','Hands','Finger 1','Finger 2','Trinket 1','Trinket 2','Back','Main hand','Off hand','Ranged','Tabard'}
@@ -39,14 +40,24 @@ local function equipment(out)
  end
  out.coverage.equipment=observed..' of 19 equipment slots observed. Missing item links cannot reproduce instance-specific details.'
 end
-local function stats(out)
- local known=0
- local function add(key,label,value,unit)
-  value=number(value);out.stats[#out.stats+1]={key=key,label=label,value=value,unit=unit}
-  if value~=nil then known=known+1 end
+local function stats(out,includeRestricted)
+ local known,missing=0,{restricted=0,unavailable=0,failed=0,missing=0}
+ local function add(key,label,value,unit,read,other)
+  value=number(value)
+  local status
+  if value==nil then
+   local first,second=read and read.status,other and other.status
+   if first=='restricted values omitted'or second=='restricted values omitted'then status='restricted'
+   elseif first=='call failed or access restricted'or second=='call failed or access restricted'then status='failed'
+   elseif first=='unavailable'or second=='unavailable'then status='unavailable'
+   else status='missing'end
+   missing[status]=missing[status]+1
+  else known=known+1 end
+  if status=='restricted'and not includeRestricted then return end
+  out.stats[#out.stats+1]={key=key,label=label,value=value,unit=unit,readStatus=status}
  end
  local function one(name,label,fn,unit,...)
-  local v=call(name,fn,...);add(name,label,v[1],unit);return v
+  local v=call(name,fn,...);add(name,label,v[1],unit,v);return v
  end
  one('health','Health',UnitHealth,nil,'player');one('maxHealth','Maximum health',UnitHealthMax,nil,'player')
  local power=call('powerType',UnitPowerType,'player');out.powerType=integer(power[1],0);out.powerToken=text(power[2],64)
@@ -54,53 +65,66 @@ local function stats(out)
  one('maxPower','Maximum '..(out.powerToken or 'power'),UnitPowerMax,nil,'player')
  for index,label in ipairs({'Strength','Agility','Stamina','Intellect','Spirit'})do
   local v=call('attribute',UnitStat,'player',index)
-  add('attribute'..index,label,v[2]);add('attributeBase'..index,label..' (base)',v[1])
-  add('attributePositive'..index,label..' (positive modifier)',v[3]);add('attributeNegative'..index,label..' (negative modifier)',v[4])
+  add('attribute'..index,label,v[2],nil,v);add('attributeBase'..index,label..' (base)',v[1],nil,v)
+  add('attributePositive'..index,label..' (positive modifier)',v[3],nil,v);add('attributeNegative'..index,label..' (negative modifier)',v[4],nil,v)
  end
- local armor=call('armor',UnitArmor,'player');add('armor','Armor',armor[2]);add('armorBase','Armor (base)',armor[1]);add('armorBonus','Armor (bonus)',armor[4])
+ local armor=call('armor',UnitArmor,'player');add('armor','Armor',armor[2],nil,armor);add('armorBase','Armor (base)',armor[1],nil,armor);add('armorBonus','Armor (bonus)',armor[4],nil,armor)
  -- Use the same client enum as the loaded paper-doll resistance rows.
  for school,label in ipairs({'Physical','Holy','Fire','Nature','Frost','Shadow','Arcane'})do
   local id=A.Plain(Enum and Enum.Damageclass and Enum.Damageclass[label])
   local v=integer(id,0)and call('resistance',UnitResistance,'player',id)or{}
-  add('resistance'..school,label..' resistance',v[3]);add('resistanceBase'..school,label..' resistance (base)',v[1])
+  add('resistance'..school,label..' resistance',v[3],nil,v);add('resistanceBase'..school,label..' resistance (base)',v[1],nil,v)
  end
  for _,entry in ipairs({{'attackPower','Attack power',UnitAttackPower},{'rangedAttackPower','Ranged attack power',UnitRangedAttackPower}})do
   local v=call(entry[1],entry[3],'player');local total
   if number(v[1])and number(v[2])and number(v[3])then total=v[1]+v[2]+v[3]end
-  add(entry[1],entry[2],total);add(entry[1]..'Base',entry[2]..' (base)',v[1])
+  add(entry[1],entry[2],total,nil,v);add(entry[1]..'Base',entry[2]..' (base)',v[1],nil,v)
  end
  local damage=call('damage',UnitDamage,'player')
- for i,label in ipairs({'Main-hand minimum damage','Main-hand maximum damage','Off-hand minimum damage','Off-hand maximum damage'})do add('damage'..i,label,damage[i])end
- local speed=call('attackSpeed',UnitAttackSpeed,'player');add('mainSpeed','Main-hand speed',speed[1],'seconds');add('offSpeed','Off-hand speed',speed[2],'seconds')
- local ranged=call('rangedDamage',UnitRangedDamage,'player');add('rangedSpeed','Ranged speed',ranged[1],'seconds');add('rangedMin','Ranged minimum damage',ranged[2]);add('rangedMax','Ranged maximum damage',ranged[3])
+ for i,label in ipairs({'Main-hand minimum damage','Main-hand maximum damage','Off-hand minimum damage','Off-hand maximum damage'})do add('damage'..i,label,damage[i],nil,damage)end
+ local speed=call('attackSpeed',UnitAttackSpeed,'player');add('mainSpeed','Main-hand speed',speed[1],'seconds',speed);add('offSpeed','Off-hand speed',speed[2],'seconds',speed)
+ local ranged=call('rangedDamage',UnitRangedDamage,'player');add('rangedSpeed','Ranged speed',ranged[1],'seconds',ranged);add('rangedMin','Ranged minimum damage',ranged[2],nil,ranged);add('rangedMax','Ranged maximum damage',ranged[3],nil,ranged)
  for _,v in ipairs({{'crit','Melee critical strike',GetCritChance},{'rangedCrit','Ranged critical strike',GetRangedCritChance},{'spellCrit','Spell critical strike',GetSpellCritChance},{'dodge','Dodge',GetDodgeChance},{'parry','Parry',GetParryChance},{'block','Block',GetBlockChance},{'meleeHaste','Melee haste',GetMeleeHaste},{'armorPenetration','Armor penetration',GetArmorPenetration}})do one(v[1],v[2],v[3],'%')end
  one('spellHaste','Spell haste',UnitSpellHaste,'%','player')
  local rangedHaste=call('rangedHaste',GetRangedHaste)
- add('rangedHaste','Ranged haste',number(rangedHaste[1])and number(rangedHaste[2])and rangedHaste[1]+rangedHaste[2]or nil,'%')
+ add('rangedHaste','Ranged haste',number(rangedHaste[1])and number(rangedHaste[2])and rangedHaste[1]+rangedHaste[2]or nil,'%',rangedHaste)
  local expertise=call('expertise',GetExpertise)
- for i,label in ipairs({'Main-hand expertise','Off-hand expertise','Ranged expertise'})do add('expertise'..i,label,expertise[i],'%')end
+ for i,label in ipairs({'Main-hand expertise','Off-hand expertise','Ranged expertise'})do add('expertise'..i,label,expertise[i],'%',expertise)end
  local defense=call('defense',UnitDefenseSkill,'player')
- add('defense','Defense skill',number(defense[1])and number(defense[2])and math.max(0,defense[1]+defense[2])or nil)
- add('defenseBase','Defense skill (base)',defense[1]);add('defenseModifier','Defense skill (modifier)',defense[2])
+ add('defense','Defense skill',number(defense[1])and number(defense[2])and math.max(0,defense[1]+defense[2])or nil,nil,defense)
+ add('defenseBase','Defense skill (base)',defense[1],nil,defense);add('defenseModifier','Defense skill (modifier)',defense[2],nil,defense)
  one('shieldBlock','Shield block value',GetShieldBlock);one('spellPenetration','Spell penetration',GetSpellPenetration)
  local movement=call('movement',GetUnitSpeed,'player')
- for i,label in ipairs({'Current movement speed','Run speed','Flight speed','Swim speed'})do add('movement'..i,label,movement[i],'yards per second')end
+ for i,label in ipairs({'Current movement speed','Run speed','Flight speed','Swim speed'})do add('movement'..i,label,movement[i],'yards per second',movement)end
  for _,v in ipairs({{'meleeHit','Melee hit','CR_HIT_MELEE',GetHitModifier},{'offhandHit','Off-hand hit','CR_HIT_MELEE',GetOffhandHitModifier},{'rangedHit','Ranged hit','CR_HIT_RANGED',GetRangedHitModifier},{'spellHit','Spell hit','CR_HIT_SPELL',GetSpellHitModifier}})do
   local modifier=call(v[1],v[4]);local id=A.Plain(_G[v[3]]);local rating=integer(id,1)and call(v[1]..'Rating',GetCombatRatingBonus,id)or{}
-  add(v[1],v[2],number(modifier[1])and number(rating[1])and modifier[1]+rating[1]or nil,'%')
+  add(v[1],v[2],number(modifier[1])and number(rating[1])and modifier[1]+rating[1]or nil,'%',modifier,rating)
  end
  for school,label in ipairs({'Physical','Holy','Fire','Nature','Frost','Shadow','Arcane'})do
   if school>1 then one('spellDamage'..school,label..' spell bonus damage',GetSpellBonusDamage,nil,school)end
  end
  one('healing','Spell bonus healing',GetSpellBonusHealing)
- local regen=call('manaRegen',GetManaRegen);add('manaRegen','Mana regeneration',regen[1],'per second');add('castingRegen','Mana regeneration while casting',regen[2],'per second')
+ local regen=call('manaRegen',GetManaRegen);add('manaRegen','Mana regeneration',regen[1],'per second',regen);add('castingRegen','Mana regeneration while casting',regen[2],'per second',regen)
  -- Resolve named constants from this client instead of assuming Retail rating IDs.
  local seen={}
  for _,v in ipairs({{'CR_DEFENSE_SKILL','Defense'},{'CR_DODGE','Dodge'},{'CR_PARRY','Parry'},{'CR_BLOCK','Block'},{'CR_HIT_MELEE','Melee hit'},{'CR_HIT_RANGED','Ranged hit'},{'CR_HIT_SPELL','Spell hit'},{'CR_CRIT_MELEE','Melee critical strike'},{'CR_CRIT_RANGED','Ranged critical strike'},{'CR_CRIT_SPELL','Spell critical strike'},{'CR_HASTE_MELEE','Melee haste'},{'CR_HASTE_RANGED','Ranged haste'},{'CR_HASTE_SPELL','Spell haste'},{'CR_EXPERTISE','Expertise'},{'CR_ARMOR_PENETRATION','Armor penetration'},{'CR_MASTERY','Mastery'},{'COMBAT_RATING_RESILIENCE_PLAYER_DAMAGE_TAKEN','Resilience'}})do
   local id=A.Plain(_G[v[1]])
   if integer(id,1)and not seen[id]then seen[id]=true;one('rating'..id,v[2]..' rating',GetCombatRating,nil,id);one('ratingBonus'..id,v[2]..' rating bonus',GetCombatRatingBonus,nil,id)end
  end
- out.coverage.stats=known..' of '..#out.stats..' requested values observed. Values include modifiers active when captured; unavailable fields stay unrecorded.'
+ out.statCoverage={recorded=known,total=#out.stats+(includeRestricted and 0 or missing.restricted),included=#out.stats,restricted=missing.restricted,unavailable=missing.unavailable,failed=missing.failed,missing=missing.missing}
+ out.coverage.stats=known..' of '..#out.stats..' values recorded at capture. Missing values show the read result.'
+end
+-- A fresh read for troubleshooting; never replace a historical snapshot.
+function X.Diagnose()
+ local out={stats={},coverage={}};stats(out,true)
+ local c=out.statCoverage
+ local lines={'Current stat check: '..c.recorded..' / '..c.total..' recorded; '..c.restricted..' restricted reads; '..c.unavailable..' APIs unavailable; '..c.failed..' failed reads; '..c.missing..' not supplied.'}
+ for _,key in ipairs({'health','maxHealth','power','attribute1','armor','attackPower','movement1'})do
+  for _,row in ipairs(out.stats)do if row.key==key then
+   lines[#lines+1]=row.label..': '..(row.value~=nil and 'readable'or row.readStatus)
+  end end
+ end
+ return lines
 end
 local function skills(out)
  local api=C_SkillInfo;local count,ok=call('skillCount',api and api.GetNumSkillLines)

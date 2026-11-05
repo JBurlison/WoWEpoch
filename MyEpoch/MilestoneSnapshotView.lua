@@ -201,10 +201,13 @@ local function equipment(page,c,r,s,state)
     page.y=start+412
 end
 local groupDefinitions={{'attributes','Attributes'},{'defense','Defense'},{'offense','Offense'},{'resources','Resources & movement'},{'other','Other recorded stats'}}
+local function visibleStat(row)
+    return type(row)=='table'and not(text(row.readStatus)=='restricted'and number(row.value)==nil)
+end
 function V.StatGroups(s)
     local groups,map={},{}
     for _,v in ipairs(groupDefinitions)do local g={key=v[1],title=v[2],rows={}};groups[#groups+1]=g;map[g.key]=g end
-    for index,row in ipairs(type(s.stats)=='table'and s.stats or{})do if type(row)=='table'then
+    for index,row in ipairs(type(s.stats)=='table'and s.stats or{})do if visibleStat(row)then
         local key=text(row.key):lower();local label=text(row.label):lower();local group
         if key:find('^attribute')then group='attributes'
         elseif key:find('^resistance')or key:find('^defense')or key=='armor'or key=='armorbase'or key=='armorbonus'or key=='dodge'or key=='parry'or key=='block'or key=='shieldblock'or(key:find('^rating')and(label:find('defense')or label:find('dodge')or label:find('parry')or label:find('block')or label:find('resilience')))then group='defense'
@@ -219,10 +222,13 @@ B.widgetFactories.milestoneStats=function(parent)
     local f=CreateFrame('Frame',nil,parent);f.paper=E.BookTheme.Texture(f,'ledger-line-v1');f.paper:SetAllPoints()
     f.text=font(f,17);f.text:SetPoint('TOPLEFT',12,-12);f.lines={};return f
 end
+local statReadLabels={restricted='Restricted read',unavailable='API unavailable',failed='Read failed',missing='Not supplied'}
 local function statLine(f,index,row,width,y,size)
     local line=f.lines[index];if not line then line={label=font(f,12),value=font(f,12)};f.lines[index]=line;line.value:SetJustifyH('RIGHT')end
     line.label:SetFont('Fonts\\FRIZQT__.TTF',size or 12,'');line.value:SetFont('Fonts\\FRIZQT__.TTF',size or 12,'')
-    local unit=text(row.unit);line.label:SetText(E.Text(text(row.label,text(row.key,'Stat'))));line.value:SetText(formatted(row.value)..(unit~=''and' '..unit or''))
+    local unit=text(row.unit);local value=number(row.value)
+    local display=value~=nil and formatted(value)..(unit~=''and' '..unit or'')or statReadLabels[text(row.readStatus)]or'Not recorded'
+    line.label:SetText(E.Text(text(row.label,text(row.key,'Stat'))));line.value:SetText(display)
     line.label:SetWidth(width*.58);line.value:SetWidth(width*.36);line.label:ClearAllPoints();line.value:ClearAllPoints();line.label:SetPoint('TOPLEFT',12,-y);line.value:SetPoint('TOPRIGHT',-12,-y)
     line.label:Show();line.value:Show();return math.max(20,line.label:GetStringHeight(),line.value:GetStringHeight())+5
 end
@@ -362,6 +368,14 @@ function V.Render(page,r)
             state.tab=selected;B.Render()
     end)
     local key=state.tab:lower();local coverage=type(s.coverage)=='table'and text(s.coverage[key])or''
+    if state.tab=='Stats'then
+        local hidden,total,recorded=0,0,0
+        for _,row in ipairs(type(s.stats)=='table'and s.stats or{})do if type(row)=='table'then
+            if visibleStat(row)then total=total+1;if number(row.value)~=nil then recorded=recorded+1 end
+            else hidden=hidden+1 end
+        end end
+        if hidden>0 then coverage=recorded..' of '..total..' values recorded at capture. Missing values show the read result.'end
+    end
     if coverage~=''and state.tab~='Equipment'then B.Text(page,coverage,12)end
     if state.tab=='Equipment'then equipment(page,c,r,s,state)
     elseif state.tab=='Stats'then stats(page,c,r,s,state,false)
