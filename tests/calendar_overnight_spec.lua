@@ -18,12 +18,12 @@ for _,r in ipairs(records)do if r.kind=="chat"then chat=chat or r elseif r.kind=
 assert(chat and quest and chat.group==group.id and quest.group==group.id)
 assert(group.ts==day-4 and c.state.group==group.id)
 for step=1,10000 do if B.HistoryReadiness(c)=="ready"then break end;E.Query.ProcessPreparation(500);E.Gathering.Process();E.GoldChecks.Process()end
-assert(B.HistoryReadiness(c)=="ready");B.Open();B.ChangeCharacter(c.id);B.SetChapter("Calendar");B.calendarFilter="all";V.SelectDay(day)
+assert(B.HistoryReadiness(c)=="ready");B.Open();B.ChangeCharacter(c.id);B.SetChapter("Calendar");B.calendarFilter="all";V.SelectDay(day,"Events")
 local function dayButton()
  for i=1,B.left.used.calendarDay do local b=B.left.pool.calendarDay[i];if b.day==day then return b end end
 end
 local cell=assert(dayButton())
-cell:Click();TEST_UI_CLICK("Groups")
+cell:Click();assert(B.calendarDiaryOpen);TEST_UI_CLICK("Events");TEST_UI_CLICK("Groups")
 if BEFORE then
  assert(V.lastReport.counts.group==nil and not cell.text:GetText():find("group",1,true))
  assert((B.right.used.calendarEvent or 0)==0)

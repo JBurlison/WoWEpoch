@@ -6,7 +6,7 @@ local report=V.Report(c,day)
 assert(report.counts.group==1 and report.counts.quest==1 and report.counts.loot==1)
 assert(report.counts.crafted==7 and report.counts.gathered==11 and report.counts.milestone==4)
 assert(E.Query.ActiveTime(c,day,finish)==6600,"recorded AFK is excluded")
-assert(B.right.used.calendarStat==7 and not B.calendarDiaryOpen)
+assert(B.right.used.calendarStat==7 and B.calendarDiaryOpen)
 assert(not B.folioPages and B.tabs.Calendar.isChapter)
 for _,case in ipairs({{"2026-03-01",31,6,6},{"2027-02-01",28,4,0},{"2028-02-29",29,5,1}})do
  V.SelectDay(assert(A.ParseDay(case[1])))
@@ -37,7 +37,7 @@ local function control(page,text)
  for i=1,page.used.calendarControl or 0 do local f=page.pool.calendarControl[i]; if f.text:GetText()==text then f:Click(); return end end
  return TEST_UI_CLICK(text,prefix)
 end
-B.Render(); control(B.right,"Milestones"); assert(B.right.used.calendarEvent==4)
+B.Render(); TEST_UI_CLICK("Events"); control(B.right,"Milestones"); assert(B.right.used.calendarEvent==4)
 control(B.right,"Crafted"); assert(B.right.used.calendarEvent==1 and B.right.pool.calendarEvent[1].text:GetText()=="Copper Bar")
 B.right.pool.calendarEvent[1]:Click(); assert(c.records[B.selected].kind=="crafted")
 local returned=false
@@ -48,7 +48,7 @@ control(B.right,"Quests"); assert(B.right.pool.calendarEvent[1].clock:GetText()=
 control(B.right,"All")
 local diary=D.SaveDaily(c,day,finish,A.Now()); local refs=E.Copy(diary.refs); local before=diary.text
 local note=c.notes["day:2026-10-29"].text
-B.right.pool.calendarDiary[1]:Click(); assert(B.calendarDiaryOpen)
+TEST_UI_CLICK("Diary"); assert(B.calendarDiaryOpen)
 control(B.right,"Try another telling")
 assert(diary.text==before,'retelling keeps saved text visible while preparing')
 while E.JournalJobs.Retelling(c,diary)do E.JournalJobs.StepWriters(c,A.Now(),61)end
@@ -67,7 +67,7 @@ assert((B.right.used.calendarStat or 0)==0,"empty day has no zero-valued metrics
 local empty=D.SaveDaily(c,B.day,A.ShiftDay(B.day,1),A.Now()); local text=empty.text
 D.RetellDaily(c,B.day,A.ShiftDay(B.day,1),A.Now()); assert(empty.text==text and #empty.refs==0)
 for i=1,50 do S.Add(c,"quest",day+20000+i,{title=string.rep("An unusually long quest title ",10)})end
-V.SelectDay(day); assert(B.right.used.calendarEvent==12)
+V.SelectDay(day,"Events"); assert(B.right.used.calendarEvent==12)
 control(B.right,"Later events"); assert(B.calendarPage==2 and B.right.pool.calendarEvent[1]:GetHeight()>62)
 local allocated=#B.right.pool.calendarEvent
 for i=1,30 do B.calendarPage=i%5+1; B.Render(true)end
@@ -78,6 +78,6 @@ B.ChangeCharacter(other.id); B.SetChapter("Calendar")
 assert((B.right.used.calendarStat or 0)==0 and not B.calendarDiaryOpen and not B.calendarFilter)
 B.ChangeCharacter(c.id)
 assert(B.day==day and B.calendarDiaryOpen and B.calendarFilter=="crafted","calendar state belongs to its character")
-B.SetChapter("Chronicle"); assert(not B.right.pool.calendarDiary[1]:IsShown())
+B.SetChapter("Chronicle"); assert((B.right.used.calendarEvent or 0)==0)
 assert(B.frame:GetWidth()==1760 and B.frame:GetHeight()==940)
 print("PASS Calendar: 4/5/6-week geometry, local-day boundaries, nonzero totals, own progress/production, filters, details, diary variation and separate notes, note-search visibility, bounded history rows")

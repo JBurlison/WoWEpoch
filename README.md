@@ -11,7 +11,7 @@ Each character has a separate journal. Switch between them with the character pi
 | Chapter | What you’ll find |
 | --- | --- |
 | **Chronicle** | Your character’s major milestones: levels, achievements, first discoveries and completions, and profession or weapon-skill thresholds. Milestones can include saved equipment, stats, and skills. |
-| **Calendar** | A day-by-day view of your adventures, with links to groups, quests, loot, milestones, and recaps. Read the daily diary and add your own notes. |
+| **Calendar** | Select a day to read its full diary and add your own notes. Switch to Events to filter quests, loot, mobs defeated, groups, milestones, recaps, and more. Routine movement samples stay out of the event list. |
 | **Recaps** | Daily, weekly, monthly, yearly, and milestone summaries of recorded activity and progress. |
 | **Quests** | Completed quest history, recorded attempts, notes, and kill history. Confirmed objective credit is separate from kills recorded while a quest was active. |
 | **Company** | Group sessions, companions, shared activity, recorded conversations, and available pull damage details. Open a whisper or add a companion as a friend. |

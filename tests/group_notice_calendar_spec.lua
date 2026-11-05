@@ -18,7 +18,7 @@ fire("CHAT_MSG_LOOT","You receive loot: "..link.."x3.",nil,nil,nil,nil,nil,nil,n
 local encounter,reward
 for _,r in pairs(c.records)do if r.kind=="encounter_loot" then encounter=r elseif r.kind=="quest_reward"then reward=r end end
 assert(encounter.observerGroup==gid and reward.observerGroup==gid)
-B.Open();B.SetChapter("Calendar");B.calendarFilter="group";E.CalendarView.SelectDay(day)
+B.Open();B.SetChapter("Calendar");B.calendarFilter="group";E.CalendarView.SelectDay(day,"Events")
 local function groupFromDay()
  wait(function()return B.right.used.calendarEvent==1 end);local row=B.right.pool.calendarEvent[1];click(row)
  assert(B.chapter=="Calendar" and B.selected==group.id)
@@ -32,7 +32,7 @@ assert(B.right.used.ledgerItem==1);click(widget("button","Back to this day"));as
 groupFromDay();click(widget("companyRow","Quest reward notice","status"));assert(B.selected==reward.id and B.right.used.ledgerItem==1)
 click(widget("button","Back to this day"));groupFromDay();local stale=widget("companyRow","Encounter loot notice","status").scripts.OnClick
 B.SetChapter("Company");B.selected=group.id;B.groupTab="loot";B.Render(true);stale();assert(B.selected==group.id,"callback crossed its originating chapter")
-B.SetChapter("Calendar");B.calendarFilter="group";E.CalendarView.SelectDay(day);groupFromDay()
+B.SetChapter("Calendar");B.calendarFilter="group";E.CalendarView.SelectDay(day,"Events");groupFromDay()
 local old=widget("companyRow","Encounter loot notice","status").scripts.OnClick
 B.calendarFilter="all";old();assert(B.selected==group.id);B.calendarFilter="group"
 B.day=A.ShiftDay(day,1);old();assert(B.selected==group.id);B.day=day

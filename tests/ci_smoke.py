@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # core_spec + integration_spec first (character isolation, startup and UI).
 # Keep this list deliberately small; do not auto-discover the stress suite.
 SPECS = (
+    'calendar_tabs_spec.lua',
     'finance_view_spec.lua',
     'economy_spec.lua',
     'inventory_spec.lua',

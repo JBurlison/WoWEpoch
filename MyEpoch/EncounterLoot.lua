@@ -125,7 +125,7 @@ function L.Detail(page,c,r)
     end)
     if S.Timestamp(r) then B.Action(page,"Open this calendar day",function()
         if here() and S.Timestamp(r) then
-            B.SetChapter("Calendar");B.calendarFilter="encounter_loot";E.CalendarView.SelectDay(r.ts)
+            B.SetChapter("Calendar");B.calendarFilter="encounter_loot";E.CalendarView.SelectDay(r.ts,"Events")
         end
     end)end
     B.Note(page,"record:"..r.id)

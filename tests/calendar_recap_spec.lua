@@ -17,7 +17,7 @@ for kind,day in pairs(expected)do
         local generated=V.Report(c,generatedDay)
         for _,row in ipairs(generated.records)do assert(row~=r,'recap placed on generation date')end
     end
-    B.Open();B.ChangeCharacter(c.id);B.SetChapter('Calendar');V.SelectDay(A.ParseDay(day))
+    B.Open();B.ChangeCharacter(c.id);B.SetChapter('Calendar');V.SelectDay(A.ParseDay(day),'Events')
     B.calendarFilter='recap'
     local card
     for attempt=1,300 do

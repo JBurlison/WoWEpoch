@@ -172,7 +172,7 @@ function R.Detail(page,c,r)
     B.Action(page,"Open quest "..r.questID,function()if here()then B.SetChapter("Quests");E.QuestView.Select(r.questID)end end)
     B.Action(page,"Open quest rewards in Loot",function()if here()then B.lootMode="quest_rewards";B.SetChapter("Loot");B.selected=nil;B.Render(true)end end)
     if S.Timestamp(r)then B.Action(page,"Open this calendar day",function()
-        if here()then B.SetChapter("Calendar");B.day=A.DayStart(r.ts);B.calendarPage=1;B.calendarFilter="quest_reward";B.selected=nil;B.Render(true)end
+        if here()then B.SetChapter("Calendar");B.calendarFilter="quest_reward";E.CalendarView.SelectDay(r.ts,"Events")end
     end)end
     B.Note(page,"record:"..r.id)
 end
