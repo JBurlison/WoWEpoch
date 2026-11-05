@@ -39,4 +39,8 @@ E.Localize({
 ["Meter session {id}"]="Sesión de combate {id}",
 ["Trade with {name}"]="Intercambio con {name}",
 ["Offer with {name}"]="Oferta a {name}",
+["Filter sources"]="Filtrar fuentes",
+["Remove XP source link"]="Quitar vínculo de experiencia",
+["Kill"]="Enemigo derrotado",
+["Exploration"]="Exploración",
 })

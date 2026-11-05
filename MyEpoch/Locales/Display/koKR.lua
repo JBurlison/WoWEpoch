@@ -39,4 +39,8 @@ E.Localize({
 ["Meter session {id}"]="전투 기록 {id}",
 ["Trade with {name}"]="{name} 님과 거래",
 ["Offer with {name}"]="{name} 님에게 제안",
+["Filter sources"]="기록 필터",
+["Remove XP source link"]="경험치 출처 연결 해제",
+["Kill"]="적 처치",
+["Exploration"]="탐험",
 })

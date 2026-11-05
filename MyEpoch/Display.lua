@@ -66,6 +66,16 @@ end
 function D.RecordTitle(r)
     if type(r)~='table'then return E.L.Unknown end
     local kind=r.kind
+    if kind=='xp'and type(r.amount)=='number'then
+        local title=E.L['XP gained']..': '..E.Number(r.amount)
+        local cause=r.xpCause
+        if cause then
+            local label=({quest='Quest',kill='Kill',exploration='Exploration'})[cause.kind]
+            local name=cause.kind=='quest'and D.Quest(cause.questID,cause.name)or cause.name
+            if label and name then title=title..' / '..E.L[label]..': '..name..' ('..E.L['inferred']..')'end
+        end
+        return title
+    end
     if kind=='memory'or kind=='screenshot'or kind=='chat'then return r.title or D.Kind(kind)end
     if E.locale~='enUS'and kind=='diary'and r.day and r.title=='Diary - '..r.day then
         return E.L['Daily diary']..' - '..r.day

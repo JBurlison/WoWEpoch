@@ -37,4 +37,8 @@ E.Localize({
     ["Meter session {id}"]="Sessione del misuratore {id}",
     ["Trade with {name}"]="Scambio con {name}",
     ["Offer with {name}"]="Offerta a {name}",
+["Filter sources"]="Filtra le fonti",
+["Remove XP source link"]="Rimuovi il collegamento dell’esperienza",
+["Kill"]="Nemico sconfitto",
+["Exploration"]="Esplorazione",
 })

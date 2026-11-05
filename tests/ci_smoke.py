@@ -17,6 +17,7 @@ SPECS = (
     'calendar_tabs_spec.lua',
     'milestone_snapshot_view_spec.lua',
     'recap_readability_spec.lua',
+    'experience_sources_spec.lua',
     'finance_view_spec.lua',
     'economy_spec.lua',
     'inventory_spec.lua',

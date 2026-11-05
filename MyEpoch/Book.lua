@@ -282,7 +282,11 @@ function B.Record(page,r)
     end
     if r.text and r.kind~="memory" then B.Text(page,r.text,17) end
     if r.quantity and not(E.LedgerStyle and E.LedgerStyle.financial[r.kind]) then B.Text(page,E.Format("Quantity: {quantity} | Recipient: {recipient}",{quantity=r.quantity,recipient=r.recipient==c.id and c.identity.name or r.recipientName or E.L["Unknown"]})) end
-    if r.amount then
+    if r.kind=='xp'then
+        if r.xpCause then
+            B.Action(page,E.L['Remove XP source link'],function()E.ExperienceSources.Dismiss(c,r);B.Render()end)
+        else B.Text(page,E.L['Acquisition source unknown'],13)end
+    elseif r.amount then
         if E.LedgerStyle and E.LedgerStyle.financial[r.kind]then E.LedgerStyle.Amount(page,r.kind=="gold"and E.L["Recorded wallet change"]or E.L["Recorded amount"],r.amount)
         else B.Text(page,E.Money(r.amount).." | "..E.L[r.source or "unknown"])end
     end

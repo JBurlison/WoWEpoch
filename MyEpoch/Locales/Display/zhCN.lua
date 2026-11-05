@@ -39,4 +39,8 @@ E.Localize({
 ["Meter session {id}"]="战斗记录 {id}",
 ["Trade with {name}"]="与{name}交易",
 ["Offer with {name}"]="向{name}提出交易",
+["Filter sources"]="筛选来源",
+["Remove XP source link"]="取消经验来源关联",
+["Kill"]="击败敌人",
+["Exploration"]="探索",
 })

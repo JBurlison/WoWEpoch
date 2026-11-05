@@ -446,7 +446,16 @@ function V.Allowed(c,r)
         or r.kind=='gold'
         or r.kind=='auction'and(r.source=='purchase'or r.source=='owned'and r.auctionData and r.auctionData.statusLabel=='Reported sold')
         or r.kind=='quest'and r.status=='completed'or r.kind=='loot'and r.recipient==c.id
-        or (r.kind=='xp'or r.kind=='travel'or r.kind=='duel'or r.kind=='battleground'or r.kind=='roll_win')and r.subject==c.id
+        or (r.kind=='xp'or r.kind=='duel'or r.kind=='battleground'or r.kind=='roll_win')and r.subject==c.id
+end
+function V.FilterSources(rows,excluded)
+    local shown,kinds,counts={},{},{}
+    for _,r in ipairs(rows)do _auctionTick();
+        if not counts[r.kind]then kinds[#kinds+1]=r.kind;counts[r.kind]=0 end
+        counts[r.kind]=counts[r.kind]+1
+        if not(excluded and excluded[r.kind])then shown[#shown+1]=r end
+    end
+    _auctionSort(kinds);return shown,kinds,counts
 end
 function V.Sources(c,r)
     local rows,missing,seen={},0,{}
@@ -471,4 +480,4 @@ end
 end
 E.CraftProjectionReaderFactories[#E.CraftProjectionReaderFactories+1]={name="ProjectionRecaps",create=create}
 end
-E.CraftProjectionReaderSources["ProjectionRecaps"]="a75b88304ee355418225fc06baceb211ae4fa7986c630bc0ff1279a71915e8e9"
+E.CraftProjectionReaderSources["ProjectionRecaps"]="3f968dfc92574967bfb4ea12c59004fe36c10eeb62498d35c80b799491d3eee4"

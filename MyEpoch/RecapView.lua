@@ -35,7 +35,16 @@ function V.Allowed(c,r)
         or r.kind=='gold'
         or r.kind=='auction'and(r.source=='purchase'or r.source=='owned'and r.auctionData and r.auctionData.statusLabel=='Reported sold')
         or r.kind=='quest'and r.status=='completed'or r.kind=='loot'and r.recipient==c.id
-        or (r.kind=='xp'or r.kind=='travel'or r.kind=='duel'or r.kind=='battleground'or r.kind=='roll_win')and r.subject==c.id
+        or (r.kind=='xp'or r.kind=='duel'or r.kind=='battleground'or r.kind=='roll_win')and r.subject==c.id
+end
+function V.FilterSources(rows,excluded)
+    local shown,kinds,counts={},{},{}
+    for _,r in ipairs(rows)do
+        if not counts[r.kind]then kinds[#kinds+1]=r.kind;counts[r.kind]=0 end
+        counts[r.kind]=counts[r.kind]+1
+        if not(excluded and excluded[r.kind])then shown[#shown+1]=r end
+    end
+    table.sort(kinds);return shown,kinds,counts
 end
 function V.Sources(c,r)
     local rows,missing,seen={},0,{}
@@ -205,8 +214,25 @@ function V.Record(page,c,r)
     note:SetMultiLine(true); note:SetScript("OnEnterPressed",nil); note:SetScript("OnTextChanged",nil); note:SetText(c.notes[key] and c.notes[key].text or "")
     note:SetScript("OnTextChanged",function(self,user)if user then S.Note(c,key,self:GetText(),A.Now())end end)
     page.y=page.y+124; B.Text(page,E.L["Notes save as you type and stay separate from the generated writing."],12)
-    local rows,missing=projection.sources,projection.missing
-    control(page,(B.recapSourcesOpen and "- " or "+ ")..E.Format('Follow the source records ({count})',{count=E.Number(#rows)}),0,page.y,350,function()B.recapSourcesOpen=not B.recapSourcesOpen; B.Render()end); page.y=page.y+44
+    local all,missing=projection.sources,projection.missing
+    local rows,kinds,counts=V.FilterSources(all,B.recapSourceExcluded)
+    local beside=width>=540
+    control(page,(B.recapSourcesOpen and "- " or "+ ")..E.Format('Follow the source records ({count})',{count=E.Number(#rows)}),0,page.y,math.min(350,width),function()B.recapSourcesOpen=not B.recapSourcesOpen; B.Render()end)
+    if not beside then page.y=page.y+40 end
+    control(page,E.L['Filter sources'],beside and 360 or 0,page.y,math.min(170,width),function()B.recapFiltersOpen=not B.recapFiltersOpen;B.Render()end,B.recapFiltersOpen)
+    page.y=page.y+44
+    if B.recapFiltersOpen then
+        local columns=math.max(1,math.floor(width/170));local cell=width/columns;local choices={{kind=false,label=E.L['All events']}}
+        for _,kind in ipairs(kinds)do choices[#choices+1]={kind=kind,label=E.Display.Kind(kind)..' ('..E.Number(counts[kind])..')'}end
+        for i,choice in ipairs(choices)do local kind=choice.kind
+            control(page,choice.label,((i-1)%columns)*cell,page.y+math.floor((i-1)/columns)*38,cell-6,function()
+                B.recapSourceExcluded=B.recapSourceExcluded or{}
+                if kind then B.recapSourceExcluded[kind]=not B.recapSourceExcluded[kind]or nil else B.recapSourceExcluded={}end
+                B.recapSourcePage=1;B.recapSourcesOpen=true;B.Render()
+            end,kind and not(B.recapSourceExcluded or{})[kind]or not kind and not next(B.recapSourceExcluded or{}))
+        end
+        page.y=page.y+math.ceil(#choices/columns)*38+8
+    end
     if B.recapSourcesOpen then
         if (r.unavailableSourceCount or 0)>0 then B.Text(page,E.Format('{count} source records were unavailable when saved; their daily totals remain.',{count=E.Number(r.unavailableSourceCount)}),13)end
         if missing>0 then B.Text(page,E.Format('{count} linked source records are no longer available.',{count=E.Number(missing)}),13)end

@@ -39,4 +39,8 @@ E.Localize({
 ["Meter session {id}"]="Запись боя {id}",
 ["Trade with {name}"]="Обмен с {name}",
 ["Offer with {name}"]="Предложение для {name}",
+["Filter sources"]="Фильтр источников",
+["Remove XP source link"]="Убрать связь с источником опыта",
+["Kill"]="Победа над врагом",
+["Exploration"]="Исследование",
 })
