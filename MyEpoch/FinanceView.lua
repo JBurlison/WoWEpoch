@@ -138,8 +138,7 @@ function V.Graph(page,report,range,mode)
     rect(plot,0,0,width,280,0.33,0.23,0.12,0.12)
     local left,bottom,top=112,55,228;local chartWidth=math.max(1,width-left-20)
     local heading=({balance="Balance",income="Income",spending="Spending",net="Net change"})[mode] or "Coin value"
-    graphLabel(plot,"Coin value",8,255,96,"RIGHT",11)
-    graphLabel(plot,heading,left,255,chartWidth,"LEFT",12)
+    graphLabel(plot,heading.." (coin value)",left,255,chartWidth,"LEFT",12)
     graphLabel(plot,"Date / local time",left,7,chartWidth,"CENTER",11)
     -- Leave room for axes in the bounded texture pool, even with dense history.
     local bins,minValue,maxValue={},nil,nil; local count=120; local span=math.max(1,range.through-range.from)
@@ -186,16 +185,17 @@ function V.Graph(page,report,range,mode)
             end
         end
         rect(plot,left,bottom,1,top-bottom,.45,.32,.17,.6)
-        local lastLabelRight=-math.huge
+        local obstacles,candidates,placed={},{},{}
+        local function dataRect(x,yy,w,h,r,g,b)
+            rect(plot,x,yy,w,h,r,g,b)
+            obstacles[#obstacles+1]={x=x,y=yy,w=math.max(1,w),h=math.max(1,h)}
+        end
         local function annotate(i,bin,value)
             local x=left+(i-1)/count*chartWidth
             local text=money(value);local labelWidth=math.max(48,#text*7)
-            local labelLeft=mode=="balance" and (x+labelWidth+16<=width and x+8 or x-labelWidth-8) or x-labelWidth/2
-            labelLeft=math.max(left,math.min(width-labelWidth-8,labelLeft))
-            if labelLeft>=lastLabelRight+6 then
-                graphLabel(plot,text,labelLeft,y(mode~="balance" and value<0 and 0 or value)+8,labelWidth,mode=="balance" and "LEFT" or "CENTER")
-                lastLabelRight=labelLeft+labelWidth
-            end
+            candidates[#candidates+1]={text=text,value=value,i=i,w=labelWidth,h=16,
+                x=math.max(left,math.min(width-labelWidth-8,x-labelWidth/2)),
+                y=y(mode=="balance" and bin.max or math.max(0,value))+8}
             local hit=plot.hits[i]
             if not hit then hit=CreateFrame("Frame",nil,plot);hit:EnableMouse(true);plot.hits[i]=hit end
             hit:ClearAllPoints();hit:SetPoint("BOTTOMLEFT",plot,"BOTTOMLEFT",x-2,bottom)
@@ -216,19 +216,38 @@ function V.Graph(page,report,range,mode)
             for i=1,count do local bin=bins[i]; if bin then
                 local x=left+(i-1)/count*chartWidth
                 if previous and previous.window==bin.window and not previous.mixed and not bin.mixed then
-                    rect(plot,previous.x,y(previous.last),x-previous.x,2,0.34,0.28,0.12)
-                    rect(plot,x,math.min(y(previous.last),y(bin.last)),2,math.abs(y(bin.last)-y(previous.last)),0.34,0.28,0.12)
+                    dataRect(previous.x,y(previous.last),x-previous.x,2,0.34,0.28,0.12)
+                    dataRect(x,math.min(y(previous.last),y(bin.last)),2,math.abs(y(bin.last)-y(previous.last)),0.34,0.28,0.12)
                 end
-                if not bin.mixed then rect(plot,x,y(bin.min),2,math.max(2,y(bin.max)-y(bin.min)),0.34,0.28,0.12) end
-                rect(plot,x-2,y(bin.last)-2,5,5,0.53,0.34,0.10); bin.x=x; previous=bin
+                if not bin.mixed then dataRect(x,y(bin.min),2,math.max(2,y(bin.max)-y(bin.min)),0.34,0.28,0.12) end
+                dataRect(x-2,y(bin.last)-2,5,5,0.53,0.34,0.10); bin.x=x; previous=bin
                 annotate(i,bin,bin.last)
             end end
         else
             rect(plot,left,y(0),chartWidth,1,0.35,0.27,0.16,0.45)
             for i=1,count do local bin=bins[i];if bin and bin.value~=0 then
-                rect(plot,left+(i-1)/count*chartWidth,math.min(y(0),y(bin.value)),4,math.abs(y(bin.value)-y(0)),bin.value<0 and 0.55 or 0.25,0.35,0.15)
+                dataRect(left+(i-1)/count*chartWidth,math.min(y(0),y(bin.value)),4,math.abs(y(bin.value)-y(0)),bin.value<0 and 0.55 or 0.25,0.35,0.15)
                 annotate(i,bin,bin.value)
             end end
+        end
+        -- Label peaks first. Crowded values remain available on hover rather than
+        -- printing through a neighboring bar, balance segment, or another label.
+        table.sort(candidates,function(a,b)
+            if a.y~=b.y then return a.y>b.y end
+            if math.abs(a.value)~=math.abs(b.value) then return math.abs(a.value)>math.abs(b.value) end
+            return a.i<b.i
+        end)
+        local function overlaps(a,b)
+            return a.x<b.x+b.w+4 and a.x+a.w+4>b.x and a.y<b.y+b.h+4 and a.y+a.h+4>b.y
+        end
+        for _,label in ipairs(candidates) do
+            local clear=true
+            for _,obstacle in ipairs(obstacles) do if overlaps(label,obstacle) then clear=false;break end end
+            if clear then for _,other in ipairs(placed) do if overlaps(label,other) then clear=false;break end end end
+            if clear then
+                graphLabel(plot,label.text,label.x,label.y,label.w,"CENTER")
+                placed[#placed+1]=label
+            end
         end
     end
     page.y=page.y+292

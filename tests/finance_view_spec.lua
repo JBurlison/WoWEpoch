@@ -59,7 +59,7 @@ local sparse={wallet={points={{ts=now+60,balance=141,observed=true,window="one"}
     transactions={{ts=now+60,amount=141},{ts=now+1800,amount=-50}}}
 local chartRange={from=now,through=now+3600,first="2026-10-31",last="2026-10-31"}
 B.Clear(B.right);V.Graph(B.right,sparse,chartRange,"net")
-assert(labelShown("Coin value") and labelShown("Date / local time") and labelShown("Net change"))
+assert(labelShown("Date / local time") and labelShown("Net change (coin value)"))
 assert(labelShown("1s 41c") and labelShown("-50c"),"sparse bars show exact signed coin values")
 local activeHits=0
 for _,hit in pairs(plot.hits)do if hit:IsShown()then
@@ -68,7 +68,26 @@ for _,hit in pairs(plot.hits)do if hit:IsShown()then
 end end
 eq(activeHits,2,"old dense hover targets are hidden when data changes")
 B.Clear(B.right);V.Graph(B.right,sparse,chartRange,"balance")
-assert(labelShown("Balance") and labelShown("1s 41c"),"a single balance point has a value label")
+assert(labelShown("Balance (coin value)") and labelShown("1s 41c"),"a single balance point has a value label")
+local clustered={wallet={points={}},transactions={}}
+for i,value in ipairs({4258082,15207172,9510000,13001234,2500000})do
+    local ts=now+3000+i*25
+    clustered.transactions[i]={ts=ts,amount=value}
+    clustered.wallet.points[i]={ts=ts,balance=value,observed=true,window="cluster"}
+end
+for _,mode in ipairs({"income","balance"})do
+    B.Clear(B.right);V.Graph(B.right,clustered,chartRange,mode)
+    local annotations={}
+    for _,f in ipairs(plot.labels)do if f:IsShown() and f.point[4]>=112 and f:GetText():match("^%d+g")then
+        annotations[#annotations+1]=f
+        assert(f.point[5]>=236,"cluster labels must sit above the tallest neighboring bar or balance line")
+    end end
+    eq(#annotations,1,"a crowded cluster labels its peak, keeping other values on hover")
+    eq(annotations[1]:GetText(),"1520g 71s 72c","the tallest peak takes priority over the first observation")
+    activeHits=0
+    for _,hit in pairs(plot.hits)do if hit:IsShown()then activeHits=activeHits+1 end end
+    eq(activeHits,5,"all clustered values retain individual hover details")
+end
 B.Clear(B.right);V.Graph(B.right,{wallet={points={}},transactions={}},chartRange,"balance")
 assert(not labelShown("1s 41c"),"empty graphs do not retain stale value labels")
 for _,hit in pairs(plot.hits)do assert(not hit:IsShown(),"empty graphs have no stale hover targets")end
