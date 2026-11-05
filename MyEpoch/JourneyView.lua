@@ -47,7 +47,7 @@ function V.RefreshMap(frame)
     for i,texture in ipairs(frame.tiles) do if ready and i<=#frame.art.tiles then texture:Show() else texture:Hide() end end
     for i,pin in ipairs(frame.pins) do if ready and i<=frame.clusterCount then pin:Show() else pin:Hide() end end
     if ready then frame.message:Hide(); frame:SetScript("OnUpdate",nil)
-    else frame.message:SetText(frame.art and "Map artwork is loading or unavailable. Open Map details to retry." or "No map artwork is available for these records."); frame.message:Show() end
+    else frame.message:SetText(frame.art and E.L["Map artwork is loading or unavailable. Open Map details to retry."] or E.L["No map artwork is available for these records."]); frame.message:Show() end
 end
 function V.Draw(page,art,clusters)
     local frame=B.Acquire(page,"journeyMap");if not frame.photo then T.Photo(frame)end
@@ -111,102 +111,102 @@ function V.Render(left,right)
         if location then chosen={key=location.key,name=location.name,mapID=location.mapID,rows={},discoveries=0}end
     end
     if not chosen then chosen=locations[1];B.journeyMap=chosen and chosen.key;B.journeyBucket=nil end
-    B.Text(left,"CHAPTER IX - THE PLACES WE REMEMBER",11):SetTextColor(.54,.40,.23)
-    B.Text(left,chosen and chosen.name or "Your journeys",24)
-    local filterName="All events";for _,filter in ipairs(J.filters)do if filter[1]==B.journeyFilter then filterName=filter[2]end end
+    B.Text(left,E.L["CHAPTER IX - THE PLACES WE REMEMBER"],11):SetTextColor(.54,.40,.23)
+    B.Text(left,chosen and (chosen.key=='unplaced' and E.L['Unplaced records'] or E.Display.Map(chosen.mapID,chosen.name)) or E.L["Your journeys"],24)
+    local filterName=E.L["All events"];for _,filter in ipairs(J.filters)do if filter[1]==B.journeyFilter then filterName=E.L[filter[2]]end end
     B.Navigation.Controls(function(left)
-    B.Navigation.Branch(left,"Events: "..filterName,B.journeyFiltersOpen,function()B.journeyFiltersOpen=not B.journeyFiltersOpen;B.Render()end,function(left)
+    B.Navigation.Branch(left,E.Format('Events: {filter}',{filter=filterName}),B.journeyFiltersOpen,function()B.journeyFiltersOpen=not B.journeyFiltersOpen;B.Render()end,function(left)
         local controls={};for _,filter in ipairs(J.filters)do if filter[1]~="deaths"or deaths then local key=filter[1]
-            controls[#controls+1]={filter[2],function()B.journeyFilter=key;B.journeyBucket=nil;B.journeyRecordsPage=1;B.selected=nil;B.journeyFiltersOpen=false;B.Render(true)end,B.journeyFilter==key}
+            controls[#controls+1]={E.L[filter[2]],function()B.journeyFilter=key;B.journeyBucket=nil;B.journeyRecordsPage=1;B.selected=nil;B.journeyFiltersOpen=false;B.Render(true)end,B.journeyFilter==key}
         end end;B.Navigation.Grid(left,controls,1,true)
     end)
-    B.Navigation.Button(left,deaths and"Hide death locations"or"Show death locations",function()c.state.journeyShowDeaths=not deaths;S.Touch(c);B.journeyBucket=nil;B.selected=nil;B.Render(true)end,deaths)
-    B.Navigation.Branch(left,"Choose a location",B.journeyChooser,function()B.journeyChooser=not B.journeyChooser;B.Render()end,function(left)
-        B.Text(left,"Find a recorded location or map ID; Enter to apply",12)
+    B.Navigation.Button(left,deaths and E.L["Hide death locations"]or E.L["Show death locations"],function()c.state.journeyShowDeaths=not deaths;S.Touch(c);B.journeyBucket=nil;B.selected=nil;B.Render(true)end,deaths)
+    B.Navigation.Branch(left,E.L["Choose a location"],B.journeyChooser,function()B.journeyChooser=not B.journeyChooser;B.Render()end,function(left)
+        B.Text(left,E.L["Find a recorded location or map ID; Enter to apply"],12)
         B.Input(left,B.journeyQuery or"",function(value)B.journeyQuery=value;B.journeyLocationPage=1;B.Render()end)
         local matching={};local query=(B.journeyQuery or""):lower()
-        for _,location in ipairs(locations)do if query==""or(location.name.." "..tostring(location.mapID or"")):lower():find(query,1,true)then matching[#matching+1]=location end end
+        for _,location in ipairs(locations)do if query==""or(E.Display.Map(location.mapID,location.name).." "..location.name.." "..tostring(location.mapID or"")):lower():find(query,1,true)then matching[#matching+1]=location end end
         clamp("journeyLocationPage",#matching,6)
         for i=(B.journeyLocationPage-1)*6+1,math.min(#matching,B.journeyLocationPage*6)do local location=matching[i]
-            entry(left,location.name,#location.rows.." records",location.mapID and"Map "..location.mapID or location.key=="unplaced"and"Location not recorded"or"Zone association only",function()V.SelectLocation(location.key)end,B.journeyMap==location.key)
+            entry(left,location.key=='unplaced' and E.L['Unplaced records'] or E.Display.Map(location.mapID,location.name),E.Format('Records: {count}',{count=#location.rows}),location.mapID and E.Format('Map {id}',{id=location.mapID}) or location.key=="unplaced"and E.L["Location not recorded"]or E.L["Zone association only"],function()V.SelectLocation(location.key)end,B.journeyMap==location.key)
         end
-        if #matching==0 then B.Text(left,"No recorded locations match this search.",14)end
-        pager(left,"journeyLocationPage",#matching,6,"Previous locations","More locations")
+        if #matching==0 then B.Text(left,E.L["No recorded locations match this search."],14)end
+        pager(left,"journeyLocationPage",#matching,6,E.L["Previous locations"],E.L["More locations"])
     end)
-    B.Navigation.Button(left,B.journeyMapInfo and"Close map details"or"Map details",function()B.journeyMapInfo=not B.journeyMapInfo;B.selected=nil;B.Render(true)end,B.journeyMapInfo)
+    B.Navigation.Button(left,B.journeyMapInfo and E.L["Close map details"]or E.L["Map details"],function()B.journeyMapInfo=not B.journeyMapInfo;B.selected=nil;B.Render(true)end,B.journeyMapInfo)
     end)
     if not chosen then
-        B.Text(left,"No matching recorded locations yet.",22)
-        if not B.selected then heading(right,"UNCHARTED PAGES","Your journeys");B.Text(right,"Your recorded moments will appear here as you adventure. Death locations stay hidden until you choose to show them; the records remain saved.",17)end
+        B.Text(left,E.L["No matching recorded locations yet."],22)
+        if not B.selected then heading(right,E.L["UNCHARTED PAGES"],E.L["Your journeys"]);B.Text(right,E.L["Your recorded moments will appear here as you adventure. Death locations stay hidden until you choose to show them; the records remain saved."],17)end
         return
     end
     local art,reason=J.Art(chosen.mapID);local grouped=J.Clusters(chosen.rows,art and art.artID)
     V.lastLocation=chosen;V.lastClusters=grouped
     V.Draw(left,art,grouped)
     if B.selected then return end
-    heading(right,"THE STORIES HERE",chosen.name)
-    if not art then B.Text(right,(reason or"Map unavailable")..". The original records remain available below.",13)end
+    heading(right,E.L["THE STORIES HERE"],chosen.key=='unplaced' and E.L['Unplaced records'] or E.Display.Map(chosen.mapID,chosen.name))
+    if not art then B.Text(right,E.Format('{reason}. The original records remain available below.',{reason=E.L[reason or 'Map unavailable']}),13)end
     if B.journeyMapInfo then
-        if art then B.Text(right,"Client map artwork / Map "..art.mapID.." / Art "..art.artID,12)end
-        B.Text(right,"Recorded player positions. Numbered areas group nearby observations.",13)
-        B.Text(right,"Pins show your observed position, not loot sources or other players. No movement route is inferred. Missing positions or different map artwork remain unpinned.",13)
-        B.Text(right,"A location association is not a discovery. First visits are labeled first recorded; earlier exploration is not reconstructed.",13)
-        actions(right,{{"Refresh artwork",function()B.Render()end},{"Close map details",function()B.journeyMapInfo=false;B.Render(true)end}},2)
+        if art then B.Text(right,E.Format('Client map artwork / Map {map} / Art {art}',{map=art.mapID,art=art.artID}),12)end
+        B.Text(right,E.L["Recorded player positions. Numbered areas group nearby observations."],13)
+        B.Text(right,E.L["Pins show your observed position, not loot sources or other players. No movement route is inferred. Missing positions or different map artwork remain unpinned."],13)
+        B.Text(right,E.L["A location association is not a discovery. First visits are labeled first recorded; earlier exploration is not reconstructed."],13)
+        actions(right,{{E.L["Refresh artwork"],function()B.Render()end},{E.L["Close map details"],function()B.journeyMapInfo=false;B.Render(true)end}},2)
     end
-    stats(right,{{#chosen.rows,"RECORDED MOMENTS"},{chosen.discoveries,"FIRST-RECORDED VISITS"},{grouped.positioned,"WITH MAP COORDINATES"},{#grouped.unplaced,"WITHOUT A USABLE PIN"}})
-    local lists={{"All location records",function()B.journeyBucket=nil;B.journeyRecordsPage=1;B.Render()end,not B.journeyBucket}}
-    if #grouped.unplaced>0 then lists[#lists+1]={"Without a usable pin",function()B.journeyBucket="unplaced";B.journeyRecordsPage=1;B.Render()end,B.journeyBucket=="unplaced"}end
+    stats(right,{{#chosen.rows,E.L["RECORDED MOMENTS"]},{chosen.discoveries,E.L["FIRST-RECORDED VISITS"]},{grouped.positioned,E.L["WITH MAP COORDINATES"]},{#grouped.unplaced,E.L["WITHOUT A USABLE PIN"]}})
+    local lists={{E.L["All location records"],function()B.journeyBucket=nil;B.journeyRecordsPage=1;B.Render()end,not B.journeyBucket}}
+    if #grouped.unplaced>0 then lists[#lists+1]={E.L["Without a usable pin"],function()B.journeyBucket="unplaced";B.journeyRecordsPage=1;B.Render()end,B.journeyBucket=="unplaced"}end
     actions(right,lists,2)
     local cluster=grouped.byKey[B.journeyBucket]
     local records=cluster and cluster.records or B.journeyBucket=="unplaced"and grouped.unplaced or not B.journeyBucket and chosen.rows or{}
     V.lastRecords=records
-    if cluster then B.Text(right,#records>1 and"Nearby observations in this area; open a source for its recorded position."or"One observed player position.",13)
-    elseif B.journeyBucket=="unplaced"then for _,why in ipairs(E.SortedKeys(grouped.reasons))do B.Text(right,why..": "..grouped.reasons[why],13)end
-    elseif B.journeyBucket then B.Text(right,"The selected area no longer has records matching this view.",14)end
+    if cluster then B.Text(right,#records>1 and E.L["Nearby observations in this area; open a source for its recorded position."]or E.L['One observed player position.'],13)
+    elseif B.journeyBucket=="unplaced"then for _,why in ipairs(E.SortedKeys(grouped.reasons))do B.Text(right,E.L[why]..": "..grouped.reasons[why],13)end
+    elseif B.journeyBucket then B.Text(right,E.L["The selected area no longer has records matching this view."],14)end
     clamp("journeyRecordsPage",#records,8)
-    if #records>8 then B.Text(right,"Page "..B.journeyRecordsPage.." of "..math.ceil(#records/8),12)end
+    if #records>8 then B.Text(right,E.Format('Page {page} of {pages}',{page=B.journeyRecordsPage,pages=math.ceil(#records/8)}),12)end
     for i=#records-(B.journeyRecordsPage-1)*8,math.max(1,#records-B.journeyRecordsPage*8+1),-1 do local r=records[i]
         local category=J.Category(c,r);local label=r.kind
-        for _,filter in ipairs(J.filters)do if filter[1]==category then label=filter[2];break end end
+        for _,filter in ipairs(J.filters)do if filter[1]==category then label=E.L[filter[2]];break end end
         local p=J.Coordinates(r);local meta=A.RecordDate(r)..(r.subzone and" / "..r.subzone or"")
-        meta=meta..(p and string.format(" / Player: %.1f, %.1f",p.x*100,p.y*100)or" / Position not recorded")
-        if p and not J.Position(r,art and art.artID)then meta=meta.." / Not pinned to this map"end
-        if E.Gathering.Inferred(r)then label="Inferred gathered"end
-        local f=entry(right,r.title or r.kind,label,meta,function()B.selected=r.id;B.Render();B.right.scroll:SetVerticalScroll(0);T.Scroll(B.right)end)
+        meta=meta..' / '..(p and E.Format('Player: {x}, {y}',{x=string.format('%.1f',p.x*100),y=string.format('%.1f',p.y*100)})or E.L['Position not recorded'])
+        if p and not J.Position(r,art and art.artID)then meta=meta..' / '..E.L['Not pinned to this map']end
+        if E.Gathering.Inferred(r)then label=E.L["Inferred gathered"]end
+        local f=entry(right,E.Display.RecordTitle(r),label,meta,function()B.selected=r.id;B.Render();B.right.scroll:SetVerticalScroll(0);T.Scroll(B.right)end)
         f.recordID=r.id
     end
-    if #records==0 then B.Text(right,"No matching recorded moments on this page.",16)end
-    pager(right,"journeyRecordsPage",#records,8,"Newer entries","Older entries")
+    if #records==0 then B.Text(right,E.L["No matching recorded moments on this page."],16)end
+    pager(right,"journeyRecordsPage",#records,8,E.L["Newer entries"],E.L["Older entries"])
 end
 function V.Record(page,r)
     local c=B.Character(); local p=J.Coordinates(r)
-    if r.subzone then B.Text(page,"Subzone: "..r.subzone,14) end
+    if r.subzone then B.Text(page,E.Format('Subzone: {name}',{name=r.subzone}),14) end
     if p then
-        B.Text(page,string.format("Recorded player position: %.1f, %.1f | Map %s",p.x*100,p.y*100,tostring(p.mapID)),14)
-        B.Text(page,"Observed "..A.Date(p.observedAt or r.ts)..". This is your character's position at observation time.",12)
-    elseif r.mapID or r.zone then B.Text(page,"Zone association only; an exact position was not observed.",12) end
+        B.Text(page,E.Format('Recorded player position: {x}, {y} | Map {map}',{x=string.format('%.1f',p.x*100),y=string.format('%.1f',p.y*100),map=p.mapID}),14)
+        B.Text(page,E.Format("Observed {date}. This is your character's position at observation time.",{date=A.Date(p.observedAt or r.ts)}),12)
+    elseif r.mapID or r.zone then B.Text(page,E.L["Zone association only; an exact position was not observed."],12) end
     if J.Category(c,r) then
-        B.Action(page,r.kind=="death" and c.state.journeyShowDeaths~=true and "Show in Journey (enable death locations)" or "View this location in Journey",function()
+        B.Action(page,r.kind=="death" and c.state.journeyShowDeaths~=true and E.L["Show in Journey (enable death locations)"] or E.L["View this location in Journey"],function()
             if r.kind=="death" then c.state.journeyShowDeaths=true; S.Touch(c) end
             B.chapter="Journey"; B.journeyFilter="all"; V.SelectLocation(J.LocationKey(r))
         end)
     end
     if r.kind=="death" then
-        B.Text(page,"Death context",20)
-        B.Text(page,r.witnessCoverage or "Death cause, nearby presence and confirmed witnesses are unknown.",13)
+        B.Text(page,E.L["Death context"],20)
+        B.Text(page,E.L[r.witnessCoverage or "Death cause, nearby presence and confirmed witnesses are unknown."],13)
         if r.membershipObserved==true then
-            if r.groupState=="solo" then B.Text(page,"Recorded without a group.",14)
+            if r.groupState=="solo" then B.Text(page,E.L["Recorded without a group."],14)
             else
                 local members={}; for _,member in ipairs(r.membersAtDeath or {}) do if member.id~=c.id then members[#members+1]=member end end
-                B.Text(page,"Group membership at observation; not a witness list.",13)
+                B.Text(page,E.L["Group membership at observation; not a witness list."],13)
                 B.deathMembersPage=math.max(1,math.min(B.deathMembersPage or 1,math.max(1,math.ceil(#members/12))))
                 for i=(B.deathMembersPage-1)*12+1,math.min(#members,B.deathMembersPage*12) do local member=members[i]
-                    B.Text(page,(member.nameKnown and member.name or "Unknown member")..(member.realm and "-"..member.realm or ""),14)
+                    B.Text(page,(member.nameKnown and member.name or E.L["Unknown member"])..(member.realm and "-"..member.realm or ""),14)
                 end
-                if B.deathMembersPage>1 then B.Action(page,"Previous members",function()B.deathMembersPage=B.deathMembersPage-1; B.Render()end) end
-                if B.deathMembersPage*12<#members then B.Action(page,"More members",function()B.deathMembersPage=B.deathMembersPage+1; B.Render()end) end
+                if B.deathMembersPage>1 then B.Action(page,E.L["Previous members"],function()B.deathMembersPage=B.deathMembersPage-1; B.Render()end) end
+                if B.deathMembersPage*12<#members then B.Action(page,E.L["More members"],function()B.deathMembersPage=B.deathMembersPage+1; B.Render()end) end
             end
-        else B.Text(page,"Group membership was not captured in a verified snapshot.",14) end
+        else B.Text(page,E.L["Group membership was not captured in a verified snapshot."],14) end
     end
 end
 B.Journey=V.Render

@@ -186,7 +186,7 @@ E.On('JOURNAL_WRITTEN',function(c)
     if B.frame and B.frame:IsShown()and B.Character()==c and(B.chapter=='Calendar'or B.chapter=='Recaps')then B.Render()end
 end)
 function B.Note(page,key,canEdit)
-    local c=B.Character(); B.Text(page,"Your notes",20)
+    local c=B.Character(); B.Text(page,E.L["Your notes"],20)
     local f=B.Acquire(page,"edit"); f:SetScript("OnTextChanged",nil)
     f:SetHeight(140); f:SetMultiLine(true); f:SetScript("OnEnterPressed",nil)
     f:SetText(c.notes[key] and c.notes[key].text or "")
@@ -200,25 +200,25 @@ end
 function B.Finish(page) page.content:SetHeight(math.max(page.y+20,page.scroll:GetHeight())); E.BookTheme.Scroll(page) end
 local milestoneNames={level="Character level-up",skill="Weapon-skill threshold",profession="Profession threshold",achievement="Personal achievement",
     discovery="First recorded discovery",quest_chain="First recorded quest-chain completion",completion="First recorded completion",encounter="First recorded boss victory"}
-function B.MilestoneName(r) return milestoneNames[r.milestoneType] or "Personal milestone" end
+function B.MilestoneName(r) return E.L[milestoneNames[r.milestoneType] or "Personal milestone"] end
 function B.Ribbon(page,text)
     local f=B.Acquire(page,"ribbon"); f:SetSize(340,28)
     if not f.image then f.image=E.BookTheme.Texture(f,"ribbon-v1"); f.image:SetAllPoints(); f.text=label(f,"",11,300); f.text:SetPoint("CENTER"); f.text:SetJustifyH("CENTER"); f.text:SetTextColor(0.96,0.85,0.63)end
     f.text:SetText(E.Text(text)); page.y=page.y+44
 end
 function B.Chronicle(page,c)
-    B.Text(page,"CHAPTER I  -  PERSONAL MILESTONES",11):SetTextColor(0.54,0.40,0.23)
-    B.Text(page,(c.identity.name or "Your character").."'s milestones",32)
-    B.Text(page,"The major steps in this character's journey, newest first.",16)
+    B.Text(page,E.L["CHAPTER I  -  PERSONAL MILESTONES"],11):SetTextColor(0.54,0.40,0.23)
+    B.Text(page,E.Format("{name}'s milestones",{name=c.identity.name or E.L["Your character"]}),32)
+    B.Text(page,E.L["The major steps in this character's journey, newest first."],16)
     page.y=page.y+12
     local rows=B.Navigation and B.Navigation.Major(c)or Q.Major(c)
-    if #rows==0 then B.Text(page,"Your story is just beginning.",22); B.Text(page,"Major milestones will appear here as they are recorded.",16); return end
+    if #rows==0 then B.Text(page,E.L["Your story is just beginning."],22); B.Text(page,E.L["Major milestones will appear here as they are recorded."],16); return end
     B.page=math.max(1,math.min(B.page or 1,math.ceil(#rows/12)))
     if not B.selected then B.selected=rows[#rows-(B.page-1)*12].id end
     for i=#rows-(B.page-1)*12,math.max(1,#rows-B.page*12+1),-1 do local r=rows[i]
         local f=B.Acquire(page,"timeline"); local selected=B.selected==r.id
         E.BookTheme.Seal(f,selected); if selected then f.shade:Show(); f.rule:Show()else f.shade:Hide(); f.rule:Hide()end
-        f.text:SetText(E.Text(r.title or B.MilestoneName(r))); f.date:SetText(A.RecordDate(r).."  -  Local time"); f.tag:SetText(B.MilestoneName(r))
+        f.text:SetText(E.Text(E.Display.RecordTitle(r) or B.MilestoneName(r))); f.date:SetText(A.RecordDate(r).."  -  "..E.L["Local time"]); f.tag:SetText(B.MilestoneName(r))
         local titleHeight=math.max(26,f.text:GetStringHeight()); f.text:SetHeight(titleHeight)
         f.tag:ClearAllPoints(); f.tag:SetPoint("TOPLEFT",58,-52-titleHeight)
         local height=math.max(118,titleHeight+84); f:SetHeight(height)
@@ -226,8 +226,8 @@ function B.Chronicle(page,c)
         page.y=page.y+height
     end
     page.y=page.y+14
-    if B.page>1 then B.Action(page,"Newer milestones",function()B.page=B.page-1; B.selected=nil; B.Render(true)end)end
-    if B.page*12<#rows then B.Action(page,"Older milestones",function()B.page=B.page+1; B.selected=nil; B.Render(true)end)end
+    if B.page>1 then B.Action(page,E.L["Newer milestones"],function()B.page=B.page-1; B.selected=nil; B.Render(true)end)end
+    if B.page*12<#rows then B.Action(page,E.L["Older milestones"],function()B.page=B.page+1; B.selected=nil; B.Render(true)end)end
 end
 local shownQuote
 function B.ValidQuote(c,id,r)
@@ -240,13 +240,13 @@ function B.Record(page,r)
     local context=shownQuote
     if context and context.owner==c and context.chapter==B.chapter and context.id==B.selected
         and (r~=context.record or not B.ValidQuote(c,context.id,r)) then
-        B.Text(page,"This recorded quote is unavailable.",17);return
+        B.Text(page,E.L["This recorded quote is unavailable."],17);return
     end
     local canEdit
     if r.kind=="chat" then
         local id=r.id
         if not B.ValidQuote(c,id,r) or (B.selected and c.records[B.selected]==r and B.selected~=id) then
-            B.Text(page,"This recorded quote is unavailable.",17);return
+            B.Text(page,E.L["This recorded quote is unavailable."],17);return
         end
         if B.selected==id then shownQuote={owner=c,id=id,chapter=B.chapter,record=r} end
         canEdit=function()return B.selected==id and B.ValidQuote(c,id,r)end
@@ -261,58 +261,58 @@ function B.Record(page,r)
     if B.lastDetail~=r.id then B.lastDetail=r.id; B.sourcePage=1; B.detailPage=1; B.costPage=1; B.memberPage=1; B.groupGapPage=1; B.notificationPage=1; B.merchantDetailPage=1; B.merchantItemsPage=1; B.deathMembersPage=1; B.questFlagPage=1 end
     if r.kind=="memory" or r.kind=="screenshot" then E.MemoryView.Page(page,r); return end
     if B.chapter=="Chronicle" and r.kind=="milestone" then
-        B.Ribbon(page,string.upper(c.identity.name or "Your character").."  -  PERSONAL MILESTONE")
-        B.Text(page,string.upper(B.MilestoneName(r)),11):SetTextColor(0.54,0.40,0.23)
-        B.Text(page,r.title or B.MilestoneName(r),32)
-        B.Text(page,A.RecordDate(r).."  -  Local time",12):SetTextColor(0.54,0.40,0.23)
+        B.Ribbon(page,E.Format("{name} · Personal milestone",{name=c.identity.name or E.L["Your character"]}))
+        B.Text(page,B.MilestoneName(r),11):SetTextColor(0.54,0.40,0.23)
+        B.Text(page,E.Display.RecordTitle(r) or B.MilestoneName(r),32)
+        B.Text(page,A.RecordDate(r).."  -  "..E.L["Local time"],12):SetTextColor(0.54,0.40,0.23)
     else
-        local label=({cost_lot="Acquisition record",stock_move="Inventory outflow",stock_reset="Inventory baseline",bank="Bank observation"})[r.kind] or r.kind:gsub("_"," ")
+        local label=E.L[({cost_lot="Acquisition record",stock_move="Inventory outflow",stock_reset="Inventory baseline",bank="Bank observation"})[r.kind] or E.Display.Kind(r.kind)]
         if E.LedgerStyle and E.LedgerStyle.financial[r.kind]then
-            E.LedgerStyle.Heading(page,r.title or label,"MY EPOCH / "..label:upper(),r.status or r.quality or"Observed",A.RecordDate(r).." / Local time")
+            E.LedgerStyle.Heading(page,E.Display.RecordTitle(r) or label,"MY EPOCH / "..label,E.L[r.status or r.quality or "Observed"],A.RecordDate(r).." / "..E.L["Local time"])
             if r.itemID then E.LedgerStyle.Item(page,r.itemID,E.LedgerStyle.Name(r.itemID,r.title),r.quantity,nil,r.itemLink)end
-        else B.Text(page,r.title or label,28); B.Text(page,A.RecordDate(r).." | "..label,13)end
-        if r.zone then B.Text(page,r.zone,16) end
+        else B.Text(page,E.Display.RecordTitle(r) or label,28); B.Text(page,A.RecordDate(r).." | "..label,13)end
+        if r.zone then B.Text(page,E.Display.Zone(r),16) end
     end
     if r.weaponReading and E.MilestoneSnapshotView then E.MilestoneSnapshotView.WeaponReading(page,c,r) end
     if E.ArtView then E.ArtView.Record(page,c,r) end
     if r.kind=="milestone" and E.MilestoneSnapshotView then E.MilestoneSnapshotView.Render(page,r) end
     if r.kind=="milestone" and r.milestoneType=="quest_chain" and r.questID and r.seriesSteps then
-        B.Text(page,#r.seriesSteps.." recorded turn-ins · "..(r.zone or "Final turn-in location unknown"),16)
-        B.Action(page,"Open the series in Quests",function()E.QuestView.BrowseSeries(r.questID)end)
+        B.Text(page,E.Format("{count} recorded turn-ins · {location}",{count=#r.seriesSteps,location=E.Display.Zone(r) or E.L["Final turn-in location unknown"]}),16)
+        B.Action(page,E.L["Open the series in Quests"],function()E.QuestView.BrowseSeries(r.questID)end)
     end
     if r.text and r.kind~="memory" then B.Text(page,r.text,17) end
-    if r.quantity and not(E.LedgerStyle and E.LedgerStyle.financial[r.kind]) then B.Text(page,"Quantity: "..r.quantity.." | Recipient: "..(r.recipient==c.id and c.identity.name or r.recipientName or "Unknown")) end
+    if r.quantity and not(E.LedgerStyle and E.LedgerStyle.financial[r.kind]) then B.Text(page,E.Format("Quantity: {quantity} | Recipient: {recipient}",{quantity=r.quantity,recipient=r.recipient==c.id and c.identity.name or r.recipientName or E.L["Unknown"]})) end
     if r.amount then
-        if E.LedgerStyle and E.LedgerStyle.financial[r.kind]then E.LedgerStyle.Amount(page,r.kind=="gold"and"Recorded wallet change"or"Recorded amount",r.amount)
-        else B.Text(page,E.Money(r.amount).." | "..(r.source or "unknown"))end
+        if E.LedgerStyle and E.LedgerStyle.financial[r.kind]then E.LedgerStyle.Amount(page,r.kind=="gold"and E.L["Recorded wallet change"]or E.L["Recorded amount"],r.amount)
+        else B.Text(page,E.Money(r.amount).." | "..E.L[r.source or "unknown"])end
     end
     if r.kind=="gold" and E.CompanyLayout then E.CompanyLayout.WalletContext(page,c,r) end
-    if r.status and not(E.LedgerStyle and E.LedgerStyle.financial[r.kind])then B.Text(page,"Status: "..r.status) end
+    if r.status and not(E.LedgerStyle and E.LedgerStyle.financial[r.kind])then B.Text(page,E.Format("Status: {status}",{status=E.L[r.status]})) end
     if r.kind=="spell" then
-        B.Text(page,"Spell ID "..r.spellID..(r.rankText and r.rankText~="" and " | "..r.rankText or ""),14)
-        if r.rankObservedAt and r.rankObservedAt>r.ts then B.Text(page,"Rank label became available: "..A.Date(r.rankObservedAt),12) end
-        B.Text(page,"A learning notification was observed and verified in your player spellbook. It may describe a temporary or talent-granted ability; permanence is unknown.",13)
-        B.Text(page,r.isGuildPerk==true and "Source: guild-perk notification" or "Acquisition source unknown",13)
-        if r.previouslyObserved then B.Text(page,"This spell was already present in earlier observations.",13) end
-        if (r.notificationCount or 1)>1 then B.Text(page,r.notificationCount.." notifications coalesced without an observed loss of this spell.",13) end
+        B.Text(page,E.Format("Spell ID {id}",{id=r.spellID})..(r.rankText and r.rankText~="" and " | "..r.rankText or ""),14)
+        if r.rankObservedAt and r.rankObservedAt>r.ts then B.Text(page,E.Format("Rank label became available: {date}",{date=A.Date(r.rankObservedAt)}),12) end
+        B.Text(page,E.L["A learning notification was observed and verified in your player spellbook. It may describe a temporary or talent-granted ability; permanence is unknown."],13)
+        B.Text(page,r.isGuildPerk==true and E.L["Source: guild-perk notification"] or E.L["Acquisition source unknown"],13)
+        if r.previouslyObserved then B.Text(page,E.L["This spell was already present in earlier observations."],13) end
+        if (r.notificationCount or 1)>1 then B.Text(page,E.Format("{count} notifications coalesced without an observed loss of this spell.",{count=r.notificationCount}),13) end
         local notifications=r.notifications or {}; local pages=math.max(1,math.ceil(#notifications/6)); B.notificationPage=math.max(1,math.min(B.notificationPage or 1,pages))
         if #notifications>1 then
             for i=(B.notificationPage-1)*6+1,math.min(#notifications,B.notificationPage*6) do local n=notifications[i]
-                B.Text(page,A.Date(n.ts)..(n.zone and " | "..n.zone or ""),12)
-                local group=n.group and c.records[n.group]; if group then B.Action(page,"Open notification's group",function()B.selected=group.id; B.Render()end) end
+                B.Text(page,A.Date(n.ts)..(n.zone and " | "..E.Display.Zone(n) or ""),12)
+                local group=n.group and c.records[n.group]; if group then B.Action(page,E.L["Open notification's group"],function()B.selected=group.id; B.Render()end) end
             end
-            if B.notificationPage>1 then B.Action(page,"Earlier notifications",function()B.notificationPage=B.notificationPage-1; B.Render()end) end
-            if B.notificationPage<pages then B.Action(page,"More notifications",function()B.notificationPage=B.notificationPage+1; B.Render()end) end
+            if B.notificationPage>1 then B.Action(page,E.L["Earlier notifications"],function()B.notificationPage=B.notificationPage-1; B.Render()end) end
+            if B.notificationPage<pages then B.Action(page,E.L["More notifications"],function()B.notificationPage=B.notificationPage+1; B.Render()end) end
         end
     elseif r.milestoneType=="achievement" then
-        B.Text(page,r.achievementID and "Achievement ID "..r.achievementID.." | completion verified for this character" or "Achievement details were not recorded.",14)
+        B.Text(page,r.achievementID and E.Format("Achievement ID {id} | completion verified for this character",{id=r.achievementID}) or E.L["Achievement details were not recorded."],14)
         if r.coverage then B.Text(page,r.coverage,13) end
         if r.description then B.Text(page,r.description,15) end
     end
-    if r.verificationAt and r.verificationAt>r.ts then B.Text(page,"Ownership verified later: "..A.Date(r.verificationAt)..". This page keeps the original notification's date and context.",13) end
-    local contextSection=r.kind=='milestone'and B.Section(page,'Explore this moment')
+    if r.verificationAt and r.verificationAt>r.ts then B.Text(page,E.Format("Ownership verified later: {date}. This page keeps the original notification's date and context.",{date=A.Date(r.verificationAt)}),13) end
+    local contextSection=r.kind=='milestone'and B.Section(page,E.L['Explore this moment'])
     if r.kind=="milestone" and r.milestoneType~="encounter" or r.kind=="spell" or r.kind=="death" then
-        B.Action(page,"Open this day in Calendar",function()B.chapter="Calendar"; B.day=A.DayStart(r.ts); B.selected=nil; B.page=1; B.Render(true)end)
+        B.Action(page,E.L["Open this day in Calendar"],function()B.chapter="Calendar"; B.day=A.DayStart(r.ts); B.selected=nil; B.page=1; B.Render(true)end)
     end
     if E.FinanceView then E.FinanceView.Record(page,r) end
     if E.InventoryView then E.InventoryView.Record(page,r) end
@@ -325,13 +325,13 @@ function B.Record(page,r)
     if E.DropView then E.DropView.Record(page,r) end
     if contextSection then B.EndSection(page,contextSection)end
     if E.MemoryView then E.MemoryView.Record(page,r) end
-    if r.partialBoundary then B.Text(page,"The previous milestone was not observed. This recap covers available history only.") end
-    local starLabel=r.starred and "Unstar this memory" or r.kind=="chat" and "Save and protect this quote" or "Star and protect this memory"
-    local keepsakeSection=r.kind=='milestone'and B.Section(page,'Keep this moment')
+    if r.partialBoundary then B.Text(page,E.L["The previous milestone was not observed. This recap covers available history only."]) end
+    local starLabel=r.starred and E.L["Unstar this memory"] or r.kind=="chat" and E.L["Save and protect this quote"] or E.L["Star and protect this memory"]
+    local keepsakeSection=r.kind=='milestone'and B.Section(page,E.L['Keep this moment'])
     local actionY=page.y
     local starButton=B.Action(page,starLabel,function() if not canEdit or canEdit() then r.starred=not r.starred; S.Changed(c,r); B.Render() end end)
     if keepsakeSection then
-        local memoryButton=B.Action(page,'Write a memory about this',function()E.MemoryView.Create(r)end)
+        local memoryButton=B.Action(page,E.L['Write a memory about this'],function()E.MemoryView.Create(r)end)
         if starButton:GetWidth()+memoryButton:GetWidth()+8<=B.Width(page)then
             memoryButton:ClearAllPoints();memoryButton:SetPoint('TOPLEFT',page.content,'TOPLEFT',20+starButton:GetWidth(),-actionY)
             page.y=actionY+math.max(starButton:GetHeight(),memoryButton:GetHeight())+12
@@ -343,10 +343,10 @@ function B.Record(page,r)
         E.QuestView.Creatures(page,c,{r})
     elseif r.kind=="chat" then E.SearchView.ChatContext(page,r)
     elseif r.kind=="play" then
-        if r.status=="active" and r.ended>r.ts then B.Text(page,E.Duration(r.ended-r.ts).." of recorded active play")
-        elseif r.status=="afk" and r.ended>r.ts then B.Text(page,E.Duration(r.ended-r.ts).." of recorded AFK time")
-        else B.Text(page,"Active time is unavailable for this observation.") end
-        B.Action(page,"Open the recorded day",function()B.chapter="Calendar"; B.day=A.DayStart(r.ts); B.selected=nil; B.Render(true)end)
+        if r.status=="active" and r.ended>r.ts then B.Text(page,E.Format("{duration} of recorded active play",{duration=E.LocaleDuration(r.ended-r.ts)}))
+        elseif r.status=="afk" and r.ended>r.ts then B.Text(page,E.Format("{duration} of recorded AFK time",{duration=E.LocaleDuration(r.ended-r.ts)}))
+        else B.Text(page,E.L["Active time is unavailable for this observation."]) end
+        B.Action(page,E.L["Open the recorded day"],function()B.chapter="Calendar"; B.day=A.DayStart(r.ts); B.selected=nil; B.Render(true)end)
     end
     local notesSection=r.kind=='milestone'and B.Section(page)
     B.Note(page,E.Diary.NoteKey(c,r),canEdit)
@@ -361,24 +361,24 @@ function B.SourceLinks(page,c,r,heading)
     if heading and #refs>0 then B.Text(page,heading,22)end
     B.sourcePage=math.max(1,math.min(B.sourcePage or 1,math.max(1,math.ceil(#refs/12))))
     for i=(B.sourcePage-1)*12+1,math.min(#refs,B.sourcePage*12) do local id=refs[i]; local source=c.records[id]
-        if source then B.Action(page,"Open: "..(source.title or source.kind),function() B.selected=source.id; B.Render(true) end) end
+        if source then B.Action(page,E.Format("Open: {title}",{title=E.Display.RecordTitle(source) or E.Display.Kind(source.kind)}),function() B.selected=source.id; B.Render(true) end) end
         if r.kind=="memory" or r.kind=="screenshot" and r.userRefs and r.userRefs[id] then
-            B.Action(page,"Remove memory link: "..(source and (source.title or source.kind) or "unavailable source"),function()E.Memories.Unlink(c,r.id,id); B.Render()end)
+            B.Action(page,E.Format("Remove memory link: {title}",{title=source and (E.Display.RecordTitle(source) or E.Display.Kind(source.kind)) or E.L["unavailable source"]}),function()E.Memories.Unlink(c,r.id,id); B.Render()end)
         end
     end
-    if B.sourcePage>1 then B.Action(page,"Previous source links",function() B.sourcePage=B.sourcePage-1; B.Render() end) end
-    if B.sourcePage*12<#refs then B.Action(page,"More source links ("..#refs.." total)",function() B.sourcePage=B.sourcePage+1; B.Render() end) end
+    if B.sourcePage>1 then B.Action(page,E.L["Previous source links"],function() B.sourcePage=B.sourcePage-1; B.Render() end) end
+    if B.sourcePage*12<#refs then B.Action(page,E.Format("More source links ({count} total)",{count=#refs}),function() B.sourcePage=B.sourcePage+1; B.Render() end) end
 end
 function B.List(page,rows,paginationKey,onSelect)
-    if #rows==0 then B.Text(page,"No matching recorded history yet."); return end
+    if #rows==0 then B.Text(page,E.L["No matching recorded history yet."]); return end
     local key=paginationKey or "page"
     B[key]=math.max(1,math.min(B[key] or 1,math.ceil(#rows/12)))
-    B.Text(page,#rows.." records | page "..B[key].." of "..math.ceil(#rows/12),13)
+    B.Text(page,E.Format("{count} records | page {page} of {pages}",{count=#rows,page=B[key],pages=math.ceil(#rows/12)}),13)
     for i=#rows-(B[key]-1)*12,math.max(1,#rows-B[key]*12+1),-1 do local r=rows[i]
-        B.Action(page,A.RecordDate(r).." - "..(r.title or r.kind),function() if onSelect then onSelect(r) else B.selected=r.id; B.Render(true) end end)
+        B.Action(page,A.RecordDate(r).." - "..(E.Display.RecordTitle(r) or E.Display.Kind(r.kind)),function() if onSelect then onSelect(r) else B.selected=r.id; B.Render(true) end end)
     end
-    if B[key]>1 then B.Action(page,"Newer entries",function() B[key]=B[key]-1; B.Render(true) end) end
-    if B[key]*12<#rows then B.Action(page,"Older entries",function() B[key]=B[key]+1; B.Render(true) end) end
+    if B[key]>1 then B.Action(page,E.L["Newer entries"],function() B[key]=B[key]-1; B.Render(true) end) end
+    if B[key]*12<#rows then B.Action(page,E.L["Older entries"],function() B[key]=B[key]+1; B.Render(true) end) end
 end
 function B.Calendar(left,right)
     E.CalendarView.Render(left,right)
@@ -472,16 +472,16 @@ function B.Render(reset)
     B.preparingCharacter=readiness~='ready'and c or nil
     B.preparationStatus=readiness
     if B.preparingCharacter then
-        B.Text(left,'Opening your scrapbook',29)
-        B.Text(left,reason or(readiness=='preparing'and'Preparing your saved history. You can switch chapters or characters while this page opens.'or'Your saved history is not available yet.'),16)
-        B.Text(right,c.identity.name or'Your memories',29)
-        B.Text(right,'Your selected page will appear here when it is ready.',16)
-        if readiness~='preparing'then B.Action(left,'Retry opening this scrapbook',function()Q.RetryWarm(c);E.Gathering.Retry(c);E.GoldChecks.Retry(c);B.Render()end)end
+        B.Text(left,E.L['Opening your scrapbook'],29)
+        B.Text(left,reason or(readiness=='preparing'and E.L['Preparing your saved history. You can switch chapters or characters while this page opens.']or E.L['Your saved history is not available yet.']),16)
+        B.Text(right,c.identity.name or E.L['Your memories'],29)
+        B.Text(right,E.L['Your selected page will appear here when it is ready.'],16)
+        if readiness~='preparing'then B.Action(left,E.L['Retry opening this scrapbook'],function()Q.RetryWarm(c);E.Gathering.Retry(c);E.GoldChecks.Retry(c);B.Render()end)end
         B.Finish(left);B.Finish(right)
         if reset then left.scroll:SetVerticalScroll(0);right.scroll:SetVerticalScroll(0)end
         E.BookTheme.Scroll(left);E.BookTheme.Scroll(right);if B.Navigation then B.Navigation.Render(c)end;B.UpdateBadges();return
     end
-    if B.searchOrigin and B.chapter~="Search" then B.Action(left,"Back to search results",function()E.SearchView.Return()end) end
+    if B.searchOrigin and B.chapter~="Search" then B.Action(left,E.L["Back to search results"],function()E.SearchView.Return()end) end
     if B.chapter=="Chronicle" then B.Chronicle(left,c)
     elseif B.chapter=="Calendar" then B.Calendar(left,right)
     elseif B.chapter=="Recaps" then
@@ -507,25 +507,25 @@ function B.Render(reset)
     end
     if B.selected and c.records[B.selected] then
         B.Clear(right)
-        if B.chapter=="Gold" then B.Action(right,"Back to the ledger",function()B.selected=nil; B.Render()end) end
-        if B.chapter=="Archive" then B.Action(right,"Back to archive review",function()B.selected=nil; B.Render()end) end
-        if B.chapter=="Loot" then B.Action(right,"Back to item history",function()B.selected=nil; B.Render()end) end
-        if B.chapter=="Company" and B.companyMode=="companions" and B.companionID then B.Action(right,"Back to companion",function()B.selected=nil; B.Render(true)end) end
+        if B.chapter=="Gold" then B.Action(right,E.L["Back to the ledger"],function()B.selected=nil; B.Render()end) end
+        if B.chapter=="Archive" then B.Action(right,E.L["Back to archive review"],function()B.selected=nil; B.Render()end) end
+        if B.chapter=="Loot" then B.Action(right,E.L["Back to item history"],function()B.selected=nil; B.Render()end) end
+        if B.chapter=="Company" and B.companyMode=="companions" and B.companionID then B.Action(right,E.L["Back to companion"],function()B.selected=nil; B.Render(true)end) end
         if B.chapter=="Company" and B.companyMode=="sessions" and c.records[B.selected].kind~="group" and c.records[B.companySessionFocus] then
-            B.Action(right,"Back to group session",function()B.selected=B.companySessionFocus; B.Render(true)end)
+            B.Action(right,E.L["Back to group session"],function()B.selected=B.companySessionFocus; B.Render(true)end)
         end
         if B.chapter=="Memories" then
-            if B.memoryFocus and B.selected~=B.memoryFocus and c.records[B.memoryFocus] then B.Action(right,"Back to this memory",function()B.selected=B.memoryFocus;B.memoryEditing=false;B.Render(true)end)end
-            B.Action(right,B.memoryMode=="rediscover" and "Back to On This Day" or "Back to saved memories",function()B.selected=nil;B.memoryFocus=nil;B.memoryOverview=true;B.memoryEditing=false;B.Render(true)end)
+            if B.memoryFocus and B.selected~=B.memoryFocus and c.records[B.memoryFocus] then B.Action(right,E.L["Back to this memory"],function()B.selected=B.memoryFocus;B.memoryEditing=false;B.Render(true)end)end
+            B.Action(right,B.memoryMode=="rediscover" and E.L["Back to On This Day"] or E.L["Back to saved memories"],function()B.selected=nil;B.memoryFocus=nil;B.memoryOverview=true;B.memoryEditing=false;B.Render(true)end)
         end
         if B.chapter=="Calendar" then B.Action(right,E.L["Back to this day"],function()B.selected=nil; B.Render(true)end) end
         if B.chapter=="Recaps" and c.records[B.selected].kind~="recap" then
-            B.Action(right,"Back to recap",function()B.selected=c.records[B.recapFocus] and B.recapFocus or nil; B.Render(true)end)
+            B.Action(right,E.L["Back to recap"],function()B.selected=c.records[B.recapFocus] and B.recapFocus or nil; B.Render(true)end)
         end
-        if B.chapter=="Journey" then B.Action(right,"Back to this location",function()B.selected=nil; B.Render(true)end) end
-        if B.chapter=="Quests" then B.Action(right,"Back to quest overview",function()B.selected=nil; B.Render(true)end) end
+        if B.chapter=="Journey" then B.Action(right,E.L["Back to this location"],function()B.selected=nil; B.Render(true)end) end
+        if B.chapter=="Quests" then B.Action(right,E.L["Back to quest overview"],function()B.selected=nil; B.Render(true)end) end
         B.Record(right,c.records[B.selected])
-    elseif B.chapter~="Calendar" and B.chapter~="Archive" and B.chapter~="Recaps" and B.chapter~="Gold" and B.chapter~="Search" and B.chapter~="Loot" and B.chapter~="Company" and B.chapter~="Memories" and B.chapter~="Journey" and B.chapter~="Quests" then B.Text(right,"A life in Azeroth",30); B.Text(right,"Choose an entry on the left to revisit its details and add your own notes.") end
+    elseif B.chapter~="Calendar" and B.chapter~="Archive" and B.chapter~="Recaps" and B.chapter~="Gold" and B.chapter~="Search" and B.chapter~="Loot" and B.chapter~="Company" and B.chapter~="Memories" and B.chapter~="Journey" and B.chapter~="Quests" then B.Text(right,E.L["A life in Azeroth"],30); B.Text(right,E.L["Choose an entry on the left to revisit its details and add your own notes."]) end
     B.Finish(left); B.Finish(right)
     if reset then left.scroll:SetVerticalScroll(0); right.scroll:SetVerticalScroll(0) end
     if E.CompanyLayout then E.CompanyLayout.FinishQuoteJump(right)end

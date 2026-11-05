@@ -62,8 +62,7 @@ function L.Items(r)
     return list
 end
 function L.Name(id,fallback)
-    local name=id and A.Call('ledgerItemName',C_Item and C_Item.GetItemInfo,id)
-    return type(name)=='string'and name~=''and name or fallback or(id and'Item '..id or'Item not recorded')
+    return E.Display.Item(id,fallback or(id and E.Format('Item {id}',{id=id}) or E.L['Item not recorded']))
 end
 function L.RowIcons(f,ids,record)
     f.icons=f.icons or{};local count=math.min(#ids,3)
@@ -78,7 +77,7 @@ function L.RowIcons(f,ids,record)
     local h=math.max(f.text:GetStringHeight(),f.amount:GetStringHeight(),f.balance:GetStringHeight(),count>0 and 32 or 0)
     f.meta:ClearAllPoints();f.meta:SetPoint('TOPLEFT',x,-h-19);f:SetHeight(h+f.meta:GetStringHeight()+32)
     f.iconOverflow=f.iconOverflow or font(f,9,65);f.iconOverflow:ClearAllPoints();f.iconOverflow:SetPoint('TOPLEFT',10,-49)
-    if #ids>3 then f.iconOverflow:SetText('+'..(#ids-3)..' more');f.iconOverflow:Show()else f.iconOverflow:Hide()end
+    if #ids>3 then f.iconOverflow:SetText(E.Format('+{count} more',{count=#ids-3}));f.iconOverflow:Show()else f.iconOverflow:Hide()end
 end
 B.widgetFactories.ledgerHeading=function(parent)
     local f=CreateFrame('Frame',nil,parent);f:SetWidth(760);f.paper=T.Texture(f,'invoice-v1');f.paper:SetAllPoints()
@@ -91,7 +90,7 @@ end
 function L.Heading(page,title,kicker,status,date)
     local f=B.Acquire(page,'ledgerHeading');local w=width(page);f:SetWidth(w)
     f.text:SetWidth(w-225);f.kicker:SetWidth(w-220);f.date:SetWidth(w-220)
-    f.text:SetText(E.Text(title));f.kicker:SetText(E.Text(kicker));f.status:SetText(E.Text(status or'Recorded'))
+    f.text:SetText(E.Text(title));f.kicker:SetText(E.Text(kicker));f.status:SetText(E.Text(E.L[status or'Recorded']))
     local h=math.max(54,f.text:GetStringHeight());f.date:ClearAllPoints();f.date:SetPoint('TOPLEFT',26,-h-58);f.date:SetText(E.Text(date or''))
     f:SetHeight(math.max(155,h+96));page.y=page.y+f:GetHeight()+14;return f
 end
@@ -104,8 +103,8 @@ function L.Item(page,id,name,quantity,meta,link)
     local f=B.Acquire(page,'ledgerItem');f:SetWidth(width(page));f.text:SetWidth(width(page)-220);f.meta:SetWidth(width(page)-220)
     L.SetIcon(f.icon,id,link);f.icon:Show()
     if f.icon.itemPayload then name=link:match('|h%[([^|%]]+)%]|h') or name end
-    f.text:SetText(E.Text(name or(id and'Item '..id or'Item not recorded')))
-    f.quantity:SetText(quantity and quantity>0 and('x'..quantity)or'');f.meta:SetText(E.Text(meta or(id and'Item '..id or'Item identity unavailable')))
+    f.text:SetText(E.Text(L.Name(id,name)))
+    f.quantity:SetText(quantity and quantity>0 and('x'..quantity)or'');f.meta:SetText(E.Text(meta or(id and E.Format('Item {id}',{id=id}) or E.L['Item identity unavailable'])))
     local h=math.max(24,f.text:GetStringHeight());f.meta:ClearAllPoints();f.meta:SetPoint('TOPLEFT',78,-h-20)
     f:SetHeight(math.max(78,h+f.meta:GetStringHeight()+34));page.y=page.y+f:GetHeight()+10;return f
 end
@@ -126,7 +125,7 @@ function L.Amount(page,label,value,unknownText)
     end
     f.text:SetText(E.Text(label));f.unknown:Hide()
     for _,part in ipairs(f.coins)do part.icon:Hide();part.text:Hide()end
-    if value==nil then f.unknown:SetText(unknownText or 'Not recorded');f.unknown:Show()
+    if value==nil then f.unknown:SetText(unknownText or E.L['Not recorded']);f.unknown:Show()
     else
         local n=math.abs(value);if n%1~=0 then n=math.floor(n+.5)end;local sign=value<0 and'-'or''
         for i,v in ipairs({math.floor(n/10000),math.floor(n%10000/100),n%100})do if v>0 then

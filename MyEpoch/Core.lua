@@ -1,5 +1,5 @@
 local addonName, E = ...
-E.name, E.version, E.schema = addonName, "0.1.2", 1
+E.name, E.version, E.schema = addonName, "0.1.3", 1
 E.target = {client = "forever", version = "1.60.1", build = 70790, interface = 16001,
     source = "eac30af597e5aaa43a60f6675ef5fdcea100375f"}
 E.listeners = {}
@@ -45,14 +45,20 @@ function E.Number(value)
     if type(value)~='number'or value~=value or math.abs(value)==math.huge then return 'Unknown'end
     local sign=value<0 and '-'or''
     local digits=string.format('%.0f',math.abs(value))
-    return sign..digits:reverse():gsub('(%d%d%d)','%1,'):reverse():gsub('^,','')
+    local formatted=sign..digits:reverse():gsub('(%d%d%d)','%1,'):reverse():gsub('^,','')
+    local separator=E.locale=='deDE'and'.'or(E.locale=='frFR'or E.locale=='ruRU')and' 'or E.locale=='ptBR'and'.'or','
+    return (formatted:gsub(',',separator))
 end
 function E.Money(copper)
-    if copper == nil then return "Unknown" end
+    if copper == nil then return E.L and E.L.Unknown or "Unknown" end
     local sign = copper < 0 and "-" or ""; copper = math.abs(copper)
+    if E.Format and E.locale~='enUS'then
+        return sign..E.Format('{gold}g {silver}s {copper}c',{gold=E.Number(math.floor(copper/10000)),silver=math.floor(copper/100)%100,copper=copper%100})
+    end
     return string.format("%s%sg %ds %dc", sign, E.Number(math.floor(copper/10000)), math.floor(copper/100)%100, copper%100)
 end
 function E.Duration(seconds)
+    if E.LocaleDuration and E.locale~='enUS'then return E.LocaleDuration(seconds)end
     if seconds == nil then return "Unobserved" end
     if seconds>0 and seconds<60 then return seconds<1 and "less than 1s" or (math.floor(seconds).."s") end
     return string.format("%dh %dm", math.floor(seconds/3600), math.floor(seconds/60)%60)

@@ -1,4 +1,7 @@
 local B,V,L,A,S=E.Book,E.LootLayout,E.Items,E.API,E.Store
+-- Fixture names deliberately describe memories rather than real items. Model
+-- an uncached client here; adventure_localization_spec covers resolved names.
+local savedItemInfo=C_Item.GetItemInfo;C_Item.GetItemInfo=function()return nil end
 local c=E.db.characters["myepoch-ui-fixture-029"]
 TEST_NOW(A.ParseDay("2026-11-01")+3600)
 local function click(page,text,only)
@@ -58,4 +61,5 @@ for i=1,13 do B.lootReceiptPage=i; B.lootPage=i; B.Render(); assert(B.left.used.
 assert(#B.left.pool.lootItem==8 and #B.right.pool.lootBar==8)
 B.ChangeCharacter(c.id); assert(B.lootDimension=="mob" and B.lootOwn and B.lootPreset=="custom")
 assert(B.frame:GetWidth()==1760 and B.frame:GetHeight()==940)
+C_Item.GetItemInfo=savedItemInfo
 print("PASS Loot layout: estimate coverage, receipts/notifications/drop separation, chart sorting, filters, dates, unknown/zero prices, source return, notes, scroll, bounded rows and character isolation")

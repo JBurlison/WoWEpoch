@@ -84,7 +84,7 @@ assert(count==123 and page.used.milestoneStats==5,'All fields retained without a
 local visible=0;for i=1,page.used.milestoneStats do for _,line in ipairs(page.pool.milestoneStats[i].lines)do if line.label:IsShown()then visible=visible+1 end end end
 assert(visible<=25,'Summary groups stay compact')
 for _,g in ipairs(grouped)do
-    button('All '..#g.rows..' '..g.title:lower()..' fields'):Click();assert(V.state.statGroup==g.key and page.used.milestoneStats==1)
+    button(E.Format('All {count} fields: {group}',{count=#g.rows,group=g.title})):Click();assert(V.state.statGroup==g.key and page.used.milestoneStats==1)
     for _,entry in ipairs(g.rows)do assert(labels():find(entry.row.label..': '..entry.row.value,1,true),'Every saved field remains accessible through actual detail controls')end
     button('Back to stat groups'):Click()
 end

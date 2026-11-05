@@ -83,18 +83,18 @@ function D.UpdateFilterDropdown()
     local rows={};local query=(D.filterQuery or ''):lower()
     for _,category in ipairs(R.FilterCategories)do
         local key=category.key
-        local allLabel=allLabels[key]
+        local allLabel=allLabels[key]and E.L[allLabels[key]]
         local expandable=allLabel~=nil
-        local parentMatch=category.name:lower():find(query,1,true)
+        local parentMatch=E.L[category.name]:lower():find(query,1,true)or category.name:lower():find(query,1,true)
         local allMatch=allLabel and allLabel:lower():find(query,1,true)
-        local tags=expandable and R.FilterTags(key,parentMatch and '' or query)or{}
+        local tags={};if expandable then for i,tag in ipairs(R.FilterTags(key))do if i==1 or parentMatch or V.TagName(tag.key,tag.name):lower():find(query,1,true)or tag.name:lower():find(query,1,true)then tags[#tags+1]=tag end end end
         local expanded=D.filterExpanded==key or query~=''
         if parentMatch or allMatch or #tags>1 then
-            rows[#rows+1]={label=category.name..(expandable and(expanded and'  [-]'or'  [+]')or''),category=key,expandable=expandable}
+            rows[#rows+1]={label=E.L[category.name]..(expandable and(expanded and'  [-]'or'  [+]')or''),category=key,expandable=expandable}
             if expandable and expanded then
                 rows[#rows+1]={label=allLabel,category=key,tag='all',child=true}
                 for i=2,#tags do local tag=tags[i]
-                    rows[#rows+1]={label=tag.name..' ('..tag.count..')',category=key,tag=tag.key,child=true}
+                    rows[#rows+1]={label=V.TagName(tag.key,tag.name)..' ('..tag.count..')',category=key,tag=tag.key,child=true}
                 end
             end
         end
@@ -121,7 +121,7 @@ function D.UpdateFilterDropdown()
             end)
         else f:Hide();f:SetScript('OnClick',nil)end
     end
-    D.filterCount:SetText(#rows==0 and'No matching tags'or(D.filterOffset+1)..'-'..math.min(#rows,D.filterOffset+10)..' of '..#rows)
+    D.filterCount:SetText(#rows==0 and E.L['No matching tags']or E.Format('{first}–{last} of {count}',{first=D.filterOffset+1,last=math.min(#rows,D.filterOffset+10),count=#rows}))
     if #rows>10 then D.filterUp:Show();D.filterDown:Show()else D.filterUp:Hide();D.filterDown:Hide()end
 end
 function D.OpenFilterDropdown()
@@ -140,14 +140,14 @@ function D.Render(reset)
     if context.record then V.Memory(D.left,D.right,context)else V.Render(D.left,D.right,context)end
     local category='All illustrations';for _,row in ipairs(R.FilterCategories)do if row.key==context.artCategory then category=row.name end end
     local tag='All tags';for _,row in ipairs(R.FilterTags(context.artCategory))do if row.key==context.artTag then tag=row.name end end
-    local label=tag=='All tags' and category or tag
-    if context.artCategory=='levels' then label=category..' / '..(tag=='All tags' and allLabels.levels or tag) end
-    D.category.text:SetText('Filter: '..label..'  v')
+    local label=tag=='All tags' and E.L[category]or V.TagName(context.artTag,tag)
+    if context.artCategory=='levels' then label=E.L[category]..' / '..(tag=='All tags' and E.L[allLabels.levels]or V.TagName(context.artTag,tag)) end
+    D.category.text:SetText(E.Format('Filter: {filter}',{filter=label})..'  v')
     local available=context.record or(context.artLocation and not context.artChooser)
     if available then D.category:Show()else D.category:Hide()end
     D.apply:SetAlpha(context.pending and 1 or .45)
     D.apply:SetScript('OnClick',function()if context.pending then D.Apply(context,context.pending)end end)
-    D.note:SetText(context.pendingLabel or 'Choose a scene to preview. Cancel leaves your saved choice unchanged.')
+    D.note:SetText(context.pendingLabel or E.L['Choose a scene to preview. Cancel leaves your saved choice unchanged.'])
     for _,page in ipairs({D.left,D.right})do for i=1,page.used.edit or 0 do page.pool.edit[i]:SetScript('OnEscapePressed',function()D.Hide()end)end end
     B.Finish(D.left);B.Finish(D.right)
     if reset then D.left.scroll:SetVerticalScroll(0);D.right.scroll:SetVerticalScroll(0)end
@@ -161,9 +161,9 @@ function D.Build()
     local shade=outside:CreateTexture(nil,'BACKGROUND');shade:SetAllPoints();shade:SetColorTexture(0,0,0,.48)
     local panel=CreateFrame('Frame',nil,overlay);D.panel=panel;panel:SetSize(1660,830);panel:SetScale(.90)
     panel:SetPoint('CENTER',overlay,'CENTER');panel:SetFrameLevel(overlay:GetFrameLevel()+2);panel:EnableMouse(true);T.DialogPaper(panel)
-    D.heading=text(panel,'Choose an illustration',28,1260);D.heading:SetPoint('TOPLEFT',36,-28)
+    D.heading=text(panel,E.L['Choose an illustration'],28,1260);D.heading:SetPoint('TOPLEFT',36,-28)
     D.hint=text(panel,'',13,730);D.hint:SetPoint('TOPLEFT',36,-66)
-    D.category=button(panel,'Filter: All illustrations  v',610,D.OpenFilterDropdown)
+    D.category=button(panel,E.Format('Filter: {filter}',{filter=E.L['All illustrations']})..'  v',610,D.OpenFilterDropdown)
     D.category:SetPoint('TOPLEFT',1000,-57)
     D.close=button(panel,E.L['Close'],90,function()D.Hide()end);D.close:SetPoint('TOPRIGHT',-36,-20)
     local menu=CreateFrame('Frame','MyEpochIllustrationFilter',panel);D.filterOverlay=menu
@@ -174,7 +174,7 @@ function D.Build()
     local input=CreateFrame('EditBox',nil,popup);D.filterInput=input;input:SetSize(582,30);input:SetPoint('TOPLEFT',14,-12)
     input:SetAutoFocus(false);input:SetFont(E.Font(),14,'');input:SetTextColor(.26,.15,.08);input:SetTextInsets(8,8,4,4)
     local face=T.Texture(input,'button-v1');face:SetAllPoints()
-    local hint=text(input,'Search collections, locations or skills',12,550);hint:SetPoint('LEFT',8,0);D.filterHint=hint
+    local hint=text(input,E.L['Search collections, locations or skills'],12,550);hint:SetPoint('LEFT',8,0);D.filterHint=hint
     input:SetScript('OnTextChanged',function(self,user)
         if self:GetText()==''then hint:Show()else hint:Hide()end
         if user then D.filterQuery=self:GetText();D.filterOffset=0;D.UpdateFilterDropdown()end
@@ -187,8 +187,8 @@ function D.Build()
     end
     D.filterCount=text(popup,'',12,380);D.filterCount:SetPoint('BOTTOMLEFT',18,13)
     local function scroll(delta)D.filterOffset=(D.filterOffset or 0)+delta;D.UpdateFilterDropdown()end
-    D.filterUp=button(popup,'Up',75,function()scroll(-8)end);D.filterUp:SetPoint('BOTTOMRIGHT',-96,5)
-    D.filterDown=button(popup,'Down',75,function()scroll(8)end);D.filterDown:SetPoint('BOTTOMRIGHT',-14,5)
+    D.filterUp=button(popup,E.L['Up'],75,function()scroll(-8)end);D.filterUp:SetPoint('BOTTOMRIGHT',-96,5)
+    D.filterDown=button(popup,E.L['Down'],75,function()scroll(8)end);D.filterDown:SetPoint('BOTTOMRIGHT',-14,5)
     popup:SetScript('OnMouseWheel',function(_,delta)scroll(-delta*3)end)
     menu:SetScript('OnHide',function()if not suspended then D.filterContext=nil;input:ClearFocus()end end);menu:Hide()
     local line=panel:CreateTexture(nil,'ARTWORK');line:SetColorTexture(.55,.40,.22,.35);line:SetHeight(1)
@@ -260,15 +260,15 @@ local function open(record,location)
     context.apply=function(change)return D.Apply(context,change)end
     context.stage=function(change,label)context.pending=change;context.pendingLabel=label end
     context.navigation=function(page,count,move)
-        D.pageLabel:SetText('Page '..page..' of '..count)
+        D.pageLabel:SetText(E.Format('Page {page} of {pages}',{page=page,pages=count}))
         for _,entry in ipairs({{D.previous,-1,page>1},{D.next,1,page<count}})do
             local control,delta,enabled=unpack(entry);control:SetAlpha(enabled and 1 or .4)
             control:SetScript('OnClick',function()if D.Valid(context)and enabled then move(delta)end end)
         end
     end
     local kind=record and record.kind
-    D.context=context;D.heading:SetText(kind and'Choose a '..kind..' illustration'or'Choose location artwork')
-    D.hint:SetText(E.Text(c.identity.name or c.id)..' / '..(kind and'A kept illustration belongs only to this '..kind..'.'or'Location choices decorate this character’s pages, including older entries.'))
+    D.context=context;D.heading:SetText(E.L[kind and'Choose an illustration for this entry'or'Choose location artwork'])
+    D.hint:SetText(E.Text(c.identity.name or c.id)..' / '..E.L[kind and'A kept illustration belongs only to this entry.'or'Location choices decorate this character’s pages, including older entries.'])
     D.frame:Show();D.Render(true);return context
 end
 function D.OpenRecord(record)return open(record)end

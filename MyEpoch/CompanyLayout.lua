@@ -1,9 +1,9 @@
 local _,E=...
 local L,B,V,C,A,S,T={},E.Book,E.CompanyView,E.Company,E.API,E.Store,E.BookTheme; E.CompanyLayout=L
 local chatChannels={
-    CHAT_MSG_PARTY="Party",CHAT_MSG_PARTY_LEADER="Party leader",CHAT_MSG_RAID="Raid",
-    CHAT_MSG_RAID_LEADER="Raid leader",CHAT_MSG_RAID_WARNING="Raid warning",
-    CHAT_MSG_INSTANCE_CHAT="Instance",CHAT_MSG_INSTANCE_CHAT_LEADER="Instance leader"
+    CHAT_MSG_PARTY= E.L["Party"] ,CHAT_MSG_PARTY_LEADER= E.L["Party leader"] ,CHAT_MSG_RAID= E.L["Raid"] ,
+    CHAT_MSG_RAID_LEADER= E.L["Raid leader"] ,CHAT_MSG_RAID_WARNING= E.L["Raid warning"] ,
+    CHAT_MSG_INSTANCE_CHAT= E.L["Instance"] ,CHAT_MSG_INSTANCE_CHAT_LEADER= E.L["Instance leader"]
 }
 for _,p in ipairs({{"companyControl","calendarControl"},{"companyStat","calendarStat"},{"companyRule","calendarRule"},{"companyRow","questRow"}})do B.widgetFactories[p[1]]=B.widgetFactories[p[2]]end
 local function font(parent,size,width)
@@ -27,6 +27,17 @@ local function control(p,text,x,y,w,fn,selected)
 end
 local function rule(p)place(B.Acquire(p,"companyRule"),p,0,p.y,B.Width(p),1); p.y=p.y+14 end
 local function detail()B.Render(); B.right.scroll:SetVerticalScroll(0); T.Scroll(B.right)end
+local function systemMessage(text)
+    if type(text)~="string" then return text end
+    local phrase=text:match('^Contains "(.-)"; tone and context need your review%.$')
+    if phrase then return E.Format('Contains "{phrase}"; tone and context need your review.',{phrase=phrase})end
+    local failure="The client rejected the friend request or restricted this action."
+    local prefix=failure.." Client response: "
+    if text:sub(1,#prefix)==prefix then
+        return E.L[failure].." "..E.Format("Client response: {response}",{response=text:sub(#prefix+1)})
+    end
+    return E.L[text]
+end
 local function entry(p,title,status,meta,fn,selected)
     local f=B.Acquire(p,"companyRow"); f:SetWidth(B.Width(p)); f.text:SetText(E.Text(title)); f.status:SetText(E.Text(status or "")); f.meta:SetText(E.Text(meta or ""))
     local h=math.max(f.text:GetStringHeight(),f.status:GetStringHeight()); f.meta:ClearAllPoints(); f.meta:SetPoint("TOPLEFT",12,-h-20)
@@ -39,11 +50,14 @@ local function pager(p,key,n,size,previous,nextLabel)
     if B[key]*size<n then control(p,nextLabel,180,y,170,function()B[key]=B[key]+1; B.Render(true)end)end
     if n>size then p.y=y+44 end
 end
-local function personName(p)return (p.name or "Unnamed companion")..(p.realm and " - "..p.realm or " (realm unknown)")end
+local function personName(p)
+    local name=p.name or E.L["Unnamed companion"]
+    return p.realm and name.." - "..p.realm or E.Format("{name} (realm unknown)",{name=name})
+end
 function L.Stats(page,metrics)
     local shown=0; local y=page.y
     for _,m in ipairs(metrics)do if m[1] and m[1]>0 then
-        local f=place(B.Acquire(page,"companyStat"),page,(shown%4)*(B.Width(page)/4),y+math.floor(shown/4)*76,B.Width(page)/4-8,70); f.value:SetText(m[1]); f.value:SetWidth(B.Width(page)/4-12);f.caption:SetWidth(B.Width(page)/4-12); f.caption:SetText(string.upper(m[2])); shown=shown+1
+        local f=place(B.Acquire(page,"companyStat"),page,(shown%4)*(B.Width(page)/4),y+math.floor(shown/4)*76,B.Width(page)/4-8,70); f.value:SetText(m[1]); f.value:SetWidth(B.Width(page)/4-12);f.caption:SetWidth(B.Width(page)/4-12); f.caption:SetText(E.locale=="enUS" and string.upper(m[2]) or E.L[m[2]]); shown=shown+1
     end end
     if shown>0 then page.y=y+math.ceil(shown/4)*76; rule(page)end
 end
@@ -55,9 +69,9 @@ function L.Records(page,rows,key,sourceGroup)
         local c,id,kind=B.Character(),r.id,r.kind
         local notice=kind=="encounter_loot" or kind=="quest_reward"
         local wallet=sourceGroup and kind=="gold" and E.Query.GroupWalletObservation(c,sourceGroup.id,r)
-        local label=wallet and "Your wallet" or kind=="encounter_loot" and "Encounter loot notice" or kind=="quest_reward" and "Quest reward notice" or kind
-        local title=wallet and ((r.amount>0 and "+" or "")..E.Money(r.amount)) or r.title or kind
-        entry(page,title,label,A.RecordDate(r)..(r.zone and " / "..r.zone or ""),function()
+        local label=wallet and E.L["Your wallet"] or kind=="encounter_loot" and E.L["Encounter loot notice"] or kind=="quest_reward" and E.L["Quest reward notice"] or E.Display.Kind(kind)
+        local title=wallet and ((r.amount>0 and "+" or "")..E.Money(r.amount)) or E.Display.RecordTitle(r) or kind
+        entry(page,title,label,A.RecordDate(r)..(E.Display.Zone(r) and " / "..E.Display.Zone(r) or ""),function()
             if (notice or wallet) and (not B.frame:IsShown() or B.chapter~=chapter or B.groupTab~=tab
                 or chapter=="Calendar" and (B.day~=day or B.calendarFilter~=filter)
                 or B.Character()~=c or not sourceGroup or sourceGroup.id~=groupID or B.selected~=groupID
@@ -66,8 +80,8 @@ function L.Records(page,rows,key,sourceGroup)
             B.selected=r.id; if r.kind=="group" then B.groupTab="events" end; detail()
         end)
     end
-    if #rows==0 then B.Text(page,"No matching source records are available.",14)end
-    pager(page,key,#rows,8,"Previous entries","More entries")
+    if #rows==0 then B.Text(page, E.L["No matching source records are available."] ,14)end
+    pager(page,key,#rows,8, E.L["Previous entries"] , E.L["More entries"] )
 end
 local reports=setmetatable({},{__mode="k"})
 function L.Report(c,g)
@@ -92,7 +106,7 @@ function L.WalletContext(page,c,r)
     if r.kind~="gold" or not E.Query.GroupWalletObservation(c,r.observerGroup,r) then return end
     local id,gid,chapter=r.id,r.observerGroup,B.chapter
     local g=c.records[gid]
-    B.Action(page,"Open group at wallet observation",function()
+    B.Action(page, E.L["Open group at wallet observation"] ,function()
         if not B.frame:IsShown() or B.chapter~=chapter or B.Character()~=c or B.selected~=id or r.id~=id or g.id~=gid or c.records[gid]~=g or not E.Query.GroupWalletObservation(c,gid,r) then return end
         E.SearchView.Open({character=c.id,record=g.id})
         if B.chapter=="Company" and B.selected==g.id then B.groupTab="wallet";B.companyEventPage=1;B.Render(true)end
@@ -101,13 +115,13 @@ end
 function L.Members(page,g)
     local c=B.Character(); local ids={}
     for _,id in ipairs(E.SortedKeys(g.memberships or {}))do if id~=c.id then ids[#ids+1]=id end end
-    B.Text(page,"Companions on this page",22); clamp("memberPage",#ids,6)
+    B.Text(page, E.L["Companions on this page"] ,22); clamp("memberPage",#ids,6)
     for i=(B.memberPage-1)*6+1,math.min(#ids,B.memberPage*6)do local id=ids[i]; local m=g.memberships[id]; local intervals=m.intervals or {}; local first,last=intervals[1],intervals[#intervals]
-        entry(page,personName(m),"Companion",first and (A.Date(first.from).." / last observed "..A.Date(last.through or last.from)) or "Presence intervals unavailable",function()V.Open(id)end)
+        entry(page,personName(m), E.L["Companion"] ,first and E.Format("First / last observed: {first} / {last}",{first=A.Date(first.from),last=A.Date(last.through or last.from)}) or  E.L["Presence intervals unavailable"] ,function()V.Open(id)end)
     end
-    if #ids==0 then B.Text(page,"No other player identities were recorded.",14)end
-    pager(page,"memberPage",#ids,6,"Previous companions","More companions")
-    B.Text(page,"Players may have joined or left during the session. Shared history uses recorded membership intervals, not mere presence in this list.",12)
+    if #ids==0 then B.Text(page, E.L["No other player identities were recorded."] ,14)end
+    pager(page,"memberPage",#ids,6, E.L["Previous companions"] , E.L["More companions"] )
+    B.Text(page, E.L["Players may have joined or left during the session. Shared history uses recorded membership intervals, not mere presence in this list."] ,12)
 end
 local quoteJump
 function L.OpenQuoteTranscript(c,g,quote)
@@ -134,21 +148,21 @@ function L.FinishQuoteJump(page)
 end
 function L.SnapshotNotice(page,owner,g,source,view)
     if not view then return end
-    B.Text(page,"Snapshot of "..#view.rows.." saved messages. More arrived while this page was being prepared.",14)
+    B.Text(page,E.Format("Snapshot of {count} saved messages. More arrived while this page was being prepared.",{count=#view.rows}),14)
     local chapter,query=B.chapter,(B.transcriptSearch or ""):lower()
-    B.Action(page,"Include newer messages",function()
+    B.Action(page, E.L["Include newer messages"] ,function()
         if B.chapter==chapter then E.Search.RefreshTranscript(owner,g,source,view,query) end
     end)
 end
 function L.Transcript(page,g)
-    B.Text(page,"Words from the road",22)
-    B.Text(page,"Search recorded messages; Enter to apply",12)
+    B.Text(page, E.L["Words from the road"] ,22)
+    B.Text(page, E.L["Search recorded messages; Enter to apply"] ,12)
     B.Input(page,B.transcriptSearch or "",function(value)B.transcriptSearch=value; B.transcriptPage=1; B.transcriptHighlight=nil; detail()end)
     local owner,gid=B.Character(),g.id
     local ready,message,view=E.Search.PrepareTranscript(owner,gid,B.transcriptSearch,quoteJump and quoteJump.quote)
     if not ready then
         L.lastMessages=nil
-        B.Text(page,message,15)
+        B.Text(page,E.L[message],15)
         return
     end
     L.SnapshotNotice(page,owner,g,g,view)
@@ -157,19 +171,19 @@ function L.Transcript(page,g)
         B.transcriptPage=math.ceil(positions[quoteJump.quote]/12);B.transcriptHighlight=quoteJump.quote.id
     end
     clamp("transcriptPage",#rows,12); L.lastMessages=rows
-    if #rows>0 then B.Text(page,#rows.." recorded messages / page "..B.transcriptPage.." of "..math.ceil(#rows/12),12)end
+    if #rows>0 then B.Text(page,E.Format("{count} recorded messages / page {page} of {pages}",{count=#rows,page=B.transcriptPage,pages=math.ceil(#rows/12)}),12)end
     for i=(B.transcriptPage-1)*12+1,math.min(#rows,B.transcriptPage*12)do local r=rows[i]; local f=B.Acquire(page,"companyChat"); f:SetWidth(B.Width(page));f.text:SetWidth(B.Width(page)-104);f.meta:SetWidth(B.Width(page)-104)
         local selected=B.transcriptHighlight==r.id
-        local channel=chatChannels[r.channel] or (type(r.channel)=="string" and r.channel~="" and r.channel) or "Group channel unknown"
-        local prefix=selected and "Selected quote · " or ""
-        f.meta:SetText(E.Text(prefix..A.RecordDate(r).." / "..(r.author or "Unknown speaker").." / "..channel))
+        local channel=chatChannels[r.channel] or (type(r.channel)=="string" and r.channel~="" and r.channel) or  E.L["Group channel unknown"]
+        local details=A.RecordDate(r).." / "..(r.author or E.L["Unknown speaker"]).." / "..channel
+        f.meta:SetText(E.Text(selected and E.Format("Selected quote · {details}",{details=details}) or details))
         if selected then f.sourceMark:Show() else f.sourceMark:Hide() end
         local metaHeight=f.meta:GetStringHeight(); f.text:ClearAllPoints(); f.text:SetPoint("TOPLEFT",12,-metaHeight-20); f.text:SetText(E.Text(r.text or ""))
         f:SetHeight(math.max(72,metaHeight+f.text:GetStringHeight()+34)); f.tint:SetAlpha((r.starred or selected) and 1 or 0)
         if quoteJump and quoteJump.quote==r then
             quoteJump.page,quoteJump.top,quoteJump.height=page,page.y,f:GetHeight()
         end
-        f.keep.text:SetText(r.starred and "Kept" or "Keep"); T.ButtonStyle(f.keep,r.starred and "filter" or nil)
+        f.keep.text:SetText(r.starred and  E.L["Kept"]  or  E.L["Keep"] ); T.ButtonStyle(f.keep,r.starred and "filter" or nil)
         local id=r.id
         local function current()
             return B.ValidQuote(owner,id,r) and owner.records[gid]==g and g.id==gid and g.kind=="group"
@@ -178,9 +192,9 @@ function L.Transcript(page,g)
         f.keep:SetScript("OnClick",function()if current() then r.starred=not r.starred; S.Changed(owner,r); B.Render() end end)
         f:SetScript("OnClick",function()if current() then B.selected=id; detail() end end); page.y=page.y+f:GetHeight()
     end
-    if #rows==0 then B.Text(page,"No matching recorded messages. Unobserved or restricted chat remains unavailable.",14)end
-    pager(page,"transcriptPage",#rows,12,"Earlier messages","Later messages")
-    B.Text(page,"Keep a message to protect its original words and linked context. Session coverage lists recording gaps; this transcript does not fill them.",12)
+    if #rows==0 then B.Text(page, E.L["No matching recorded messages. Unobserved or restricted chat remains unavailable."] ,14)end
+    pager(page,"transcriptPage",#rows,12, E.L["Earlier messages"] , E.L["Later messages"] )
+    B.Text(page, E.L["Keep a message to protect its original words and linked context. Session coverage lists recording gaps; this transcript does not fill them."] ,12)
 end
 function L.Session(page,c,g)
     B.companySessionFocus=g.id
@@ -190,41 +204,42 @@ function L.Session(page,c,g)
         L.lastSession=nil
         local _,counts=E.Query.ChatDirectory(c,g.id);counts=counts or {}
         local companions=0;for id in pairs(g.memberships or {})do if id~=c.id then companions=companions+1 end end
-        metrics={{companions,"Companions recorded"},{counts.quests,"Your quest turn-ins"},{counts.loot,"Loot observations"},{counts.pulls,"Saved meter records"}}
+        metrics={{companions, E.L["Companions recorded"] },{counts.quests, E.L["Your quest turn-ins"] },{counts.loot, E.L["Loot observations"] },{counts.pulls, E.L["Saved meter records"] }}
     else
         report=L.Report(c,g);L.lastSession=report
-        metrics={{report.companions,"Companions recorded"},{#report.quests,"Your quest turn-ins"},{#report.loot,"Loot observations"},{#report.pulls,"Saved meter records"}}
+        metrics={{report.companions, E.L["Companions recorded"] },{#report.quests, E.L["Your quest turn-ins"] },{#report.loot, E.L["Loot observations"] },{#report.pulls, E.L["Saved meter records"] }}
     end
-    B.Text(page,"AN ADVENTURE TOGETHER",11):SetTextColor(0.54,0.40,0.23)
-    B.Text(page,g.title or "Group session",29); B.Text(page,A.RecordDate(g)..(g.zone and " / "..g.zone or ""),14)
-    B.Text(page,g.ended and "Session ended: "..A.Date(g.ended) or "Last observed: "..A.Date(g.observedThrough or g.ts),12)
+    B.Text(page, E.L["AN ADVENTURE TOGETHER"] ,11):SetTextColor(0.54,0.40,0.23)
+    B.Text(page,E.Display.RecordTitle(g) or E.L["Group session"],29); B.Text(page,A.RecordDate(g)..(E.Display.Zone(g) and " / "..E.Display.Zone(g) or ""),14)
+    B.Text(page,E.Format(g.ended and "Session ended: {date}" or "Last observed: {date}",{date=A.Date(g.ended or g.observedThrough or g.ts)}),12)
     L.Stats(page,metrics)
     B.groupTab=B.groupTab or "events";local y,x=page.y,0
-    for _,tab in ipairs({{"events","All events",105},{"quests","Quests",78},{"loot","Loot",66},{"wallet","My wallet",88},{"pulls","Pulls",66},{"chat","Chat",66},{"coverage","Coverage",105},{"encounters","Bosses",74},{"highlights","Highlights",105}})do local key=tab[1]
-        if x+tab[3]>B.Width(page)then x=0;y=y+38 end
-        control(page,tab[2],x,y,tab[3],function()B.groupTab=key;B.companyEventPage=1;B.companyNoticePage=1;B.highlightPage=1;detail()end,B.groupTab==key);x=x+tab[3]+6
+    for _,tab in ipairs({{"events", E.L["All events"] ,105},{"quests","Quests",78},{"loot","Loot",66},{"wallet", E.L["My wallet"] ,88},{"pulls", E.L["Pulls"] ,66},{"chat", E.L["Chat"] ,66},{"coverage", E.L["Coverage"] ,105},{"encounters", E.L["Bosses"] ,74},{"highlights", E.L["Highlights"] ,105}})do local key=tab[1]
+        local width=E.locale=="enUS" and tab[3] or math.max(tab[3],124)
+        if x+width>B.Width(page)then x=0;y=y+38 end
+        control(page,E.L[tab[2]],x,y,width,function()B.groupTab=key;B.companyEventPage=1;B.companyNoticePage=1;B.highlightPage=1;detail()end,B.groupTab==key);x=x+width+6
     end
     page.y=y+42
-    B.Action(page,g.starred and"Session kept"or"Keep session",function()g.starred=not g.starred;S.Changed(c,g);B.Render()end)
+    B.Action(page,g.starred and E.L["Session kept"] or E.L["Keep session"] ,function()g.starred=not g.starred;S.Changed(c,g);B.Render()end)
     if B.groupTab=="chat" then L.Transcript(page,g)
     elseif B.groupTab=="highlights" then L.Highlights(page,c,report.highlights)
     elseif B.groupTab=="coverage" then V.Members(page,g); E.JourneyView.Record(page,g)
     elseif B.groupTab=="pulls" then
-        B.Text(page,"Recorded pulls",22)
-        B.Text(page,"Meter sessions with updates observed during this group. Membership at observation time does not attribute an entire fight to the group. Snapshots are not added together.",14)
+        B.Text(page, E.L["Recorded pulls"] ,22)
+        B.Text(page, E.L["Meter sessions with updates observed during this group. Membership at observation time does not attribute an entire fight to the group. Snapshots are not added together."] ,14)
         L.Records(page,report.pulls,"companyEventPage")
     elseif B.groupTab=="encounters" then
-        B.Text(page,"Boss encounter notifications",22)
-        B.Text(page,"Starts, ends and boss-defeat notifications recorded in this group. Several notifications can describe one victory; this is not a unique kill count.",14)
+        B.Text(page, E.L["Boss encounter notifications"] ,22)
+        B.Text(page, E.L["Starts, ends and boss-defeat notifications recorded in this group. Several notifications can describe one victory; this is not a unique kill count."] ,14)
         L.Records(page,report.encounters,"companyEventPage")
     else
-        if B.groupTab=="wallet" then B.Text(page,"Your wallet changes observed during this session",21)
-        elseif B.groupTab=="quests" then B.Text(page,"Your recorded turn-ins linked to this session do not establish another player's quest credit.",13)
-        elseif B.groupTab=="loot" then B.Text(page,"Observable receipts and drops remain distinct. An observed drop does not establish a recipient.",13)end
+        if B.groupTab=="wallet" then B.Text(page, E.L["Your wallet changes observed during this session"] ,21)
+        elseif B.groupTab=="quests" then B.Text(page, E.L["Your recorded turn-ins linked to this session do not establish another player's quest credit."] ,13)
+        elseif B.groupTab=="loot" then B.Text(page, E.L["Observable receipts and drops remain distinct. An observed drop does not establish a recipient."] ,13)end
         L.Records(page,report[B.groupTab] or report.events,"companyEventPage",g)
         if B.groupTab=="loot" and #report.notices>0 then
-            B.Text(page,"Loot notices while grouped",22)
-            B.Text(page,"Encounter and quest rewards the recorder saw during this session.",14)
+            B.Text(page, E.L["Loot notices while grouped"] ,22)
+            B.Text(page, E.L["Encounter and quest rewards the recorder saw during this session."] ,14)
             L.Records(page,report.notices,"companyNoticePage",g)
         end
     end
@@ -232,68 +247,68 @@ function L.Session(page,c,g)
     B.SourceLinks(page,c,g)
 end
 function L.Highlights(page,c,candidates)
-    B.Text(page,"Moments worth a second look",22)
-    B.Text(page,"Suggestions from recorded boss victories and English praise phrases. Read the context before keeping one; original chat is never rewritten.",13)
+    B.Text(page, E.L["Moments worth a second look"] ,22)
+    B.Text(page, E.L["Suggestions from recorded boss victories and English praise phrases. Read the context before keeping one; original chat is never rewritten."] ,13)
     local y=page.y;B.highlightMode=B.highlightMode or "suggested"
-    for i,choice in ipairs({{"suggested","Suggested"},{"kept","Kept"},{"dismissed","Dismissed"}})do local key=choice[1]
+    for i,choice in ipairs({{"suggested", E.L["Suggested"] },{"kept", E.L["Kept"] },{"dismissed", E.L["Dismissed"] }})do local key=choice[1]
         control(page,choice[2],(i-1)*180,y,170,function()B.highlightMode=key;B.highlightPage=1;detail()end,B.highlightMode==key)
     end
     page.y=y+46
     local rows=E.Highlights.Select(candidates,B.highlightMode);L.lastHighlights=rows;clamp("highlightPage",#rows,6)
     for i=(B.highlightPage-1)*6+1,math.min(#rows,B.highlightPage*6)do local r=rows[i]
-        local title=r.kind=="chat" and E.Search.Excerpt(r.text,"",140) or r.title
+        local title=r.kind=="chat" and E.Search.Excerpt(r.text,"",140) or E.Display.RecordTitle(r)
         local note=c.notes["record:"..r.id]
-        local explanation=r.starred and note and note.text~="" and ("Your caption: "..E.Search.Excerpt(note.text,"",140)) or E.Highlights.Reason(c,r)
-        entry(page,title,r.starred and "Kept" or r.highlightDismissed and "Dismissed" or "Suggested",
+        local explanation=r.starred and note and note.text~="" and E.Format("Your caption: {caption}",{caption=E.Search.Excerpt(note.text,"",140)}) or systemMessage(E.Highlights.Reason(c,r))
+        entry(page,title,r.starred and  E.L["Kept"]  or r.highlightDismissed and  E.L["Dismissed"]  or  E.L["Suggested"] ,
             A.RecordDate(r)..(r.author and " / "..r.author or "").."\n"..explanation,function()B.selected=r.id;detail()end)
     end
-    if #rows==0 then B.Text(page,"No moments in this view. Other messages remain in the full transcript.",14)end
-    pager(page,"highlightPage",#rows,6,"Earlier highlights","More highlights")
+    if #rows==0 then B.Text(page, E.L["No moments in this view. Other messages remain in the full transcript."] ,14)end
+    pager(page,"highlightPage",#rows,6, E.L["Earlier highlights"] , E.L["More highlights"] )
 end
 function L.HighlightRecord(page,r)
     local c=B.Character();local reason=E.Highlights.Reason(c,r);if not reason then return end
-    B.Text(page,reason,13)
-    B.Text(page,"Your notes below can hold a caption. Keeping a source protects it and its linked context; dismissing only hides this suggestion.",12)
+    B.Text(page,systemMessage(reason),13)
+    B.Text(page, E.L["Your notes below can hold a caption. Keeping a source protects it and its linked context; dismissing only hides this suggestion."] ,12)
     local y=page.y
-    control(page,r.highlightDismissed and "Restore suggestion" or "Dismiss suggestion",0,y,250,function()E.Highlights.Dismiss(c,r,not r.highlightDismissed);B.Render()end)
-    control(page,"Back to highlights",260,y,250,function()
+    control(page,r.highlightDismissed and  E.L["Restore suggestion"]  or  E.L["Dismiss suggestion"] ,0,y,250,function()E.Highlights.Dismiss(c,r,not r.highlightDismissed);B.Render()end)
+    control(page, E.L["Back to highlights"] ,260,y,250,function()
         B.chapter="Company";B.companyMode="sessions";B.selected=r.group;B.companySessionFocus=r.group;B.groupTab="highlights";B.Render(true)
     end);page.y=y+46
 end
 function L.Profile(page,h)
-    local p=h.person; B.Text(page,"IN "..string.upper(B.Character().identity.name or "YOUR").."'S BOOK",11):SetTextColor(0.54,0.40,0.23)
+    local p=h.person; B.Text(page,E.Format("In {name}'s book",{name=B.Character().identity.name or E.L["Your character"]}),11):SetTextColor(0.54,0.40,0.23)
     B.Text(page,personName(p),29)
-    L.Stats(page,{{#p.sessions,"Shared sessions"},{#h.quests,"Your quest turn-ins"},{#h.milestones,"Your major milestones"},{#h.quotes,"Saved group quotes"}})
+    L.Stats(page,{{#p.sessions, E.L["Shared sessions"] },{#h.quests, E.L["Your quest turn-ins"] },{#h.milestones, E.L["Your major milestones"] },{#h.quotes, E.L["Saved group quotes"] }})
     local y=page.y
-    control(page,"Whisper - open composer",0,y,230,function()B.socialMessage=E.Social.Whisper(p); B.Render()end)
-    control(page,"Add friend",240,y,130,function()B.socialMessage=E.Social.AddFriend(p); B.Render()end)
-    control(page,"Refresh friend status",380,y,200,function()local state=E.Social.State(p); B.socialMessage=state.error or state.status; B.Render()end); page.y=y+46
-    local state=E.Social.State(p); B.Text(page,B.socialMessage or state.error or state.status or "Social status unavailable",12)
-    B.Text(page,"Actions use "..(E.current.identity.name or "your logged-in character").."'s character friend list.",12)
-    B.Text(page,"First recorded together: "..(p.first and A.Date(p.first) or "Unknown").."\nLast recorded together: "..(p.last and A.Date(p.last) or "Unknown"),13)
-    B.Text(page,"Shared events require both players' recorded presence. Unknown intervals remain gaps; these dates are not lifetime first/last meetings.",12)
-    if h.uncertainEvents>0 then B.Text(page,h.uncertainEvents.." events have uncertain membership-boundary ordering and remain unassigned to this companion.",12)end
-    B.companySection=B.companySection or "sessions"; local shown=0; local y=page.y
-    for _,s in ipairs({{"sessions","Group sessions"},{"quests","Your quest completions"},{"milestones","Your major milestones"},{"loot","Observed loot receipts"},{"drops","Drops observed together"},{"quotes","Saved group quotes"},{"deaths","Your deaths"}})do
+    control(page, E.L["Whisper - open composer"] ,0,y,230,function()B.socialMessage=E.Social.Whisper(p); B.Render()end)
+    control(page, E.L["Add friend"] ,240,y,130,function()B.socialMessage=E.Social.AddFriend(p); B.Render()end)
+    control(page, E.L["Refresh friend status"] ,380,y,200,function()local state=E.Social.State(p); B.socialMessage=state.error or state.status; B.Render()end); page.y=y+46
+    local state=E.Social.State(p); B.Text(page,systemMessage(B.socialMessage or state.error or state.status or "Social status unavailable"),12)
+    B.Text(page,E.Format("Actions use {name}'s character friend list.",{name=E.current.identity.name or E.L["Your character"]}),12)
+    B.Text(page,E.Format("First recorded together: {first}\nLast recorded together: {last}",{first=p.first and A.Date(p.first) or E.L.Unknown,last=p.last and A.Date(p.last) or E.L.Unknown}),13)
+    B.Text(page, E.L["Shared events require both players' recorded presence. Unknown intervals remain gaps; these dates are not lifetime first/last meetings."] ,12)
+    if h.uncertainEvents>0 then B.Text(page,E.Format("Unassigned events near membership changes: {count}",{count=h.uncertainEvents}),12)end
+    B.companySection=B.companySection or "sessions"; local shown=0; local y=page.y;local sectionWidth=(B.Width(page)-16)/3
+    for _,s in ipairs({{"sessions", E.L["Group sessions"] },{"quests", E.L["Your quest completions"] },{"milestones", E.L["Your major milestones"] },{"loot", E.L["Observed loot receipts"] },{"drops", E.L["Drops observed together"] },{"quotes", E.L["Saved group quotes"] },{"deaths", E.L["Your deaths"] }})do
         local key=s[1]; local rows=key=="sessions" and p.sessions or h[key]
-        if #rows>0 then control(page,s[2].." ("..#rows..")",(shown%3)*254,y+math.floor(shown/3)*38,246,function()B.companySection=key; B.companyDetailPage=1; detail()end,B.companySection==key); shown=shown+1 end
+        if #rows>0 then control(page,s[2].." ("..#rows..")",(shown%3)*(sectionWidth+8),y+math.floor(shown/3)*38,sectionWidth,function()B.companySection=key; B.companyDetailPage=1; detail()end,B.companySection==key); shown=shown+1 end
     end
     page.y=y+math.ceil(shown/3)*38+12
-    if B.companySection=="quests" then B.Text(page,"Your recorded completions do not prove this companion received quest credit.",13)
-    elseif B.companySection=="quotes" then B.Text(page,"Saved quotes may be from anyone recorded in this shared conversation.",13)
+    if B.companySection=="quests" then B.Text(page, E.L["Your recorded completions do not prove this companion received quest credit."] ,13)
+    elseif B.companySection=="quotes" then B.Text(page, E.L["Saved quotes may be from anyone recorded in this shared conversation."] ,13)
     elseif B.companySection=="loot" then
-        for _,m in ipairs({{h.recipientUnits,"items with this companion's confirmed recipient identity"},{h.otherRecipientUnits,"items received by other identified players"},{h.unknownRecipientUnits,"items without a confirmed recipient identity"}})do if m[1]>0 then B.Text(page,m[1].." "..m[2],13)end end
+        for _,m in ipairs({{h.recipientUnits,"Confirmed items received by this companion: {count}"},{h.otherRecipientUnits,"Items received by other identified players: {count}"},{h.unknownRecipientUnits,"Items without a confirmed recipient: {count}"}})do if m[1]>0 then B.Text(page,E.Format(m[2],{count=m[1]}),13)end end
     end
     L.Records(page,B.companySection=="sessions" and p.sessions or h[B.companySection] or {},"companyDetailPage")
     B.Note(page,"companion:"..p.id)
 end
 function L.Render(left,right)
     local c=B.Character(); B.companyMode=B.companyMode or "sessions"
-    B.Text(left,B.companyMode=="sessions" and "CHAPTER V  -  THOSE BESIDE US" or "COMPANY  -  COMPANION HISTORY",11):SetTextColor(0.54,0.40,0.23)
-    B.Text(left,B.companyMode=="sessions" and "Good company" or B.companyMode=="pulls" and "Battles remembered" or "Familiar faces",30)
-    B.Text(left,"The adventures you shared, and the people who made them.",15)
+    B.Text(left,B.companyMode=="sessions" and  E.L["CHAPTER V  -  THOSE BESIDE US"]  or  E.L["COMPANY  -  COMPANION HISTORY"] ,11):SetTextColor(0.54,0.40,0.23)
+    B.Text(left,B.companyMode=="sessions" and  E.L["Good company"]  or B.companyMode=="pulls" and  E.L["Battles remembered"]  or  E.L["Familiar faces"] ,30)
+    B.Text(left, E.L["The adventures you shared, and the people who made them."] ,15)
     local modes={}
-    for _,s in ipairs({{"sessions","Group sessions"},{"companions","Companions"},{"pulls","Pull history"}})do local mode=s[1]
+    for _,s in ipairs({{"sessions", E.L["Group sessions"] },{"companions", E.L["Companions"] },{"pulls", E.L["Pull history"] }})do local mode=s[1]
         modes[#modes+1]={s[2],function()B.companyMode=mode;B.selected=nil;B.companyPage=1;B.companyMessage=nil;B.Render(true)end,B.companyMode==mode}
     end
     B.Navigation.Subviews(modes)
@@ -307,30 +322,30 @@ function L.Render(left,right)
         if selected and selected.kind=="encounter" and not selected.group then g=nil; B.companySessionFocus=nil end
         clamp("companyPage",#rows,8)
         for i=(B.companyPage-1)*8+1,math.min(#rows,B.companyPage*8)do local r=rows[i]
-            entry(left,r.title or "Group session",r.ended and "Ended" or "Recorded session",A.RecordDate(r)..(r.zone and " / "..r.zone or ""),function()
+            entry(left,E.Display.RecordTitle(r) or E.L["Group session"],r.ended and  E.L["Ended"]  or  E.L["Recorded session"] ,A.RecordDate(r)..(E.Display.Zone(r) and " / "..E.Display.Zone(r) or ""),function()
                 B.selected=r.id; B.groupTab="events"; B.companyEventPage=1; B.memberPage=1; B.transcriptPage=1; B.transcriptSearch=""; B.transcriptHighlight=nil; detail()
             end,g and g.id==r.id)
         end
-        pager(left,"companyPage",#rows,8,"Newer sessions","Older sessions")
+        pager(left,"companyPage",#rows,8, E.L["Newer sessions"] , E.L["Older sessions"] )
         left.y=left.y+20; rule(left)
         if g then L.Members(left,g)
-        elseif selected and selected.kind=="encounter" then B.Text(left,"This encounter notification has no recorded group session.",14)
-        else B.Text(right,"Adventures still to come",29); B.Text(right,"No group sessions have been recorded for this character.",15)end
+        elseif selected and selected.kind=="encounter" then B.Text(left, E.L["This encounter notification has no recorded group session."] ,14)
+        else B.Text(right, E.L["Adventures still to come"] ,29); B.Text(right, E.L["No group sessions have been recorded for this character."] ,15)end
     else
         B.Navigation.Controls(function(left)
-    B.Text(left,"Find a companion by name or realm; Enter to apply",12)
+    B.Text(left, E.L["Find a companion by name or realm; Enter to apply"] ,12)
         B.Input(left,B.companyQuery or "",function(value)B.companyQuery=value; B.companyPage=1; B.companionID=nil; B.selected=nil; B.Render(true)end)
         end)
     local rows={}; for _,p in ipairs(C.List(c))do if personName(p):lower():find((B.companyQuery or ""):lower(),1,true)then rows[#rows+1]=p end end
         if not B.companionID and rows[1]then B.companionID=rows[1].id end
         clamp("companyPage",#rows,8)
         for i=(B.companyPage-1)*8+1,math.min(#rows,B.companyPage*8)do local p=rows[i]
-            entry(left,personName(p),#p.sessions.." sessions","Last recorded "..A.Date(p.last),function()V.Open(p.id)end,B.companionID==p.id)
+            entry(left,personName(p),E.Format("Sessions: {count}",{count=#p.sessions}),E.Format("Last recorded: {date}",{date=A.Date(p.last)}),function()V.Open(p.id)end,B.companionID==p.id)
         end
-        pager(left,"companyPage",#rows,8,"Previous companions","More companions")
-        if #rows==0 then B.Text(left,"No matching recorded companions.",15)end
+        pager(left,"companyPage",#rows,8, E.L["Previous companions"] , E.L["More companions"] )
+        if #rows==0 then B.Text(left, E.L["No matching recorded companions."] ,15)end
         if not B.selected then local h=B.companionID and C.History(c,B.companionID); V.lastHistory=h
-            if h then L.Profile(right,h)else B.Text(right,"A quiet page",29); B.Text(right,"No matching companion history is available. Saved personal notes remain searchable.",15)end
+            if h then L.Profile(right,h)else B.Text(right, E.L["A quiet page"] ,29); B.Text(right, E.L["No matching companion history is available. Saved personal notes remain searchable."] ,15)end
         end
     end
     if B.companyMessage then B.Text(left,B.companyMessage,14)end

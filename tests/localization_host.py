@@ -21,7 +21,12 @@ def main():
         assert vm.globals().E.locale==expected
         for name in ('craft_projection_test_support.lua','sidebar_test_support.lua','integration_spec.lua'):
             test(name)
-        test('localization_spec.lua')
+        for name in ('localization_spec.lua','display_localization_spec.lua','company_localization_spec.lua',
+                     'archive_localization_spec.lua','adventure_localization_spec.lua',
+                     'quest_localization_spec.lua','memory_localization_spec.lua',
+                     'search_localization_spec.lua','pull_localization_spec.lua',
+                     'economy_localization_spec.lua','diary_presentation_localization_spec.lua'):
+            vm.execute('local s,n=...; E.TestProjection.WithFrames(function()assert(loadstring(s,"@"..n))()end)',(ROOT/'tests'/name).read_text(encoding='utf8'),name)
         catalog=dict(vm.globals().E.L.items())
         if expected!='enUS':catalogs[expected]=set(catalog)
         print('PASS locale',raw,'->',expected)

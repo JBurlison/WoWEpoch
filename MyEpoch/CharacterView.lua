@@ -11,16 +11,16 @@ end
 function V.Hide()if V.frame then V.frame:Hide();V.input:ClearFocus()end end
 function V.Render()
     local rows=C.Rows(V.query);local pages=math.max(1,math.ceil(#rows/6));V.page=math.max(1,math.min(V.page,pages));V.rows=rows
-    V.count:SetText(#rows==0 and'No matching characters' or #rows..' character'..(#rows==1 and''or's')..'  /  Page '..V.page..' of '..pages)
+    V.count:SetText(#rows==0 and E.L['No matching characters'] or E.Format('Characters: {count} / Page {page} of {pages}',{count=#rows,page=V.page,pages=pages}))
     for i,f in ipairs(V.cards)do
         local c=rows[(V.page-1)*6+i];f.characterID=c and c.id or nil
         if c then
             local selected=B.Character()==c;f:Show();f.tint:SetAlpha(selected and .14 or .04)
-            f.name:SetText(E.Text(c.identity.name or c.id)..(selected and'  /  Reading now'or''))
+            f.name:SetText(E.Text(c.identity.name or c.id)..(selected and'  /  '..E.L['Reading now']or''))
             f.meta:SetText(E.Text(C.Description(c)))
             local ts,id=C.Latest(c);local source=id and c.records[id]
-            local when=ts and(source and source.datePrecision=='day'and(E.API.Day(ts)..' (date only)')or E.API.Date(ts))
-            f.activity:SetText(when and('Last recorded activity: '..when..'  /  Local time')or'No dated activity recorded')
+            local when=ts and(source and source.datePrecision=='day'and E.API.RecordDate(source)or E.API.Date(ts))
+            f.activity:SetText(when and E.Format('Last recorded activity: {date} / Local time',{date=when})or E.L['No dated activity recorded'])
             f:SetScript('OnClick',function()V.Hide();B.ChangeCharacter(c.id)end)
         else f:Hide();f:SetScript('OnClick',nil)end
     end
@@ -34,9 +34,9 @@ function V.Build()
     local shade=outside:CreateTexture(nil,'BACKGROUND');shade:SetAllPoints();shade:SetColorTexture(0,0,0,.25)
     local panel=CreateFrame('Frame',nil,overlay);V.panel=panel;panel:SetSize(680,750);panel:SetPoint('TOPRIGHT',B.frame,'TOPRIGHT',-56,-72);panel:EnableMouse(true)
     T.Photo(panel)
-    local heading=text(panel,25,530);heading:SetText('Choose a character');heading:SetPoint('TOPLEFT',30,-30)
+    local heading=text(panel,25,530);heading:SetText(E.L['Choose a character']);heading:SetPoint('TOPLEFT',30,-30)
     local close=button(panel,E.L['Close'],82,28,V.Hide);close:SetPoint('TOPRIGHT',-26,-26)
-    local hint=text(panel,12,600);hint:SetText('Search names, realms or classes. Each journal stays separate.');hint:SetPoint('TOPLEFT',30,-68)
+    local hint=text(panel,12,600);hint:SetText(E.L['Search names, realms or classes. Each journal stays separate.']);hint:SetPoint('TOPLEFT',30,-68)
     local input=CreateFrame('EditBox',nil,panel);V.input=input;input:SetSize(620,34);input:SetPoint('TOPLEFT',30,-92);input:SetAutoFocus(false);input:SetFont(E.Font(),15,'');input:SetTextColor(.26,.15,.08);input:SetTextInsets(10,10,6,6)
     local face=T.Texture(input,'button-v1');face:SetAllPoints()
     input:SetScript('OnEscapePressed',V.Hide);input:SetScript('OnEnterPressed',function(self)self:ClearFocus()end)
@@ -51,9 +51,9 @@ function V.Build()
         f.activity=text(f,11,596);f.activity:SetPoint('TOPLEFT',12,-58)
         f:SetHighlightTexture('Interface\\Buttons\\WHITE8X8');f:GetHighlightTexture():SetAlpha(.12)
     end
-    V.previous=button(panel,'Previous',150,30,function()V.page=V.page-1;V.Render()end);V.previous:SetPoint('BOTTOMLEFT',30,54)
-    V.next=button(panel,'Next',150,30,function()V.page=V.page+1;V.Render()end);V.next:SetPoint('BOTTOMRIGHT',-30,54)
-    local footer=text(panel,11,620);footer:SetText('Only characters recorded by this addon appear here.');footer:SetPoint('BOTTOMLEFT',30,25)
+    V.previous=button(panel,E.L['Previous'],150,30,function()V.page=V.page-1;V.Render()end);V.previous:SetPoint('BOTTOMLEFT',30,54)
+    V.next=button(panel,E.L['Next'],150,30,function()V.page=V.page+1;V.Render()end);V.next:SetPoint('BOTTOMRIGHT',-30,54)
+    local footer=text(panel,11,620);footer:SetText(E.L['Only characters recorded by this addon appear here.']);footer:SetPoint('BOTTOMLEFT',30,25)
     if UISpecialFrames then table.insert(UISpecialFrames,'MyEpochCharacterPicker')end
     overlay:Hide()
 end

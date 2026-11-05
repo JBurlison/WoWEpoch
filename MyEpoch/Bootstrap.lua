@@ -161,6 +161,7 @@ frame:SetScript("OnUpdate",function(_,delta)
     E.Gathering.Process()
     E.GoldChecks.Process()
     E.Book.PreparationTick()
+    if E.DiaryPresentation then E.DiaryPresentation.Tick()end
     if E.MobDropView then E.MobDropView.Tick()end
     if E.CraftProjectionPreparation then E.CraftProjectionPreparation.Process(4000)end
     if E.AuctionPreparationView then E.AuctionPreparationView.Process(4000)end

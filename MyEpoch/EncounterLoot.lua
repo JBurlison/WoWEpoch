@@ -64,7 +64,7 @@ function L.Page(c,page)
     return out,page,pages,total
 end
 local function item(page,r)
-    E.LedgerStyle.Item(page,r.itemID,r.title,r.quantity,"Encounter ID "..r.encounterID,r.itemLink)
+    E.LedgerStyle.Item(page,r.itemID,E.Display.Item(r.itemID,r.title),r.quantity,E.Format("Encounter ID {id}",{id=r.encounterID}),r.itemLink)
 end
 local view
 function L.List(page,c)
@@ -72,8 +72,8 @@ function L.List(page,c)
     if not view or view.owner~=c then view={owner=c,page=1} end
     local state,selected=view,B.selected
     local rows,n,pages,total,waiting=L.Page(c,state.page)
-    if waiting then B.Text(page,"Preparing encounter loot notices…",14);return end
-    if total==0 then B.Text(page,"No encounter loot notices recorded for this character.",14);return end
+    if waiting then B.Text(page,E.L["Preparing encounter loot notices…"],14);return end
+    if total==0 then B.Text(page,E.L["No encounter loot notices recorded for this character."],14);return end
     state.page=n
     local function here()
         return view==state and B.Character()==c and E.db.characters[c.id]==c and B.chapter=="Loot"
@@ -82,35 +82,35 @@ function L.List(page,c)
     for _,r in ipairs(rows)do
         item(page,r)
         local id=r.id
-        B.Action(page,"Open notice · "..A.RecordDate(r).." · #"..r.sequence,function()
+        B.Action(page,E.Format("Open notice · {date} · #{sequence}",{date=A.RecordDate(r),sequence=r.sequence}),function()
             if here() and r.id==id and L.Valid(c,r)then B.selected=id;B.Render(true)end
         end)
     end
     if pages>1 then
-        B.Text(page,"Notice page "..n.." of "..pages,12)
+        B.Text(page,E.Format("Notice page {page} of {pages}",{page=n,pages=pages}),12)
         local function turn(to)return function()if here()then state.page=to;B.Render(true)end end end
-        if n>1 then B.Action(page,"Newer notices",turn(n-1))end
-        if n<pages then B.Action(page,"Older notices",turn(n+1))end
+        if n>1 then B.Action(page,E.L["Newer notices"],turn(n-1))end
+        if n<pages then B.Action(page,E.L["Older notices"],turn(n+1))end
     end
 end
 function L.Detail(page,c,r)
     local B=E.Book
-    if not L.Valid(c,r)then B.Text(page,"This encounter loot notice is unavailable.",14);return end
-    B.Text(page,"ENCOUNTER LOOT NOTICE",12)
+    if not L.Valid(c,r)then B.Text(page,E.L["This encounter loot notice is unavailable."],14);return end
+    B.Text(page,E.L["ENCOUNTER LOOT NOTICE"],12)
     item(page,r)
-    B.Text(page,A.RecordDate(r).." · "..(c.identity.name or c.id).."'s observation",14)
+    B.Text(page,E.Format("{date} · {name}'s observation",{date=A.RecordDate(r),name=c.identity.name or c.id}),14)
     local loc=r.observerLocation or {}
     if loc.zone or loc.mapID then
-        B.Text(page,"Observer location · "..(loc.zone or "Map "..loc.mapID)..(loc.subzone and " / "..loc.subzone or ""),13)
+        B.Text(page,E.Format("Observer location · {location}",{location=E.Display.Map(loc.mapID,loc.zone or E.Format("Map {id}",{id=loc.mapID}))})..(loc.subzone and " / "..loc.subzone or ""),13)
     end
-    local labels={solo="Solo",group="Grouped",unknown="Unknown"}
-    B.Text(page,"Observer group status · "..(labels[r.observerGroupState] or "Unknown"),13)
+    local labels={solo=E.L["Solo"],group=E.L["Grouped"],unknown=E.L.Unknown}
+    B.Text(page,E.Format("Observer group status · {status}",{status=labels[r.observerGroupState] or E.L.Unknown}),13)
     local noticeID=r.id
     local function here()return B.Character()==c and B.selected==noticeID and r.id==noticeID and L.Valid(c,r)end
     local groupID=r.observerGroup
     local group=groupID and c.records[groupID]
     if r.observerGroupState=="group" and group and group.id==groupID and group.character==c.id and group.kind=="group" then
-        B.Action(page,"Open observer’s group in Company",function()
+        B.Action(page,E.L["Open observer’s group in Company"],function()
             if here() and r.observerGroup==groupID
                 and r.observerGroupState=="group" and c.records[groupID]==group and group.id==groupID
                 and group.character==c.id and group.kind=="group" then
@@ -118,12 +118,12 @@ function L.Detail(page,c,r)
             end
         end)
     end
-    B.Text(page,"The encounter ID identifies an encounter type. The recipient and individual run are unknown.",13)
-    B.Text(page,"Source · ENCOUNTER_LOOT_RECEIVED",12)
-    B.Action(page,r.starred and "Unstar this notice" or "Star and protect this notice",function()
+    B.Text(page,E.L["The encounter ID identifies an encounter type. The recipient and individual run are unknown."],13)
+    B.Text(page,E.Format("Source · {source}",{source="ENCOUNTER_LOOT_RECEIVED"}),12)
+    B.Action(page,r.starred and E.L["Unstar this notice"] or E.L["Star and protect this notice"],function()
         if here()then r.starred=not r.starred;S.Changed(c,r);B.Render()end
     end)
-    if S.Timestamp(r) then B.Action(page,"Open this calendar day",function()
+    if S.Timestamp(r) then B.Action(page,E.L["Open this calendar day"],function()
         if here() and S.Timestamp(r) then
             B.SetChapter("Calendar");B.calendarFilter="encounter_loot";E.CalendarView.SelectDay(r.ts,"Events")
         end

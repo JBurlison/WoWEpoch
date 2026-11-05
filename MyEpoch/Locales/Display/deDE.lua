@@ -1,0 +1,42 @@
+local _,E=...
+if E.locale~="deDE" then return end
+E.Localize({
+    ["Item {id}"]="Gegenstand {id}",
+    ["Quest {id}"]="Quest {id}",
+    ["Map {id}"]="Karte {id}",
+    ["Quest"]="Quest",
+    ["Quest objective"]="Questziel",
+    ["Observed drop"]="Beobachtete Beute",
+    ["Group session"]="Gruppenabenteuer",
+    ["Wallet change"]="Münzen im Wandel",
+    ["Observed wallet balance"]="Erfasster Geldbestand",
+    ["Wallet observation interval"]="Zeitraum der Geldaufzeichnung",
+    ["Play time"]="Spielzeit",
+    ["Position"]="Position",
+    ["Location"]="Ort",
+    ["Recording gap"]="Aufzeichnungslücke",
+    ["Inventory"]="Inventar",
+    ["Acquisition record"]="Erwerbsbeleg",
+    ["Inventory outflow"]="Inventarabgang",
+    ["Inventory baseline"]="Inventar-Ausgangsbestand",
+    ["Bank observation"]="Bankaufzeichnung",
+    ["Auction"]="Auktion",
+    ["Trade"]="Handel",
+    ["Mail"]="Post",
+    ["Skill"]="Fertigkeit",
+    ["Character level {before} → {after}"]="Charakterstufe {before} → {after}",
+    ["First recorded visit: {place}"]="Zum ersten Mal hier: {place}",
+    ["{skill}: {before} → {after}"]="{skill}: {before} → {after}",
+    ["Achievement: {name}"]="Erfolg: {name}",
+    ["Learning recorded: {name}"]="Neu gelernt: {name}",
+    ["Adventures together"]="Gemeinsam unterwegs",
+    ["A death to remember"]="Ein unfreiwilliger Umweg",
+    ["{day} {month} {year} at {time}"]="{day}. {month} {year}, {time}",
+    ["Event date unknown"]="Ereignisdatum unbekannt",
+})
+E.Localize({["{gold}g {silver}s {copper}c"]="{gold}G {silver}S {copper}K"})
+E.Localize({
+["Meter session {id}"]="Kampfaufzeichnung {id}",
+["Trade with {name}"]="Handel mit {name}",
+["Offer with {name}"]="Angebot an {name}",
+})

@@ -1,0 +1,42 @@
+local _,E=...
+if E.locale~="esES" then return end
+E.Localize({
+    ["Item {id}"]="Objeto {id}",
+    ["Quest {id}"]="Misión {id}",
+    ["Map {id}"]="Mapa {id}",
+    ["Quest"]="Misión",
+    ["Quest objective"]="Objetivo de misión",
+    ["Observed drop"]="Botín observado",
+    ["Group session"]="Aventura en grupo",
+    ["Wallet change"]="Movimiento de monedas",
+    ["Observed wallet balance"]="Saldo observado",
+    ["Wallet observation interval"]="Periodo de registro del saldo",
+    ["Play time"]="Tiempo de juego",
+    ["Position"]="Posición",
+    ["Location"]="Lugar",
+    ["Recording gap"]="Intervalo sin registros",
+    ["Inventory"]="Inventario",
+    ["Acquisition record"]="Registro de adquisición",
+    ["Inventory outflow"]="Salida del inventario",
+    ["Inventory baseline"]="Inventario inicial",
+    ["Bank observation"]="Registro del banco",
+    ["Auction"]="Subasta",
+    ["Trade"]="Intercambio",
+    ["Mail"]="Correo",
+    ["Skill"]="Habilidad",
+    ["Character level {before} → {after}"]="Nivel del personaje: {before} → {after}",
+    ["First recorded visit: {place}"]="Primeros pasos en {place}",
+    ["{skill}: {before} → {after}"]="{skill}: {before} → {after}",
+    ["Achievement: {name}"]="Logro: {name}",
+    ["Learning recorded: {name}"]="Algo nuevo aprendido: {name}",
+    ["Adventures together"]="Aventuras en compañía",
+    ["A death to remember"]="Una visita al ángel",
+    ["{day} {month} {year} at {time}"]="{day} de {month} de {year}, {time}",
+    ["Event date unknown"]="Fecha del evento desconocida",
+})
+E.Localize({["{gold}g {silver}s {copper}c"]="{gold}o {silver}p {copper}c"})
+E.Localize({
+["Meter session {id}"]="Sesión de combate {id}",
+["Trade with {name}"]="Intercambio con {name}",
+["Offer with {name}"]="Oferta a {name}",
+})

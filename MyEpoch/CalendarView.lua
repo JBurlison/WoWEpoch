@@ -9,8 +9,8 @@ filters[#filters+1]={"recap","Recaps",76}
 kinds[#kinds+1]={"kill","mob defeated","mobs defeated","Mob defeated","Mobs defeated"}
 filters[#filters+1]={"kill","Mobs defeated",112}
 local internal={travel=true,kill_observation=true,mail_scan=true,mail_request=true,mail_notice=true,trade_offer=true,trade_notice=true,play=true,objective=true,diary=true,wallet_window=true,money_evidence=true,cost_lot=true,stock_reset=true,stock_move=true}
-local names={group="Group adventure",quest="Quest completed",quest_reward="Quest reward event",encounter_loot="Encounter loot notice",quest_attempt="Quest attempt",auction="Auction observation",trade="Player trade",mail="Envelope observed",mail_collection="Mailbox collection",loot="Loot receipt",crafted="Crafted",gathered="Gathered",gather_action="Gathering action",
-    kill="Mob defeated",xp="Experience gained",milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Captured moment",gold="Gold",chat="Group chat",pull="Meter observation",encounter="Boss encounter",gap="Recording coverage"}
+local names={group="Group adventure",quest="Quest completed",quest_reward="Quest reward event",encounter_loot="Encounter loot notice",quest_attempt="Quest attempt",auction=E.L["Auction observation"],trade=E.L["Player trade"],mail=E.L["Envelope observed"],mail_collection=E.L["Mailbox collection"],loot="Loot receipt",crafted="Crafted",gathered="Gathered",gather_action=E.L["Gathering action"],
+    kill="Mob defeated",xp="Experience gained",milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Captured moment",gold="Gold",chat="Group chat",pull=E.L["Meter observation"],encounter="Boss encounter",gap=E.L["Recording coverage"]}
 local function font(parent,size,w,lines)
     local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size,"")
     f:SetTextColor(0.29,0.19,0.11); f:SetWidth(w); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP")
@@ -151,7 +151,7 @@ function V.Jump(value)
 end
 function V.SelectMonth(year,month)
     if type(year)~="number"or year%1~=0 or year<1 or year>9999 or type(month)~="number"or month%1~=0 or month<1 or month>12 then
-        B.calendarError="Enter a whole year from 1 to 9999.";B.Render();return
+        B.calendarError=E.L["Enter a whole year from 1 to 9999."];B.Render();return
     end
     local ok,day,err=pcall(function()
         local first,message=A.ParseDay(string.format("%04d-%02d-01",year,month))
@@ -159,7 +159,7 @@ function V.SelectMonth(year,month)
         local _,finish=A.Period(first,"monthly");local last=date("*t",A.ShiftDay(finish,-1)).day
         return A.ShiftDay(first,math.min(date("*t",B.day or A.Now()).day,last)-1)
     end)
-    if not ok or not day then B.calendarError=ok and err or "This calendar month is unavailable on this client.";B.Render();return end
+    if not ok or not day then B.calendarError=ok and err or E.L["This calendar month is unavailable on this client."];B.Render();return end
     V.SelectDay(day)
 end
 local function metricLines(counts)
@@ -223,14 +223,14 @@ function V.Month(left,c,prepared)
             local text=report.pending and (prepared.error and E.L["Activity unavailable"] or E.L["Preparing activity..."]) or #lines>0 and table.concat(lines,"\n") or E.L[hasNote and "Personal notes" or #report.records>0 and "Recorded activity" or "No recorded history"]
             f.text:SetWidth(cellWidth-14); f.text:SetHeight(cellHeight-26); f.text:SetMaxLines(maxLines); f.text:SetText(text)
             f.hint:SetWidth(cellWidth-14); f.hint:SetHeight(12)
-            if report.highlight and #lines<=1 and #(lines[1] or "")<=19 and cellHeight>=56 then f.hint:SetText(E.Text(report.highlight.title or report.highlight.kind)); f.hint:Show()else f.hint:Hide()end
+            if report.highlight and #lines<=1 and #(lines[1] or "")<=19 and cellHeight>=56 then f.hint:SetText(E.Text(E.Display.RecordTitle(report.highlight))); f.hint:Show()else f.hint:Hide()end
             f:SetScript("OnClick",function()V.SelectDay(day)end)
         end
     end
     left.y=top+gridHeight+10
     control(left,(B.calendarLegendOpen and "- " or "+ ")..E.L["About counts & recording coverage"],0,left.y,320,function()B.calendarLegendOpen=not B.calendarLegendOpen; B.Render()end)
     left.y=left.y+38
-    if B.calendarLegendOpen then B.Text(left,"Groups count distinct sessions observed that day; quests count completed turn-ins; loot counts receipts. Crafted/gathered totals count your item units. Milestones include your major progress, deaths and learning. No recorded history does not mean nothing happened. Days use local time; active time excludes recorded AFK.",13)end
+    if B.calendarLegendOpen then B.Text(left,E.L["Groups count distinct sessions observed that day; quests count completed turn-ins; loot counts receipts. Crafted/gathered totals count your item units. Milestones include your major progress, deaths and learning. No recorded history does not mean nothing happened. Days use local time; active time excludes recorded AFK."],13)end
 end
 local groupMetrics={{"quest","quest turned in","quests turned in"},{"loot","loot receipt","loot receipts"},{"chat","chat message","chat messages"}}
 local function groupSummary(counts)
@@ -292,16 +292,16 @@ function V.Daily(right,c,report,prepared)
         local diary,writing,writeError=E.JournalViews.Watch(c,job,A.Now())
         local missing=writing=='expired'and"This day's generated diary expired under your retention policy. Your personal notes remain separate."
             or writing=='error'and"This day's writing is unavailable. Your notes remain available below."or"Preparing this day's diary from recorded history..."
-        paragraph(right,diary and diary.text or E.L[missing],16)
+        paragraph(right,diary and E.DiaryPresentation.Daily(c,diary) or E.L[missing],16)
         if diary and writing=='pending'then paragraph(right,E.L['Updating the saved diary...'],12)end
         if writeError then
-            paragraph(right,writeError,12)
+            paragraph(right,E.L[writeError],12)
             control(right,E.L['Retry writing'],16,right.y,180,function()E.JournalViews.Retry(c,job);B.Render()end);right.y=right.y+42
         end
         if diary and #(diary.refs or {})>0 then
             local busy=E.JournalJobs.Retelling(c,diary)
             control(right,E.L[busy and "Writing another telling..."or"Try another telling"],16,right.y,210,function()if not busy then E.JournalJobs.RequestRetell(c,diary);B.Render()end end); right.y=right.y+42
-            local err=E.JournalJobs.RetellError(c,diary);if err then paragraph(right,err,12)end
+            local err=E.JournalJobs.RetellError(c,diary);if err then paragraph(right,E.L[err],12)end
         end
         local notes=B.Section(right,E.L["Your own words"])
         local key="day:"..A.Day(B.day); local note=place(B.Acquire(right,"edit"),right,20,right.y,width-40,120)
@@ -344,11 +344,11 @@ function V.Daily(right,c,report,prepared)
         local stamp=activity or r
         local f=B.Acquire(right,"calendarEvent"); f:SetWidth(width);f.text:SetWidth(width-105);f.category:SetWidth(width-105); f.clock:SetText(r.kind=="recap" and E.L["Recap"] or stamp.datePrecision=="day" and E.L["Date only"] or date("%H:%M",stamp.ts))
         local category=E.L[activity and "Group activity" or E.Gathering.Inferred(r)and"Inferred gathered"or names[r.kind] or r.kind:gsub("_"," ")]
-        f.category:SetText(E.locale=='enUS' and string.upper(category) or category); f.text:SetText(E.Text(r.title or E.L[names[r.kind] or r.kind]))
+        f.category:SetText(E.locale=='enUS' and string.upper(category) or category); f.text:SetText(E.Text(E.Display.RecordTitle(r)))
         local height=math.max(62,math.max(22,f.text:GetStringHeight())+39)
         local summary=r.kind=="group" and r.character==c.id and groupSummary(groupCounts[r.id])
         if r.kind=="recap" then summary=E.RecapView.Heading(r) end
-        if r.kind=="encounter_loot" then summary="Encounter "..r.encounterID.." · "..E.Number(r.quantity).." reported" end
+        if r.kind=="encounter_loot" then summary=E.Format('Encounter {id} · {count} reported',{id=r.encounterID,count=E.Number(r.quantity)})end
         if summary then
             f.summary:SetWidth(width-105); f.summary:SetText(summary); f.summary:Show()
             height=height+f.summary:GetStringHeight()+4
@@ -403,12 +403,12 @@ local function step(state,budget)
             local cut=Q.CalendarCut(state.owner,day,A.ShiftDay(day,1))
             if not cut then return changed end
             state.job=E.RetentionWork.Start(function(work)return dailyProjection(state.owner,day,cut,work)end)
-            if not state.job then state.error="Calendar preparation is unavailable on this client.";return true end
+            if not state.job then state.error=E.L["Calendar preparation is unavailable on this client."];return true end
         end
         local before=state.job.operations
         local status,report=E.RetentionWork.Step(state.job,budget)
         budget=budget-math.max(1,state.job.operations-before)
-        if status=="failed" then state.error="Calendar preparation stopped. Reopen the month to retry.";state.job=nil;state.jobDay=nil;return true end
+        if status=="failed" then state.error=E.L["Calendar preparation stopped. Reopen the month to retry."];state.job=nil;state.jobDay=nil;return true end
         if not status then break end
         state.days[day]=report;state.job=nil;state.jobDay=nil;changed=true
     end
@@ -425,13 +425,13 @@ local function playStep(state,budget)
         state.playJob=E.RetentionWork.Start(function(work)
             return Q.TimeStats(state.owner,day,A.ShiftDay(day,1),nil,false,work,cut).activeSeconds
         end)
-        if not state.playJob then state.playError="Active play time cannot be prepared on this client." end
+        if not state.playJob then state.playError=E.L["Active play time cannot be prepared on this client."] end
     end
     if state.playJob then
         local status,value=E.RetentionWork.Step(state.playJob,budget)
         if status then
             if status=="done" then state.activeSeconds=value;state.playError=nil
-            else state.activeSeconds=nil;state.playError="Active play time could not be prepared for this day." end
+            else state.activeSeconds=nil;state.playError=E.L["Active play time could not be prepared for this day."] end
             state.playJob=nil;changed=true
         end
     end
@@ -563,6 +563,6 @@ function V.Render(left,right)
     V.Month(left,c,prepared)
     local report=prepared.days[B.day]
     V.lastReport=report
-    if report and prepared and (prepared.todo[B.day] or prepared.jobDay==B.day) then B.Text(right,"Showing the last prepared day while newer observations are added.",12)end
+    if report and prepared and (prepared.todo[B.day] or prepared.jobDay==B.day) then B.Text(right,E.L["Showing the last prepared day while newer observations are added."],12)end
     V.Daily(right,c,report or {counts={},records={},continuedGroups={},pending=true},prepared)
 end

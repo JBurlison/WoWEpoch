@@ -1,0 +1,42 @@
+local _,E=...
+if E.locale~="zhTW" then return end
+E.Localize({
+    ["Item {id}"]="物品 {id}",
+    ["Quest {id}"]="任務 {id}",
+    ["Map {id}"]="地圖 {id}",
+    ["Quest"]="任務",
+    ["Quest objective"]="任務目標",
+    ["Observed drop"]="觀察到的掉落",
+    ["Group session"]="隊伍冒險",
+    ["Wallet change"]="錢袋變動",
+    ["Observed wallet balance"]="記錄的錢袋餘額",
+    ["Wallet observation interval"]="錢袋觀察時段",
+    ["Play time"]="遊戲時間",
+    ["Position"]="位置",
+    ["Location"]="地點",
+    ["Recording gap"]="記錄空缺",
+    ["Inventory"]="背包",
+    ["Acquisition record"]="取得記錄",
+    ["Inventory outflow"]="物品移出",
+    ["Inventory baseline"]="背包初始記錄",
+    ["Bank observation"]="銀行記錄",
+    ["Auction"]="拍賣",
+    ["Trade"]="交易",
+    ["Mail"]="郵件",
+    ["Skill"]="技能",
+    ["Character level {before} → {after}"]="角色等級 {before} → {after}",
+    ["First recorded visit: {place}"]="初次造訪記錄：{place}",
+    ["{skill}: {before} → {after}"]="{skill}：{before} → {after}",
+    ["Achievement: {name}"]="成就：{name}",
+    ["Learning recorded: {name}"]="新學會的本領：{name}",
+    ["Adventures together"]="結伴冒險",
+    ["A death to remember"]="一次靈魂之旅",
+    ["{day} {month} {year} at {time}"]="{year}年{month}{day}日 {time}",
+    ["Event date unknown"]="事件日期未知",
+})
+E.Localize({["{gold}g {silver}s {copper}c"]="{gold}金 {silver}銀 {copper}銅"})
+E.Localize({
+["Meter session {id}"]="戰鬥記錄 {id}",
+["Trade with {name}"]="與{name}交易",
+["Offer with {name}"]="向{name}提出交易",
+})

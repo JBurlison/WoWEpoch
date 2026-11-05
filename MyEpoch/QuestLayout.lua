@@ -49,16 +49,16 @@ function V.Records(page,records,key,report)
     clamp(key,#records,8)
     for i=(B[key]-1)*8+1,math.min(#records,B[key]*8)do local r=records[i];local kind=r.kind
         local stamp=A.RecordDate(r)
-        if kind=="kill" and not r.datePrecision and S.Timestamp(r) then stamp=date("%d %b %Y %H:%M:%S",r.ts)end
-        entry(page,r.title or r.kind,r.kind=="quest" and "Turn-in recorded" or r.status or r.kind,
+        if kind=="kill" and not r.datePrecision and S.Timestamp(r) then stamp=E.locale=='enUS' and date("%d %b %Y %H:%M:%S",r.ts)or E.LocaleDate(r.ts)..' · '..date('%H:%M:%S',r.ts)end
+        entry(page,E.Display.RecordTitle(r),r.kind=="quest" and E.L["Turn-in recorded"] or r.status and V.Status(r.status) or E.Display.Kind(r.kind),
             stamp,function()
                 if report and V.lastKills~=report or B.Character()~=c or B.chapter~=chapter or B.questAtlasID~=quest or B.selected~=selected then return end
                 if c.records[r.id]~=r or r.character~=c.id or r.kind~=kind then return end
                 B.selected=r.id; B.Render(); B.right.scroll:SetVerticalScroll(0); T.Scroll(B.right)
             end)
     end
-    if #records==0 then B.Text(page,"No dated occurrences recorded.",13)end
-    pager(page,key,#records,8,"Previous entries","More entries")
+    if #records==0 then B.Text(page,E.L["No dated occurrences recorded."],13)end
+    pager(page,key,#records,8,E.L["Previous entries"],E.L["More entries"])
 end
 -- Union intervals first: one shared kill is counted once across repeat attempts.
 -- Credit links select kill IDs, never multiply kills by objective-counter deltas.
@@ -98,8 +98,8 @@ function V.KillReport(c,attempts,mode)
     else rows=E.Query.KillsInIntervals(c,merged,insideAxis) end
     for _,r in ipairs(rows)do
         local observedName=type(r.npcName)=="string" and r.npcName:match("%S") and r.npcName or nil
-        local name=observedName or r.title or (r.npcID and "Creature "..r.npcID or "Unknown creature")
-        local zone=r.zone or (r.mapID and "Map "..r.mapID or "Location unknown")
+        local name=observedName or r.title or (r.npcID and E.Format('Creature {id}',{id=r.npcID}) or E.L["Unknown creature"])
+        local zone=E.Display.Zone(r) or (r.mapID and E.Format('Map {id}',{id=r.mapID}) or E.L["Location unknown"])
         local npc=r.npcID and "npc:"..r.npcID or "name:"..#name..":"..name
         local location=r.mapID and "map:"..r.mapID or "zone:"..#zone..":"..zone
         byKey[npc]=byKey[npc] or {}; local g=byKey[npc][location]
@@ -116,17 +116,17 @@ local function creatureColumns(page,f)
 end
 function V.Creatures(page,c,attempts)
     B.killMode=B.killMode or "credit"
-    B.Text(page,"Creatures in this quest's history",22)
+    B.Text(page,E.L["Creatures in this quest's history"],22)
     local y=page.y
     local function mode(value)
         B.killMode=value; B.questKillPage=1; B.questKillSourcePage=1; B.questKillSources=false; B.Render()
     end
-    control(page,"Confirmed objective credit",0,y,225,function()mode("credit")end,B.killMode=="credit")
-    control(page,"While active",235,y,130,function()mode("active")end,B.killMode~="credit"); page.y=y+46
-    B.Text(page,B.killMode=="credit" and "Kills with a recorded link to an objective. Objective counters appear separately."
-        or "Kills observed during this quest, including encounters unrelated to its objectives. Locations show where you were.",12)
+    control(page,E.L["Confirmed objective credit"],0,y,225,function()mode("credit")end,B.killMode=="credit")
+    control(page,E.L["While active"],235,y,130,function()mode("active")end,B.killMode~="credit"); page.y=y+46
+    B.Text(page,B.killMode=="credit" and E.L["Kills with a recorded link to an objective. Objective counters appear separately."]
+        or E.L["Kills observed during this quest, including encounters unrelated to its objectives. Locations show where you were."],12)
     local report=V.KillReport(c,attempts,B.killMode); V.lastKills=report
-    if report.attempts>1 then B.Text(page,"Across "..report.attempts.." recorded attempts. Each kill counts once.",12)end
+    if report.attempts>1 then B.Text(page,E.Format('Across {count} recorded attempts. Each kill counts once.',{count=report.attempts}),12)end
     local quest,selected,chapter=B.questAtlasID,B.selected,B.chapter
     local function current()
         return V.lastKills==report and B.Character()==c and B.questAtlasID==quest and B.selected==selected and B.chapter==chapter
@@ -135,7 +135,7 @@ function V.Creatures(page,c,attempts)
         local header=place(B.Acquire(page,"questCreature"),page,0,page.y,B.Width(page),30);creatureColumns(page,header)
         for _,f in ipairs({header.name,header.count,header.location})do f:SetFont(E.Font(),10,"")end
         header.disclosure:SetText(""); header:EnableMouse(false); header:SetScript("OnClick",nil)
-        header.name:SetText("CREATURE"); header.count:SetText("DISTINCT KILLS"); header.location:SetText("RECORDED LOCATION"); page.y=page.y+30
+        header.name:SetText(E.L["CREATURE"]); header.count:SetText(E.L["DISTINCT KILLS"]); header.location:SetText(E.L["RECORDED LOCATION"]); page.y=page.y+30
         clamp("questKillPage",#report.groups,8)
         for i=(B.questKillPage-1)*8+1,math.min(#report.groups,B.questKillPage*8)do local g=report.groups[i]; local f=B.Acquire(page,"questCreature"); f:SetWidth(B.Width(page));creatureColumns(page,f)
             for _,label in ipairs({f.name,f.count,f.location})do label:SetFont(E.Font(),14,"")end
@@ -153,15 +153,15 @@ function V.Creatures(page,c,attempts)
             f:SetHeight(math.max(46,f.name:GetStringHeight()+22,f.location:GetStringHeight()+22)); page.y=page.y+f:GetHeight()
             if expanded then V.Records(page,g.records,"questKillSourcePage",report)end
         end
-        pager(page,"questKillPage",#report.groups,8,"Previous creatures","More creatures")
+        pager(page,"questKillPage",#report.groups,8,E.L["Previous creatures"],E.L["More creatures"])
         local y=page.y+12
         local allOpen=B.questKillSources==true
-        control(page,(allOpen and "- " or "+ ").."Inspect linked kill records ("..#report.records..")",0,y,310,function()
+        control(page,(allOpen and "- " or "+ ")..E.Format('Inspect linked kill records ({count})',{count=#report.records}),0,y,310,function()
             if current() then B.questKillSources=not allOpen; B.questKillSourcePage=1; B.Render()end
         end); page.y=y+46
         if allOpen then V.Records(page,report.records,"questKillSourcePage",report)end
-    else B.Text(page,report.attempts==0 and "No recorded attempts for this quest." or B.killMode=="credit" and "No kills have confirmed objective credit for this quest." or "No kills recorded during the observed quest activity.",14)end
-    if report.missing>0 then B.Text(page,report.missing.." linked kill record(s) are no longer available; no creature totals are inferred from them.",12)end
+    else B.Text(page,report.attempts==0 and E.L["No recorded attempts for this quest."] or B.killMode=="credit" and E.L["No kills have confirmed objective credit for this quest."] or E.L["No kills recorded during the observed quest activity."],14)end
+    if report.missing>0 then B.Text(page,E.Format('{count} linked kill records are unavailable; they are excluded from creature totals.',{count=report.missing}),12)end
     page.y=page.y+8; rule(page)
 end
 function V.Detail(page,row,report)
@@ -238,44 +238,44 @@ function V.Render(left,right)
         instanceLocationUncertain=current.instanceLocationUncertain,zone=current.zone}
     local observedName=(B.questZone=="current" or B.questZone=="recorded") and current.zone
     local scopeName=type(scope)=="number" and V.MapName(scope,observedName or report.zones[scope])
-        or scope=="all" and "All zones" or scope=="unassigned" and "Unrecorded location" or "Zone unavailable"
+        or scope=="all" and E.L["All zones"] or scope=="unassigned" and E.L["Unrecorded location"] or E.L["Zone unavailable"]
     if report.dungeonName and scope=="unavailable" then scopeName=report.dungeonName end
-    if type(scope)=="string" and scope:match("^series:")then scopeName=report.seriesTitle or "Quest line" end
+    if type(scope)=="string" and scope:match("^series:")then scopeName=report.seriesTitle or E.L["Quest line"] end
     local function zone(key)
         B.questZone=key;B.questAtlasPage=1;B.questAtlasID=nil;B.selected=nil;B.questZoneChooser=false;B.Render(true)
     end
-    B.Text(left,"CHAPTER IV  -  COMPLETED TALES",11):SetTextColor(.54,.40,.23)
-    B.Text(left,"Completed quests",30)
-    B.Text(left,"The stories this character has finished.",15)
+    B.Text(left,E.L["CHAPTER IV  -  COMPLETED TALES"],11):SetTextColor(.54,.40,.23)
+    B.Text(left,E.L["Completed quests"],30)
+    B.Text(left,E.L["The stories this character has finished."],15)
     B.Navigation.Controls(function(nav)
-        B.Text(nav,"ZONE",11)
+        B.Text(nav,E.L["ZONE"],11)
         B.Navigation.Branch(nav,scopeName,B.questZoneChooser,function()B.questZoneChooser=not B.questZoneChooser;B.Render()end,function(nav)
-            local choices={{"All zones",function()zone("all")end,B.questZone=="all"},
-                {"Current zone",function()zone("current")end,B.questZone=="current"}}
-            if c~=E.current then choices[#choices+1]={"Last recorded zone",function()zone("recorded")end,B.questZone=="recorded"}end
-            choices[#choices+1]={"Unrecorded location",function()zone("unassigned")end,B.questZone=="unassigned"}
+            local choices={{E.L["All zones"],function()zone("all")end,B.questZone=="all"},
+                {E.L["Current zone"],function()zone("current")end,B.questZone=="current"}}
+            if c~=E.current then choices[#choices+1]={E.L["Last recorded zone"],function()zone("recorded")end,B.questZone=="recorded"}end
+            choices[#choices+1]={E.L["Unrecorded location"],function()zone("unassigned")end,B.questZone=="unassigned"}
             B.Navigation.Grid(nav,choices)
             local maps=E.SortedKeys(report.zones);clamp("questZonePage",#maps,6)
             for i=(B.questZonePage-1)*6+1,math.min(#maps,B.questZonePage*6)do local id=maps[i]
                 B.Navigation.Button(nav,V.MapName(id,report.zones[id]),function()zone(id)end)
             end
             local pages={}
-            if B.questZonePage>1 then pages[#pages+1]={"Previous zones",function()B.questZonePage=B.questZonePage-1;B.Render()end}end
-            if B.questZonePage*6<#maps then pages[#pages+1]={"More zones",function()B.questZonePage=B.questZonePage+1;B.Render()end}end
+            if B.questZonePage>1 then pages[#pages+1]={E.L["Previous zones"],function()B.questZonePage=B.questZonePage-1;B.Render()end}end
+            if B.questZonePage*6<#maps then pages[#pages+1]={E.L["More zones"],function()B.questZonePage=B.questZonePage+1;B.Render()end}end
             B.Navigation.Grid(nav,pages)
         end)
-        B.Navigation.Branch(nav,"Find a completed quest",B.questTools,function()B.questTools=not B.questTools;B.Render()end,function(nav)
-            B.Text(nav,"Name or quest ID; Enter to search",12)
+        B.Navigation.Branch(nav,E.L["Find a completed quest"],B.questTools,function()B.questTools=not B.questTools;B.Render()end,function(nav)
+            B.Text(nav,E.L["Name or quest ID; Enter to search"],12)
             B.Input(nav,B.questQuery or "",function(value)
                 B.questQuery=value;B.questAtlasPage=1;B.questAtlasID=nil;B.selected=nil;B.Render(true)
             end)
             if B.questQuery and B.questQuery~="" then
-                B.Navigation.Button(nav,"Clear search",function()B.questQuery="";B.questAtlasPage=1;B.questAtlasID=nil;B.Render(true)end)
+                B.Navigation.Button(nav,E.L["Clear search"],function()B.questQuery="";B.questAtlasPage=1;B.questAtlasID=nil;B.Render(true)end)
             end
         end)
     end)
     if report.completedCount>0 then
-        B.Text(left,E.Number(report.completedCount).." completed "..(report.completedCount==1 and "quest" or "quests"),14)
+        B.Text(left,E.Format('Completed quests: {count}',{count=E.Number(report.completedCount)}),14)
         rule(left)
     end
     clamp("questAtlasPage",#report.rows,8)
@@ -284,19 +284,19 @@ function V.Render(left,right)
         B.questOfferPage=1;B.questKillPage=1;B.questKillSourcePage=1;B.questKillSources=false
     end
     V.catalogSelection=B.questAtlasID
-    if #report.rows==0 then B.Text(left,"No completed quests match this selection.",15)end
+    if #report.rows==0 then B.Text(left,E.L["No completed quests match this selection."],15)end
     for i=(B.questAtlasPage-1)*8+1,math.min(#report.rows,B.questAtlasPage*8)do local row=report.rows[i]
         local latest=row.lastCompletion
-        local meta=latest and A.RecordDate(latest) or "Completion date unknown"
-        local status=row.completionCount>1 and (E.Number(row.completionCount).." turn-ins") or "Completed"
-        entry(left,row.title,status,meta,function()V.Select(row.questID)end,B.questAtlasID==row.questID)
+        local meta=latest and A.RecordDate(latest) or E.L["Completion date unknown"]
+        local status=row.completionCount>1 and E.Format('Turn-ins: {count}',{count=E.Number(row.completionCount)}) or E.L["Completed"]
+        entry(left,E.Display.Quest(row.questID,row.title),status,meta,function()V.Select(row.questID)end,B.questAtlasID==row.questID)
     end
-    pager(left,"questAtlasPage",#report.rows,8,"Previous quests","More quests")
+    pager(left,"questAtlasPage",#report.rows,8,E.L["Previous quests"],E.L["More quests"])
     if B.selected then return end
     if B.questAtlasID then V.Detail(right,report.all[B.questAtlasID],report)
     else
-        B.Text(right,"A quiet page",29)
-        B.Text(right,"Your completed quests will appear here as their stories are recorded.",16)
+        B.Text(right,E.L["A quiet page"],29)
+        B.Text(right,E.L["Your completed quests will appear here as their stories are recorded."],16)
     end
 end
 B.Quests=V.Render

@@ -215,7 +215,7 @@ function N.UpdateCombo()
     end
     local visible=math.max(1,math.min(8,count));local height=visible*44
     N.comboPanel:SetHeight(110+height+36)
-    N.comboCount:SetText(E.Number(count)..(count==1 and' saved recap'or' saved recaps'))
+    N.comboCount:SetText(E.Format('Saved recaps: {count}',{count=E.Number(count)}))
     if count==0 then N.comboEmpty:Show()else N.comboEmpty:Hide()end
     syncScroll(N.comboScroll,count,8,ctx.offset,height-4)
 end
@@ -232,12 +232,12 @@ function N.Combo(page,label,items)
             popup:SetWidth(500);popup:SetFrameLevel(overlay:GetFrameLevel()+2);popup:SetClampedToScreen(true)
             popup:EnableMouse(true);popup:EnableMouseWheel(true);T.DialogPaper(popup)
             local ribbon=popup:CreateTexture(nil,'ARTWORK');ribbon:SetPoint('TOPLEFT',3,-3);ribbon:SetPoint('TOPRIGHT',-3,-3);ribbon:SetHeight(38);ribbon:SetColorTexture(.36,.13,.085,1)
-            local title=comboText(popup,'Choose a recap',18,18,12,390);title:SetTextColor(.98,.88,.65)
+            local title=comboText(popup,E.L['Choose a recap'],18,18,12,390);title:SetTextColor(.98,.88,.65)
             local close=comboButton(popup,'x',28,26,N.CloseCombo);close:SetPoint('TOPRIGHT',-10,-8)
             close.text:ClearAllPoints();close.text:SetPoint('CENTER');close.text:SetWidth(20);close.text:SetJustifyH('CENTER')
-            comboText(popup,'YEAR',10,18,52,220);comboText(popup,'MONTH',10,258,52,220)
-            N.comboYear=comboButton(popup,'All years  v',224,30,function()N.OpenComboFilter('year',N.comboYear)end);N.comboYear:SetPoint('TOPLEFT',16,-68)
-            N.comboMonth=comboButton(popup,'All months  v',224,30,function()N.OpenComboFilter('month',N.comboMonth)end);N.comboMonth:SetPoint('TOPLEFT',256,-68)
+            comboText(popup,E.L['YEAR'],10,18,52,220);comboText(popup,E.L['MONTH'],10,258,52,220)
+            N.comboYear=comboButton(popup,E.L['All years']..'  v',224,30,function()N.OpenComboFilter('year',N.comboYear)end);N.comboYear:SetPoint('TOPLEFT',16,-68)
+            N.comboMonth=comboButton(popup,E.L['All months']..'  v',224,30,function()N.OpenComboFilter('month',N.comboMonth)end);N.comboMonth:SetPoint('TOPLEFT',256,-68)
             N.comboButtons={}
             for i=1,8 do
                 local row=comboButton(popup,'',450,44);row:SetPoint('TOPLEFT',16,-110-(i-1)*44);N.comboButtons[i]=row
@@ -247,7 +247,7 @@ function N.Combo(page,label,items)
                 local line=row:CreateTexture(nil,'BORDER');line:SetPoint('BOTTOMLEFT',8,0);line:SetPoint('BOTTOMRIGHT',-8,0);line:SetHeight(1);line:SetColorTexture(.45,.30,.14,.14)
             end
             N.comboCount=comboText(popup,'',11,18,0,440);N.comboCount:ClearAllPoints();N.comboCount:SetPoint('BOTTOMLEFT',18,12)
-            N.comboEmpty=comboText(popup,'No recaps match these dates.',13,28,124,420)
+            N.comboEmpty=comboText(popup,E.L['No recaps match these dates.'],13,28,124,420)
             N.comboScroll=scrollbar(popup,function(offset)if N.comboContext then N.comboContext.offset=offset;N.UpdateCombo()end end)
             N.comboScroll:SetPoint('TOPRIGHT',-16,-112)
             local function scroll(_,delta)
@@ -319,7 +319,7 @@ function N.Major(c)
     N.Subviews(choices)
     N.Controls(function(nav)
         B.Text(nav,E.L["YEAR"],11)
-        local options={{"All recorded years",function()B.chronicleYear=nil;B.selected=nil;B.page=1;B.Render(true)end,not B.chronicleYear}}
+        local options={{E.L["All recorded years"],function()B.chronicleYear=nil;B.selected=nil;B.page=1;B.Render(true)end,not B.chronicleYear}}
         for _,value in ipairs(E.SortedKeys(years))do local year=value;options[#options+1]={year,function()B.chronicleYear=year;B.selected=nil;B.page=1;B.Render(true)end,B.chronicleYear==year}end
         N.Grid(nav,options)
     end)
