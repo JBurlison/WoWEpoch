@@ -3,7 +3,7 @@ from pathlib import Path
 from lupa.lua51 import LuaRuntime
 
 ROOT=Path(__file__).resolve().parents[1]
-CASES={'enUS':'enUS','enGB':'enUS','deDE':'deDE','frFR':'frFR','esES':'esES',
+CASES={'enUS':'enUS','enGB':'enUS','deDE':'deDE','frFR':'frFR','itIT':'itIT','esES':'esES',
        'esMX':'esES','ptBR':'ptBR','ruRU':'ruRU','koKR':'koKR','zhCN':'zhCN','zhTW':'zhTW','unknown':'enUS'}
 
 def main():
@@ -30,7 +30,7 @@ def main():
         catalog=dict(vm.globals().E.L.items())
         if expected!='enUS':catalogs[expected]=set(catalog)
         print('PASS locale',raw,'->',expected)
-    assert len(catalogs)==8 and len({frozenset(keys) for keys in catalogs.values()})==1
-    print('PASS eight matching catalogs:',len(next(iter(catalogs.values()))),'messages each; aliases, fallback, placeholders, plurals, UI actions and saved text')
+    assert len(catalogs)==9 and len({frozenset(keys) for keys in catalogs.values()})==1
+    print('PASS nine matching catalogs:',len(next(iter(catalogs.values()))),'messages each; aliases, fallback, placeholders, plurals, UI actions and saved text')
 
 if __name__=='__main__':main()

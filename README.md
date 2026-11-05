@@ -40,7 +40,7 @@ My Epoch targets **WoW Forever**. Retail and other Classic clients are not suppo
 
 ## Languages
 
-My Epoch supports German, French, Spanish, Brazilian Portuguese, Russian, Korean, Simplified Chinese, and Traditional Chinese. It follows your WoW client language automatically, with English as the fallback. Latin American Spanish currently shares the Spanish translation.
+My Epoch supports German, French, Italian, Spanish, Brazilian Portuguese, Russian, Korean, Simplified Chinese, and Traditional Chinese. It follows your WoW client language automatically, with English as the fallback. Latin American Spanish currently shares the Spanish translation.
 
 Translations cover all eleven chapters, their menus and filters, detailed reports, settings, and the illustration picker. Generated diaries and recaps can be presented in your current language from their recorded facts. Quest, item, location, class, spell, and skill names use the current client language when WoW can resolve their IDs, with the captured name as a fallback.
 

@@ -21,6 +21,15 @@ if E.locale=='koKR'then
     assert(E.Count('group','groups',2)=='파티 2개','Korean count order follows the locale')
     assert(E.Count('mob defeated','mobs defeated',5)=='처치 5마리')
 end
+if E.locale=='itIT'then
+    assert(E.Count('group','groups',1)=='1 gruppo')
+    assert(E.Count('group','groups',2)=='2 gruppi')
+    assert(E.Count('quest','quests',1)=='1 missione')
+    assert(E.Count('quest','quests',3)=='3 missioni')
+    assert(E.Number(1234567)=='1.234.567','Italian grouping uses periods')
+    local localizedDate=E.LocaleDate(A.ParseDay('2026-11-05'))
+    assert(localizedDate:find('giovedì',1,true)and localizedDate:find('novembre',1,true))
+end
 assert(E.LocaleDate(A.ParseDay('2026-11-05'),'month')==E.L.November)
 assert(E.LocaleDuration(3660)==E.Format('{hours}h {minutes}m',{hours=1,minutes=1}))
 local c=S.Character('locale-view',{name='Chronicle',realm='Test'})

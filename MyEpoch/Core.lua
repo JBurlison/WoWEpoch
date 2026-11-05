@@ -1,5 +1,5 @@
 local addonName, E = ...
-E.name, E.version, E.schema = addonName, "0.1.3", 1
+E.name, E.version, E.schema = addonName, "0.1.4", 1
 E.target = {client = "forever", version = "1.60.1", build = 70790, interface = 16001,
     source = "eac30af597e5aaa43a60f6675ef5fdcea100375f"}
 E.listeners = {}
@@ -46,7 +46,7 @@ function E.Number(value)
     local sign=value<0 and '-'or''
     local digits=string.format('%.0f',math.abs(value))
     local formatted=sign..digits:reverse():gsub('(%d%d%d)','%1,'):reverse():gsub('^,','')
-    local separator=E.locale=='deDE'and'.'or(E.locale=='frFR'or E.locale=='ruRU')and' 'or E.locale=='ptBR'and'.'or','
+    local separator=(E.locale=='deDE'or E.locale=='itIT')and'.'or(E.locale=='frFR'or E.locale=='ruRU')and' 'or E.locale=='ptBR'and'.'or','
     return (formatted:gsub(',',separator))
 end
 function E.Money(copper)

@@ -3,7 +3,7 @@
 ## Notes: A character scrapbook of adventures, companions, and progress.
 ## Author: JBurlison
 ## IconTexture: Interface\AddOns\MyEpoch\Media\Book\emblem-small-v1.tga
-## Version: 0.1.3
+## Version: 0.1.4
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever
@@ -13,6 +13,7 @@ Core.lua
 Localization.lua
 Locales/deDE.lua
 Locales/frFR.lua
+Locales/itIT.lua
 Locales/esES.lua
 Locales/ptBR.lua
 Locales/ruRU.lua
@@ -21,6 +22,7 @@ Locales/zhCN.lua
 Locales/zhTW.lua
 Locales/Adventure/deDE.lua
 Locales/Adventure/frFR.lua
+Locales/Adventure/itIT.lua
 Locales/Adventure/esES.lua
 Locales/Adventure/ptBR.lua
 Locales/Adventure/ruRU.lua
@@ -29,6 +31,7 @@ Locales/Adventure/zhCN.lua
 Locales/Adventure/zhTW.lua
 Locales/ArchiveArt/deDE.lua
 Locales/ArchiveArt/frFR.lua
+Locales/ArchiveArt/itIT.lua
 Locales/ArchiveArt/esES.lua
 Locales/ArchiveArt/ptBR.lua
 Locales/ArchiveArt/ruRU.lua
@@ -37,6 +40,7 @@ Locales/ArchiveArt/zhCN.lua
 Locales/ArchiveArt/zhTW.lua
 Locales/ArtPicker/deDE.lua
 Locales/ArtPicker/frFR.lua
+Locales/ArtPicker/itIT.lua
 Locales/ArtPicker/esES.lua
 Locales/ArtPicker/ptBR.lua
 Locales/ArtPicker/ruRU.lua
@@ -45,6 +49,7 @@ Locales/ArtPicker/zhCN.lua
 Locales/ArtPicker/zhTW.lua
 Locales/Auctions/deDE.lua
 Locales/Auctions/frFR.lua
+Locales/Auctions/itIT.lua
 Locales/Auctions/esES.lua
 Locales/Auctions/ptBR.lua
 Locales/Auctions/ruRU.lua
@@ -53,6 +58,7 @@ Locales/Auctions/zhCN.lua
 Locales/Auctions/zhTW.lua
 Locales/Book/deDE.lua
 Locales/Book/frFR.lua
+Locales/Book/itIT.lua
 Locales/Book/esES.lua
 Locales/Book/ptBR.lua
 Locales/Book/ruRU.lua
@@ -61,6 +67,7 @@ Locales/Book/zhCN.lua
 Locales/Book/zhTW.lua
 Locales/CalendarRecap/deDE.lua
 Locales/CalendarRecap/frFR.lua
+Locales/CalendarRecap/itIT.lua
 Locales/CalendarRecap/esES.lua
 Locales/CalendarRecap/ptBR.lua
 Locales/CalendarRecap/ruRU.lua
@@ -69,6 +76,7 @@ Locales/CalendarRecap/zhCN.lua
 Locales/CalendarRecap/zhTW.lua
 Locales/Display/deDE.lua
 Locales/Display/frFR.lua
+Locales/Display/itIT.lua
 Locales/Display/esES.lua
 Locales/Display/ptBR.lua
 Locales/Display/ruRU.lua
@@ -77,6 +85,7 @@ Locales/Display/zhCN.lua
 Locales/Display/zhTW.lua
 Locales/Economy/deDE.lua
 Locales/Economy/frFR.lua
+Locales/Economy/itIT.lua
 Locales/Economy/esES.lua
 Locales/Economy/ptBR.lua
 Locales/Economy/ruRU.lua
@@ -85,6 +94,7 @@ Locales/Economy/zhCN.lua
 Locales/Economy/zhTW.lua
 Locales/Inventory/deDE.lua
 Locales/Inventory/frFR.lua
+Locales/Inventory/itIT.lua
 Locales/Inventory/esES.lua
 Locales/Inventory/ptBR.lua
 Locales/Inventory/ruRU.lua
@@ -93,6 +103,7 @@ Locales/Inventory/zhCN.lua
 Locales/Inventory/zhTW.lua
 Locales/LootDetails/deDE.lua
 Locales/LootDetails/frFR.lua
+Locales/LootDetails/itIT.lua
 Locales/LootDetails/esES.lua
 Locales/LootDetails/ptBR.lua
 Locales/LootDetails/ruRU.lua
@@ -101,6 +112,7 @@ Locales/LootDetails/zhCN.lua
 Locales/LootDetails/zhTW.lua
 Locales/Memory/deDE.lua
 Locales/Memory/frFR.lua
+Locales/Memory/itIT.lua
 Locales/Memory/esES.lua
 Locales/Memory/ptBR.lua
 Locales/Memory/ruRU.lua
@@ -109,6 +121,7 @@ Locales/Memory/zhCN.lua
 Locales/Memory/zhTW.lua
 Locales/MobLedger/deDE.lua
 Locales/MobLedger/frFR.lua
+Locales/MobLedger/itIT.lua
 Locales/MobLedger/esES.lua
 Locales/MobLedger/ptBR.lua
 Locales/MobLedger/ruRU.lua
@@ -117,6 +130,7 @@ Locales/MobLedger/zhCN.lua
 Locales/MobLedger/zhTW.lua
 Locales/Pulls/deDE.lua
 Locales/Pulls/frFR.lua
+Locales/Pulls/itIT.lua
 Locales/Pulls/esES.lua
 Locales/Pulls/ptBR.lua
 Locales/Pulls/ruRU.lua
@@ -125,6 +139,7 @@ Locales/Pulls/zhCN.lua
 Locales/Pulls/zhTW.lua
 Locales/Quests/deDE.lua
 Locales/Quests/frFR.lua
+Locales/Quests/itIT.lua
 Locales/Quests/esES.lua
 Locales/Quests/ptBR.lua
 Locales/Quests/ruRU.lua
@@ -133,6 +148,7 @@ Locales/Quests/zhCN.lua
 Locales/Quests/zhTW.lua
 Locales/Rewards/deDE.lua
 Locales/Rewards/frFR.lua
+Locales/Rewards/itIT.lua
 Locales/Rewards/esES.lua
 Locales/Rewards/ptBR.lua
 Locales/Rewards/ruRU.lua
@@ -141,6 +157,7 @@ Locales/Rewards/zhCN.lua
 Locales/Rewards/zhTW.lua
 Locales/Search/deDE.lua
 Locales/Search/frFR.lua
+Locales/Search/itIT.lua
 Locales/Search/esES.lua
 Locales/Search/ptBR.lua
 Locales/Search/ruRU.lua
@@ -149,6 +166,7 @@ Locales/Search/zhCN.lua
 Locales/Search/zhTW.lua
 Locales/Snapshot/deDE.lua
 Locales/Snapshot/frFR.lua
+Locales/Snapshot/itIT.lua
 Locales/Snapshot/esES.lua
 Locales/Snapshot/ptBR.lua
 Locales/Snapshot/ruRU.lua
@@ -157,6 +175,7 @@ Locales/Snapshot/zhCN.lua
 Locales/Snapshot/zhTW.lua
 Locales/Social/deDE.lua
 Locales/Social/frFR.lua
+Locales/Social/itIT.lua
 Locales/Social/esES.lua
 Locales/Social/ptBR.lua
 Locales/Social/ruRU.lua
@@ -165,6 +184,7 @@ Locales/Social/zhCN.lua
 Locales/Social/zhTW.lua
 Locales/TradeMail/deDE.lua
 Locales/TradeMail/frFR.lua
+Locales/TradeMail/itIT.lua
 Locales/TradeMail/esES.lua
 Locales/TradeMail/ptBR.lua
 Locales/TradeMail/ruRU.lua

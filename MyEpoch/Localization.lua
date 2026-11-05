@@ -2,7 +2,7 @@ local _,E=...
 -- Locale changes require /reload. Stored identifiers and player-authored text
 -- are never translated; only explicit presentation lookups use this table.
 local aliases={enGB='enUS',esMX='esES',ptPT='ptBR'}
-local supported={enUS=true,deDE=true,frFR=true,esES=true,ptBR=true,ruRU=true,koKR=true,zhCN=true,zhTW=true}
+local supported={enUS=true,deDE=true,frFR=true,itIT=true,esES=true,ptBR=true,ruRU=true,koKR=true,zhCN=true,zhTW=true}
 local ok,locale=pcall(function()return GetLocale and GetLocale()end)
 locale=ok and locale or 'enUS';locale=aliases[locale] or locale
 E.locale=supported[locale] and locale or 'enUS'

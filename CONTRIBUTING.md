@@ -36,7 +36,7 @@ The GitHub Release and CurseForge file are separate outputs. Confirm the first t
 
 ## Localization
 
-`MyEpoch/Localization.lua` selects the client locale and provides an English fallback. Locale tables live in `MyEpoch/Locales/`; `esMX` shares `esES`, and `enGB` shares `enUS`. The initial Portuguese translation is Brazilian Portuguese (`ptBR`). Only the active table is loaded into memory.
+`MyEpoch/Localization.lua` selects the client locale and provides an English fallback. Locale tables live in `MyEpoch/Locales/`, including Italian (`itIT`); `esMX` shares `esES`, and `enGB` shares `enUS`. The Portuguese translation is Brazilian Portuguese (`ptBR`). Only the active table is loaded into memory.
 
 Translate the intention, not the English syntax. My Epoch should sound like a warm, easygoing scrapbook with a little whimsy. Adapt metaphors, rhythm, and idioms when a literal version would feel awkward. Keep action labels short and unmistakable; do not sacrifice clarity to make every button poetic. Use terminology familiar to players of that WoW language. These initial translations still welcome native-speaker review.
 
