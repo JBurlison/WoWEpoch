@@ -54,6 +54,10 @@ function methods:GetThumbTexture() return self.thumb end
 function methods:IsObjectLoaded() return self.loaded~=false end
 function methods:SetPoint(...) self.point={...} end
 function methods:CreateTexture() return object() end
+function methods:CreateLine() return object() end
+function methods:SetStartPoint(...) self.startPoint={...} end
+function methods:SetEndPoint(...) self.endPoint={...} end
+function methods:SetThickness(value) self.thickness=value end
 function methods:CreateFontString() return object() end
 function methods:GetHighlightTexture() return object() end
 CreateFrame=function(kind,name,parent) local f=object(); f.kind=kind; f.parent=parent; if name then _G[name]=f end; return f end

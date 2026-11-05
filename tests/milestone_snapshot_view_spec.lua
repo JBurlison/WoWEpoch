@@ -65,6 +65,16 @@ button('Stats'):Click();assert(not shown and f.icon.scripts.OnEnter==nil,'Hidden
 oldEnter();assert(not shown,'A stale hover closure cannot open an item tooltip from the hidden Equipment view')
 for _,heading in ipairs(page.pool.milestoneStats[1].headings or{})do assert(not heading:IsShown(),'Side-column headings do not leak through reused Stats cards')end
 assert(labels():find('Armor: 0',1,true)and labels():find('Critical chance: 12.25 %',1,true)and labels():find('Missing stat: Not recorded',1,true))
+local missing=s.stats[3];missing.unit='yards per second'
+missing.readStatus='restricted';render()
+assert(not labels():find('Missing stat',1,true)and labels():find('2 of 2 values recorded',1,true),'Legacy restricted placeholders are hidden and excluded from coverage')
+assert(s.stats[3]==missing and missing.readStatus=='restricted','Rendering never rewrites a historical snapshot')
+missing.value=0;render();assert(labels():find('Missing stat: 0 yards per second',1,true),'Readable values are retained even with stale status metadata');missing.value=nil
+for status,label in pairs({unavailable='API unavailable',failed='Read failed',missing='Not supplied',legacy='Not recorded'})do
+    missing.readStatus=status;render();assert(labels():find('Missing stat: '..label,1,true))
+    assert(not labels():find('yards per second',1,true),'Units only accompany recorded numbers')
+end
+missing.unit=nil;missing.readStatus=nil
 local originalStats=s.stats;s.stats={}
 local keys={'attribute','resistance','damage','movement','custom'}
 for i=1,123 do s.stats[i]={key=keys[(i-1)%5+1]..i,label='Recorded field '..i,value=i-61}end

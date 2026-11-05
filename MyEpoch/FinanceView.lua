@@ -122,51 +122,153 @@ local function rect(plot,x,y,width,height,r,g,b,alpha)
     if not t then t=plot:CreateTexture(nil,"ARTWORK"); plot.textures[plot.used]=t end
     t:ClearAllPoints(); t:SetPoint("BOTTOMLEFT",plot,"BOTTOMLEFT",x,y); t:SetSize(math.max(1,width),math.max(1,height)); t:SetColorTexture(r,g,b,alpha or 1); t:Show()
 end
+local function graphLabel(plot,text,x,y,width,align,size)
+    plot.labelsUsed=plot.labelsUsed+1
+    local f=plot.labels[plot.labelsUsed]
+    if not f then f=font(plot,size or 10,width);plot.labels[plot.labelsUsed]=f end
+    f:ClearAllPoints();f:SetPoint("BOTTOMLEFT",plot,"BOTTOMLEFT",x,y);f:SetSize(width,16)
+    f:SetFont("Fonts\\FRIZQT__.TTF",size or 10,"");f:SetJustifyH(align or "CENTER");f:SetText(text);f:Show()
+end
 function V.Graph(page,report,range,mode)
-    local plot=B.Acquire(page,"plot"); plot:SetSize(B.Width(page),190); plot.textures=plot.textures or {}; plot.used=0
+    local plot=B.Acquire(page,"plot");local width=B.Width(page);plot:SetSize(width,280); plot.textures=plot.textures or {}; plot.used=0
+    plot.labels=plot.labels or {};plot.labelsUsed=0;plot.hits=plot.hits or {}
+    plot.lines=plot.lines or {};plot.linesUsed=0
     for _,t in ipairs(plot.textures) do t:Hide() end
-    rect(plot,0,0,B.Width(page),190,0.33,0.23,0.12,0.12)
-    local bins,minValue,maxValue={},nil,nil; local count=128; local span=math.max(1,range.through-range.from)
+    for _,line in ipairs(plot.lines) do line:Hide() end
+    for _,f in ipairs(plot.labels) do f:Hide() end
+    for _,f in pairs(plot.hits) do f:Hide() end
+    rect(plot,0,0,width,280,0.33,0.23,0.12,0.12)
+    local left,bottom,top=112,55,228;local chartWidth=math.max(1,width-left-20)
+    local heading=({balance="Balance",income="Income",spending="Spending",net="Net change"})[mode] or "Coin value"
+    graphLabel(plot,heading.." (coin value)",left,255,chartWidth,"LEFT",12)
+    graphLabel(plot,"Date / local time",left,7,chartWidth,"CENTER",11)
+    -- Leave room for axes in the bounded texture pool, even with dense history.
+    local bins,minValue,maxValue={},nil,nil; local count=120; local span=math.max(1,range.through-range.from)
+    local ticks=math.max(2,math.min(5,math.floor(chartWidth/105)))
+    local previousDate
+    for n=0,ticks-1 do
+        local fraction=n/(ticks-1);local ts=range.from+math.floor((span-1)*fraction)
+        local label=date(span<=86400 and "%H:%M" or span>365*86400 and "%b %Y" or "%d %b",ts)
+        if label~=previousDate then
+            graphLabel(plot,label,left+fraction*chartWidth-42,31,84)
+            rect(plot,left+fraction*chartWidth,bottom-4,1,4,.45,.32,.17,.6);previousDate=label
+        end
+    end
     if mode=="balance" then
         for _,p in ipairs(report.wallet.points) do if p.observed and p.ts>=range.from and p.ts<=range.through then
             local i=math.min(count,math.floor((p.ts-range.from)/span*count)+1)
             local bin=bins[i] or {min=p.balance,max=p.balance,window=p.window}
             if bin.window~=p.window then bin.mixed=true end
-            bin.min=math.min(bin.min,p.balance); bin.max=math.max(bin.max,p.balance); bin.last=p.balance; bins[i]=bin
+            bin.min=math.min(bin.min,p.balance); bin.max=math.max(bin.max,p.balance); bin.last=p.balance;bin.firstTS=bin.firstTS or p.ts;bin.lastTS=p.ts; bins[i]=bin
             minValue=math.min(minValue or p.balance,p.balance); maxValue=math.max(maxValue or p.balance,p.balance)
         end end
     else
         minValue,maxValue=0,0
-        for _,r in ipairs(report.transactions) do
+        for _,r in ipairs(report.transactions) do if r.ts>=range.from and r.ts<=range.through then
             local value=mode=="income" and math.max(0,r.amount) or mode=="spending" and math.max(0,-r.amount) or mode=="net" and r.amount or 0
             local i=math.min(count,math.floor((r.ts-range.from)/span*count)+1)
-            bins[i]=bins[i] or {value=0}; bins[i].value=bins[i].value+value
-        end
+            bins[i]=bins[i] or {value=0,firstTS=r.ts,lastTS=r.ts}; bins[i].value=bins[i].value+value
+            bins[i].firstTS=math.min(bins[i].firstTS,r.ts);bins[i].lastTS=math.max(bins[i].lastTS,r.ts)
+        end end
         for _,bin in pairs(bins) do minValue=math.min(minValue,bin.value); maxValue=math.max(maxValue,bin.value) end
     end
     plot.bins=bins; plot.mode=mode
     if minValue~=nil then
-        local extent=math.max(1,maxValue-minValue)
-        local function y(value)return 10+(value-minValue)/extent*165 end
+        local low,high=minValue,maxValue
+        if low==high then low=math.min(0,low);high=math.max(1,high) end
+        local extent=high-low
+        local function y(value)return bottom+(value-low)/extent*(top-bottom) end
+        local lastTick
+        for n=0,4 do
+            local value=math.floor(low+extent*n/4+.5)
+            if value~=lastTick then
+                local yy=y(value);graphLabel(plot,money(value),4,yy-8,left-12,"RIGHT")
+                rect(plot,left,yy,chartWidth,1,.45,.32,.17,.16);lastTick=value
+            end
+        end
+        rect(plot,left,bottom,1,top-bottom,.45,.32,.17,.6)
+        local obstacles,candidates,placed={},{},{}
+        local function dataRect(x,yy,w,h,r,g,b)
+            rect(plot,x,yy,w,h,r,g,b)
+            obstacles[#obstacles+1]={x=x,y=yy,w=math.max(1,w),h=math.max(1,h)}
+        end
+        local function dataLine(x1,y1,x2,y2)
+            plot.linesUsed=plot.linesUsed+1
+            local line=plot.lines[plot.linesUsed]
+            if not line then line=plot:CreateLine(nil,"ARTWORK");plot.lines[plot.linesUsed]=line end
+            line:SetThickness(2);line:SetColorTexture(.34,.28,.12,1)
+            line:SetStartPoint("BOTTOMLEFT",plot,x1,y1);line:SetEndPoint("BOTTOMLEFT",plot,x2,y2);line:Show()
+            obstacles[#obstacles+1]={x=x1,y=y1,x2=x2,y2=y2}
+        end
+        local function annotate(i,bin,value)
+            local x=left+(i-1)/count*chartWidth
+            local text=money(value);local labelWidth=math.max(48,#text*7)
+            candidates[#candidates+1]={text=text,value=value,i=i,w=labelWidth,h=16,
+                x=math.max(left,math.min(width-labelWidth-8,x-labelWidth/2)),
+                y=y(mode=="balance" and bin.max or math.max(0,value))+8}
+            local hit=plot.hits[i]
+            if not hit then hit=CreateFrame("Frame",nil,plot);hit:EnableMouse(true);plot.hits[i]=hit end
+            hit:ClearAllPoints();hit:SetPoint("BOTTOMLEFT",plot,"BOTTOMLEFT",x-2,bottom)
+            hit:SetSize(math.max(4,chartWidth/count),top-bottom+24)
+            hit:SetScript("OnEnter",function(self)
+                if not GameTooltip then return end
+                GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(heading..": "..money(value))
+                GameTooltip:AddLine(date("%d %b %Y %H:%M:%S",bin.firstTS),1,.85,.55)
+                if bin.lastTS~=bin.firstTS then GameTooltip:AddLine("Through "..date("%d %b %Y %H:%M:%S",bin.lastTS),1,.85,.55) end
+                if mode=="balance" and bin.min~=bin.max then GameTooltip:AddLine("Observed range: "..money(bin.min).." to "..money(bin.max),1,.85,.55) end
+                GameTooltip:Show()
+            end)
+            hit:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end)
+            hit:Show()
+        end
         if mode=="balance" then
             local previous
             for i=1,count do local bin=bins[i]; if bin then
-                local x=5+(i-1)/count*(B.Width(page)-10)
-                if previous and previous.window==bin.window and not previous.mixed and not bin.mixed then
-                    rect(plot,previous.x,y(previous.last),x-previous.x,2,0.34,0.28,0.12)
-                    rect(plot,x,math.min(y(previous.last),y(bin.last)),2,math.abs(y(bin.last)-y(previous.last)),0.34,0.28,0.12)
+                local x=left+(i-1)/count*chartWidth
+                if previous and previous.window and previous.window==bin.window and not previous.mixed and not bin.mixed then
+                    dataLine(previous.x,y(previous.last),x,y(bin.last))
                 end
-                if not bin.mixed then rect(plot,x,y(bin.min),2,math.max(2,y(bin.max)-y(bin.min)),0.34,0.28,0.12) end
-                rect(plot,x-2,y(bin.last)-2,5,5,0.53,0.34,0.10); bin.x=x; previous=bin
+                if not bin.mixed then dataRect(x,y(bin.min),2,math.max(2,y(bin.max)-y(bin.min)),0.34,0.28,0.12) end
+                dataRect(x-2,y(bin.last)-2,5,5,0.53,0.34,0.10); bin.x=x; previous=bin
+                annotate(i,bin,bin.last)
             end end
         else
-            rect(plot,5,y(0),B.Width(page)-10,1,0.35,0.27,0.16,0.45)
-            for i,bin in pairs(bins) do if bin.value~=0 then
-                rect(plot,5+(i-1)/count*(B.Width(page)-10),math.min(y(0),y(bin.value)),4,math.abs(y(bin.value)-y(0)),bin.value<0 and 0.55 or 0.25,0.35,0.15)
+            rect(plot,left,y(0),chartWidth,1,0.35,0.27,0.16,0.45)
+            for i=1,count do local bin=bins[i];if bin and bin.value~=0 then
+                dataRect(left+(i-1)/count*chartWidth,math.min(y(0),y(bin.value)),4,math.abs(y(bin.value)-y(0)),bin.value<0 and 0.55 or 0.25,0.35,0.15)
+                annotate(i,bin,bin.value)
             end end
         end
+        -- Label peaks first. Crowded values remain available on hover rather than
+        -- printing through a neighboring bar, balance segment, or another label.
+        table.sort(candidates,function(a,b)
+            if a.y~=b.y then return a.y>b.y end
+            if math.abs(a.value)~=math.abs(b.value) then return math.abs(a.value)>math.abs(b.value) end
+            return a.i<b.i
+        end)
+        local function overlaps(a,b)
+            if b.x2 then
+                -- Test only the part of a diagonal under the label, rather than
+                -- treating its entire bounding rectangle as solid ink.
+                local x1,x2=math.max(a.x-5,b.x),math.min(a.x+a.w+5,b.x2)
+                if x1>x2 then return false end
+                local slope=(b.y2-b.y)/(b.x2-b.x)
+                local y1,y2=b.y+(x1-b.x)*slope,b.y+(x2-b.x)*slope
+                return math.min(y1,y2)<a.y+a.h+5 and math.max(y1,y2)>a.y-5
+            end
+            return a.x<b.x+b.w+4 and a.x+a.w+4>b.x and a.y<b.y+b.h+4 and a.y+a.h+4>b.y
+        end
+        for _,label in ipairs(candidates) do
+            local clear=true
+            for _,obstacle in ipairs(obstacles) do if overlaps(label,obstacle) then clear=false;break end end
+            if clear then for _,other in ipairs(placed) do if overlaps(label,other) then clear=false;break end end end
+            if clear then
+                graphLabel(plot,label.text,label.x,label.y,label.w,"CENTER")
+                placed[#placed+1]=label
+            end
+        end
     end
-    page.y=page.y+202
+    page.y=page.y+292
     if minValue~=nil then B.Text(page,money(minValue).." to "..money(maxValue).." | "..range.first.." through "..range.last,12) end
     B.Text(page,mode=="balance" and "Recorded balances only. Gaps remain blank; dense observations share a column." or "Recorded wallet changes per chart column. Empty space is not evidence of zero activity.",12)
 end

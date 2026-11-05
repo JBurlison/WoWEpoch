@@ -1,0 +1,2 @@
+# Preserve byte-pinned upstream evidence on every platform. Its checksums include line endings.
+vendor/** -text

@@ -1,0 +1,18 @@
+package-as: MyEpoch
+enable-nolib-creation: no
+
+# The repository contains development tools alongside the installable addon.
+# Flatten the addon directory, following the standard multi-folder layout.
+move-folders:
+  MyEpoch/MyEpoch: MyEpoch
+
+ignore:
+  - README.md
+  - CONTRIBUTING.md
+  - requirements-dev.txt
+  - tests
+  - tools
+  - vendor
+  - docs
+  - design
+  - dist

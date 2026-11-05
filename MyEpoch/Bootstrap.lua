@@ -126,6 +126,8 @@ frame:SetScript("OnEvent",function(_,event,...)
                 local runtime=E.runtime or {}
                 report("Version "..E.version.."; Forever build "..tostring(runtime.build).."; interface "..tostring(runtime.interface))
                 for _,key in ipairs(E.SortedKeys(E.API.status)) do report(key..": "..E.API.status[key]) end
+            elseif command=="stats" then
+                for _,line in ipairs(E.MilestoneSnapshot.Diagnose())do report(line)end
             elseif command=="combat" then report(E.CombatMeter.Diagnose())
             elseif command=="trades" then report(E.Trades.Diagnose())
             elseif command=="mail" then report(E.Mail.Diagnose())

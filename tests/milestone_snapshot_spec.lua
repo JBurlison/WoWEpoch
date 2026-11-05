@@ -35,7 +35,23 @@ UnitGUID=function()return other.id end;assert(X.Capture(c)==nil);UnitGUID=functi
 local secret={};issecretvalue=function(v)return v==secret end
 UnitHealth=function()return secret end;GetInventoryItemID=function()return secret end
 local hidden=X.Capture(c);assert(hidden.equipment[16].status=='unavailable')
-for _,row in ipairs(hidden.stats)do if row.key=='health'then assert(row.value==nil)end end
+for _,row in ipairs(hidden.stats)do assert(row.key~='health'and row.readStatus~='restricted','Secret stat placeholders are omitted from captures')end
+assert(hidden.statCoverage.restricted>0 and hidden.statCoverage.included==#hidden.stats)
+-- Preserve readable parts of mixed returns; distinguish absent, failed and nil reads.
+UnitStat=function()return 0,secret,0,0 end
+UnitArmor=function()error('Test read failure')end
+UnitAttackPower=nil;GetUnitSpeed=function()return nil,7 end
+local diagnostic=X.Capture(c);local rows={}
+for _,row in ipairs(diagnostic.stats)do rows[row.key]=row end
+assert(rows.attribute1==nil and rows.attributeBase1.value==0 and rows.attributeBase1.readStatus==nil)
+assert(rows.armor.readStatus=='failed'and rows.attackPower.readStatus=='unavailable')
+assert(rows.movement1.readStatus=='missing'and rows.movement2.value==7)
+local coverage=diagnostic.statCoverage
+assert(coverage.total==coverage.recorded+coverage.restricted+coverage.unavailable+coverage.failed+coverage.missing)
+assert(coverage.total==#diagnostic.stats+coverage.restricted)
+local saved=E.Copy(r.characterSnapshot);local report=table.concat(X.Diagnose(),'\n')
+assert(report:find('Health: restricted',1,true)and report:find('Armor: failed',1,true)and report:find('Attack power: unavailable',1,true))
+assert(r.characterSnapshot.stats[1].value==saved.stats[1].value and old.characterSnapshot==nil,'Diagnostic reads do not fill historical snapshots')
 issecretvalue=nil;GetInventoryItemID=function(_,slot)if slot==16 then return 200 end end
 local calls=0;GetInventoryItemLink=function(_,slot)if slot==16 then calls=calls+1;return calls%2==1 and 'item:200'or'item:200:99'end end
 assert(X.Capture(c).equipment[16].status=='unavailable','same item ID with changed instance link cannot become a stable snapshot')
