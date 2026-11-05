@@ -47,6 +47,32 @@ local dense={wallet={points={}},transactions={}}
 for i=1,20000 do dense.wallet.points[i]={ts=now+i,balance=1000+i%250,window="same-observed-window",observed=true} end
 B.Clear(B.right); V.Graph(B.right,dense,{from=now,through=now+20001,first="start",last="end"},"balance")
 assert(B.right.pool.plot[1].used<=512,"dense graphs must use a bounded texture pool")
+local plot=B.right.pool.plot[1]
+assert(#plot.labels<30,"dense history cannot produce overlapping labels for every observation")
+local savedTooltip=GameTooltip;local tooltipLines={}
+GameTooltip={SetOwner=function()end,SetText=function(_,s)tooltipLines={s}end,
+    AddLine=function(_,s)tooltipLines[#tooltipLines+1]=s end,Show=function()end,Hide=function()end}
+local function labelShown(text)
+    for _,f in ipairs(plot.labels)do if f:IsShown() and f:GetText()==text then return true end end
+end
+local sparse={wallet={points={{ts=now+60,balance=141,observed=true,window="one"}}},
+    transactions={{ts=now+60,amount=141},{ts=now+1800,amount=-50}}}
+local chartRange={from=now,through=now+3600,first="2026-10-31",last="2026-10-31"}
+B.Clear(B.right);V.Graph(B.right,sparse,chartRange,"net")
+assert(labelShown("Coin value") and labelShown("Date / local time") and labelShown("Net change"))
+assert(labelShown("1s 41c") and labelShown("-50c"),"sparse bars show exact signed coin values")
+local activeHits=0
+for _,hit in pairs(plot.hits)do if hit:IsShown()then
+    activeHits=activeHits+1;hit.scripts.OnEnter(hit)
+    assert(tooltipLines[1]:find("Net change:",1,true) and tooltipLines[2]:find("2026",1,true),"hover includes amount and full local date")
+end end
+eq(activeHits,2,"old dense hover targets are hidden when data changes")
+B.Clear(B.right);V.Graph(B.right,sparse,chartRange,"balance")
+assert(labelShown("Balance") and labelShown("1s 41c"),"a single balance point has a value label")
+B.Clear(B.right);V.Graph(B.right,{wallet={points={}},transactions={}},chartRange,"balance")
+assert(not labelShown("1s 41c"),"empty graphs do not retain stale value labels")
+for _,hit in pairs(plot.hits)do assert(not hit:IsShown(),"empty graphs have no stale hover targets")end
+GameTooltip=savedTooltip
 local legacy=S.Character("legacy-wallet",{name="Legacy"})
 H.Wallet(legacy,1,100,"v"); H.Play(legacy,1,false,"v")
 H.Wallet(legacy,10,110,"v"); H.Play(legacy,10,false,"v")
