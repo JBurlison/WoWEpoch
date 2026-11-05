@@ -18,7 +18,8 @@ end
 local function paragraph(page,text,size,inset)
     local width=B.Width(page)
     local y=page.y; local f=B.Text(page,text,size); inset=inset or 0
-    f:SetWidth(width-inset*2); f:SetSpacing(4); f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+inset,-y)
+    f:SetWidth(width-inset*2); f:SetSpacing(4); f:SetMaxLines(0); f:SetHeight(0)
+    f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+inset,-y)
     local h=math.max(size,f:GetStringHeight()); f:SetHeight(h); page.y=y+h+14; return f
 end
 local function panel(page,top,bottom)
@@ -170,10 +171,9 @@ function V.Record(page,c,r)
     B.recapFocus=r.id; V.lastRecord=r; D.MarkRead(c,r)
     local projection=E.CraftProjectionPreparation.Recap(c,r)
     if not projection then B.Text(page,E.L["Preparing this recap and its source records..."],18);return end
-    local job=E.JournalViews.Job(r);local writing,writeError
-    -- Completed calendar recaps are saved snapshots. Watching them repeatedly
-    -- reannounces readiness and can close a reader's open navigation popup.
-    if job and r.periodKind=='milestone'then local _;_,writing,writeError=E.JournalViews.Watch(c,job,A.Now())end
+    -- Read the saved recap without starting another writer. JournalJobs already
+    -- schedules milestone corrections for affected sources and boundaries;
+    -- the live view watch also invalidates on unrelated character activity.
     local period=({daily='Daily',weekly='Weekly',monthly='Monthly',yearly='Yearly',milestone='Milestone'})[r.periodKind]or'Saved recap'
     B.Text(page,E.Format('{period} recap — {name}',{period=E.L[period],name=c.identity.name or ''}),11):SetTextColor(0.54,0.40,0.23)
     B.Text(page,V.Heading(r),29)
@@ -192,11 +192,6 @@ function V.Record(page,c,r)
     end
     local top=page.y; page.y=top+18
     paragraph(page,E.DiaryPresentation.Recap(r)or E.L["No generated writing is available for this saved recap."],17,22)
-    if writing=='pending'then paragraph(page,E.L['Updating the saved recap...'],12)end
-    if writeError then
-        paragraph(page,E.L[writeError],12)
-        control(page,E.L['Retry writing'],22,page.y,160,function()E.JournalViews.Retry(c,job);B.Render()end);page.y=page.y+42
-    end
     local y=page.y
     if r.facts then control(page,E.JournalJobs.Retelling(c,r)and E.L["Writing..."]or E.L["Another telling"],22,y,160,function()
         E.JournalJobs.RequestRetell(c,r);B.Render()
