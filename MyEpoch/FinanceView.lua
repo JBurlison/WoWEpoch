@@ -144,11 +144,14 @@ function V.Graph(page,report,range,mode)
     -- Leave room for axes in the bounded texture pool, even with dense history.
     local bins,minValue,maxValue={},nil,nil; local count=120; local span=math.max(1,range.through-range.from)
     local ticks=math.max(2,math.min(5,math.floor(chartWidth/105)))
+    local previousDate
     for n=0,ticks-1 do
         local fraction=n/(ticks-1);local ts=range.from+math.floor((span-1)*fraction)
         local label=date(span<=86400 and "%H:%M" or span>365*86400 and "%b %Y" or "%d %b",ts)
-        graphLabel(plot,label,left+fraction*chartWidth-42,31,84)
-        rect(plot,left+fraction*chartWidth,bottom-4,1,4,.45,.32,.17,.6)
+        if label~=previousDate then
+            graphLabel(plot,label,left+fraction*chartWidth-42,31,84)
+            rect(plot,left+fraction*chartWidth,bottom-4,1,4,.45,.32,.17,.6);previousDate=label
+        end
     end
     if mode=="balance" then
         for _,p in ipairs(report.wallet.points) do if p.observed and p.ts>=range.from and p.ts<=range.through then
@@ -186,9 +189,10 @@ function V.Graph(page,report,range,mode)
         local lastLabelRight=-math.huge
         local function annotate(i,bin,value)
             local x=left+(i-1)/count*chartWidth
-            local labelLeft=math.max(left,math.min(width-104,x-48))
+            local labelLeft=mode=="balance" and (x+104<=width and x+8 or x-104) or x-48
+            labelLeft=math.max(left,math.min(width-104,labelLeft))
             if labelLeft>=lastLabelRight+6 then
-                graphLabel(plot,money(value),labelLeft,y(value)+8,96)
+                graphLabel(plot,money(value),labelLeft,y(mode~="balance" and value<0 and 0 or value)+8,96,mode=="balance" and "LEFT" or "CENTER")
                 lastLabelRight=labelLeft+96
             end
             local hit=plot.hits[i]
