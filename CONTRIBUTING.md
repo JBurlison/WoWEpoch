@@ -33,4 +33,6 @@ The package command validates version agreement, generated quest/crafting/auctio
 
 The Lua tests exercise behavior outside the game; they do not replace in-game checks for rendering, event timing, combat restrictions, and persistence. The release workflow does not change the client interface or SavedVariables schema.
 
+Calendar fixtures use New York's daylight-saving boundaries. CI sets `TZ=America/New_York`; use that timezone when running the complete suite locally as well. The addon itself continues to use each player's local time.
+
 Workflow behavior follows GitHub’s [artifact documentation](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflow-artifacts) and [release creation command](https://cli.github.com/manual/gh_release_create).
