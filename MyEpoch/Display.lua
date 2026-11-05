@@ -67,6 +67,15 @@ function D.RecordTitle(r)
     if type(r)~='table'then return E.L.Unknown end
     local kind=r.kind
     if kind=='memory'or kind=='screenshot'or kind=='chat'then return r.title or D.Kind(kind)end
+    if E.locale~='enUS'and kind=='diary'and r.day and r.title=='Diary - '..r.day then
+        return E.L['Daily diary']..' - '..r.day
+    end
+    if E.locale~='enUS'and kind=='recap'and r.periodKind and type(r.from)=='number'then
+        local prefix=({daily='Daily',weekly='weekly',monthly='monthly',yearly='yearly'})[r.periodKind]
+        if prefix and r.title==prefix..' recap - '..A.Day(r.from)then
+            return E.L[({daily='Daily',weekly='Weekly',monthly='Monthly',yearly='Yearly'})[r.periodKind]]..' / '..E.L.Recap..' - '..A.Day(r.from)
+        end
+    end
     if (kind=='quest'or kind=='quest_attempt')and id(r.questID)then return D.Quest(r.questID,r.title)end
     if (kind=='loot'or kind=='crafted'or kind=='gathered'or kind=='drop')and id(r.itemID)then return D.Item(r.itemID,r.title)end
     if kind=='milestone'then return D.MilestoneTitle(r)or D.Kind(kind)end

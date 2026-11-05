@@ -111,6 +111,13 @@ local function hitTitle(hit,source)
     end
     return hit.title
 end
+function V.Excerpt(hit,source,query)
+    -- Preserve actual matched wording. An unfiltered overview need not expose
+    -- the English search-index tokens used internally for generated records.
+    if E.locale~='enUS'and(query or'')==''and source and not hit.matchedNotes
+        and source.kind~='memory'and source.kind~='chat'and source.kind~='screenshot'then return ''end
+    return hit.excerpt or ''
+end
 function V.Render(left,right)
     V.lastResult=nil;V.pending=nil;V.freshness=nil;local c=B.Character()
     heading(left,E.L["CHAPTER X - FOLLOW A THREAD"],E.L["Find a thread"])
@@ -176,7 +183,8 @@ function V.Render(left,right)
         local zone=source and E.Display.Zone(source) or hit.zone
         f.text:SetText(E.Text(hitTitle(hit,source)));f.status:SetText(E.L[hit.attribution or names[hit.kind]or hit.kind])
         f.meta:SetFont(E.Font(),13,"")
-        f.meta:SetText(E.Text((hit.ts and A.RecordDate(hit)or E.L["Event date unknown"])..(zone and " / "..zone or "")..(hit.matchedNotes and((B.search or"")~=""and" / "..E.L["Matched saved notes"]or" / "..E.L["Includes saved notes"])or"").."\n"..hit.excerpt))
+        local excerpt=V.Excerpt(hit,source,B.search)
+        f.meta:SetText(E.Text((hit.ts and A.RecordDate(hit)or E.L["Event date unknown"])..(zone and " / "..zone or "")..(hit.matchedNotes and((B.search or"")~=""and" / "..E.L["Matched saved notes"]or" / "..E.L["Includes saved notes"])or"")..(excerpt~=''and'\n'..excerpt or'')))
         local h=math.max(f.text:GetStringHeight(),f.status:GetStringHeight());f.meta:ClearAllPoints();f.meta:SetPoint("TOPLEFT",12,-h-20)
         f:SetHeight(math.max(88,h+f.meta:GetStringHeight()+38));f.tint:SetAlpha(B.searchHit==hit.id and 1 or 0);f.accent:SetAlpha(B.searchHit==hit.id and 1 or 0)
         f:SetScript("OnClick",function()V.Open(hit)end);right.y=right.y+f:GetHeight()

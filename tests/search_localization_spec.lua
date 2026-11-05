@@ -23,4 +23,10 @@ assert(quest.title=='Captured quest name'and item.title=='Captured item name')
 assert(memory.title=='Find a thread'and memory.text=='My own words')
 assert(c.notes['record:missing'].text=='These words belong to me')
 E.Display.Quest,E.Display.Item=oldQuest,oldItem
+local preview={excerpt='milestone Character level 21 -> 22 Westfall level major milestone'}
+assert(V.Excerpt(preview,{kind='milestone'},'level')==preview.excerpt,'keep the original matched wording')
+assert(V.Excerpt(preview,{kind='memory'},'')==preview.excerpt,'keep personal writing')
+assert(V.Excerpt(preview,{kind='milestone'},'')==(E.locale=='enUS'and preview.excerpt or''),'hide internal index tokens in translated overview')
+local generated={kind='diary',day='2026-11-05',title='Diary - 2026-11-05'}
+assert(E.Display.RecordTitle(generated)==(E.locale=='enUS'and generated.title or E.L['Daily diary']..' - '..generated.day))
 print('PASS localized search: labels, stable filters, game-name display, orphan notes and unchanged sources')
