@@ -23,7 +23,7 @@ local function showItemTooltip(f)
 end
 local function width(page)return B.Width and B.Width(page)or 760 end
 local function font(parent,size,width)
-    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont('Fonts\\FRIZQT__.TTF',size,'');f:SetWidth(width)
+    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont(E.Font(),size,'');f:SetWidth(width)
     f:SetTextColor(.29,.19,.11);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
 end
 local function icon(parent,size,x,y)

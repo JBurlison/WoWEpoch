@@ -160,7 +160,7 @@ function V.Render(left,right)
     for _,hit in ipairs(result.hits)do
         local f=B.Acquire(right,"searchRow");f:SetWidth(B.Width(right));f.hitID=hit.id
         f.text:SetText(E.Text(hit.title));f.status:SetText(hit.attribution or names[hit.kind]or hit.kind)
-        f.meta:SetFont("Fonts\\FRIZQT__.TTF",13,"")
+        f.meta:SetFont(E.Font(),13,"")
         f.meta:SetText(E.Text((hit.ts and A.RecordDate(hit)or"Event date unknown")..(hit.zone and" / "..hit.zone or"")..(hit.matchedNotes and((B.search or"")~=""and" / Matched saved notes"or" / Includes saved notes")or"").."\n"..hit.excerpt))
         local h=math.max(f.text:GetStringHeight(),f.status:GetStringHeight());f.meta:ClearAllPoints();f.meta:SetPoint("TOPLEFT",12,-h-20)
         f:SetHeight(math.max(88,h+f.meta:GetStringHeight()+38));f.tint:SetAlpha(B.searchHit==hit.id and 1 or 0);f.accent:SetAlpha(B.searchHit==hit.id and 1 or 0)

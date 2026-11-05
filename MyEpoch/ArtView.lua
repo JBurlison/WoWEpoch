@@ -10,16 +10,16 @@ local function grid(page,context)
 end
 local function sizeTile(tile,g,context)
     tile:SetSize(g.tile,g.height);tile.text:ClearAllPoints();tile.text:SetPoint('TOPLEFT',6,-g.titleY)
-    tile.text:SetWidth(g.tile-12);tile.text:SetHeight(g.titleHeight);tile.text:SetFont('Fonts\\FRIZQT__.TTF',context and 12 or 13,'')
+    tile.text:SetWidth(g.tile-12);tile.text:SetHeight(g.titleHeight);tile.text:SetFont(E.Font(),context and 12 or 13,'')
     tile.status:ClearAllPoints();tile.status:SetPoint('TOPLEFT',6,-g.titleY-g.titleHeight-4);tile.status:SetWidth(g.tile-12);tile.status:SetHeight(22);tile.status:SetMaxLines(2)
     if context then tile.status:Hide()else tile.status:Show()end
 end
 for _,pair in ipairs({{"artControl","calendarControl"},{"artLocationRow","questRow"}})do B.widgetFactories[pair[1]]=B.widgetFactories[pair[2]]end
 B.widgetFactories.artTile=function(parent)
     local f=CreateFrame("Button",nil,parent)
-    f.text=f:CreateFontString(nil,"OVERLAY");f.text:SetFont("Fonts\\FRIZQT__.TTF",13,"");f.text:SetTextColor(.29,.19,.11)
+    f.text=f:CreateFontString(nil,"OVERLAY");f.text:SetFont(E.Font(),13,"");f.text:SetTextColor(.29,.19,.11)
     f.text:SetWidth(228);f.text:SetHeight(34);f.text:SetMaxLines(2);f.text:SetJustifyH("LEFT");f.text:SetJustifyV("TOP");f.text:SetPoint("TOPLEFT",6,-124)
-    f.status=f:CreateFontString(nil,"OVERLAY");f.status:SetFont("Fonts\\FRIZQT__.TTF",10,"");f.status:SetTextColor(.54,.40,.23)
+    f.status=f:CreateFontString(nil,"OVERLAY");f.status:SetFont(E.Font(),10,"");f.status:SetTextColor(.54,.40,.23)
     f.status:SetWidth(228);f.status:SetJustifyH("LEFT");f.status:SetPoint("TOPLEFT",6,-162)
     f.accent=f:CreateTexture(nil,"ARTWORK");f.accent:SetWidth(3);f.accent:SetPoint("TOPLEFT");f.accent:SetPoint("BOTTOMLEFT");f.accent:SetColorTexture(.52,.23,.12,1)
     f:SetHighlightTexture("Interface\\Buttons\\WHITE8X8");f:GetHighlightTexture():SetAlpha(.08);return f
@@ -78,7 +78,7 @@ function V.Image(page,row,width,height,thumbnail,framed)
     local frame=B.Acquire(page,"artImage"); frame:SetSize(width,height)
     if not frame.image then
         frame.image=frame:CreateTexture(nil,"ARTWORK"); frame.image:SetAllPoints()
-        frame.message=frame:CreateFontString(nil,"OVERLAY"); frame.message:SetPoint("CENTER"); frame.message:SetFont("Fonts\\FRIZQT__.TTF",14,""); frame.message:SetTextColor(0.3,0.15,0.07)
+        frame.message=frame:CreateFontString(nil,"OVERLAY"); frame.message:SetPoint("CENTER"); frame.message:SetFont(E.Font(),14,""); frame.message:SetTextColor(0.3,0.15,0.07)
         frame:SetScript("OnHide",function(self)self:SetScript("OnUpdate",nil); A.Call("artRelease",self.image.SetTexture,self.image,nil); self.image:Hide()end)
     end
     frame.image:ClearAllPoints()

@@ -179,7 +179,7 @@ function V.Record(page,c,r)
     if #stats>0 then local y=page.y+8; rule(page,y-8)
         local columns=math.max(1,math.min(#stats,math.floor(width/165)));local cell=width/columns
         for i,entry in ipairs(stats)do local f=place(B.Acquire(page,"recapStat"),page,((i-1)%columns)*cell,y+math.floor((i-1)/columns)*80,cell-6,74); f.value:SetWidth(cell-10); f.caption:SetWidth(cell-10)
-            f.value:SetFont(STANDARD_TEXT_FONT or 'Fonts\\FRIZQT__.TTF',18);f.value:SetText(entry.value); f.caption:SetText(string.upper(entry.label))end
+            f.value:SetFont(STANDARD_TEXT_FONT or E.Font(),18);f.value:SetText(entry.value); f.caption:SetText(string.upper(entry.label))end
         page.y=y+math.ceil(#stats/columns)*80; rule(page,page.y); page.y=page.y+20
     end
     local top=page.y; page.y=top+18
@@ -187,7 +187,7 @@ function V.Record(page,c,r)
     if writing=='pending'then paragraph(page,'Updating the saved recap...',12)end
     if writeError then
         paragraph(page,writeError,12)
-        control(page,'Retry writing',22,page.y,160,function()E.JournalViews.Retry(c,job);B.Render()end);page.y=page.y+42
+        control(page,E.L['Retry writing'],22,page.y,160,function()E.JournalViews.Retry(c,job);B.Render()end);page.y=page.y+42
     end
     local y=page.y
     if r.facts then control(page,E.JournalJobs.Retelling(c,r)and"Writing..."or"Another telling",22,y,160,function()
@@ -259,7 +259,7 @@ function V.Render(left,right)
     local modes={}
     for _,p in ipairs(periods)do
         local kind=p[1];local saved=groups[kind]
-        if #saved>0 then modes[#modes+1]={p[2],function()V.Navigate(kind)end,B.recapKind==kind,function()
+        if #saved>0 then modes[#modes+1]={E.L[p[2]],function()V.Navigate(kind)end,B.recapKind==kind,function()
             local unread=0;for _,entry in ipairs(saved)do if not entry.read then unread=unread+1 end end;return unread
         end}end
     end

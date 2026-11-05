@@ -2,7 +2,7 @@ local _,E=...
 local D,B,V,R,T={},E.Book,E.ArtView,E.Artwork,E.BookTheme;E.ArtDialog=D
 local suspended,clearDialog
 local function text(parent,value,size,width)
-    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont('Fonts\\FRIZQT__.TTF',size,'')
+    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont(E.Font(),size,'')
     f:SetTextColor(.26,.15,.08);f:SetWidth(width);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');f:SetText(value);return f
 end
 local function button(parent,value,width,fn)
@@ -165,14 +165,14 @@ function D.Build()
     D.hint=text(panel,'',13,730);D.hint:SetPoint('TOPLEFT',36,-66)
     D.category=button(panel,'Filter: All illustrations  v',610,D.OpenFilterDropdown)
     D.category:SetPoint('TOPLEFT',1000,-57)
-    D.close=button(panel,'Close',90,function()D.Hide()end);D.close:SetPoint('TOPRIGHT',-36,-20)
+    D.close=button(panel,E.L['Close'],90,function()D.Hide()end);D.close:SetPoint('TOPRIGHT',-36,-20)
     local menu=CreateFrame('Frame','MyEpochIllustrationFilter',panel);D.filterOverlay=menu
     menu:SetAllPoints();menu:SetFrameLevel(panel:GetFrameLevel()+30)
     local dismiss=CreateFrame('Button',nil,menu);D.filterDismiss=dismiss;dismiss:SetAllPoints();dismiss:SetScript('OnClick',D.CloseFilterDropdown)
     local popup=CreateFrame('Frame',nil,menu);D.filterPanel=popup;popup:SetSize(610,248)
     popup:SetPoint('TOPRIGHT',D.category,'BOTTOMRIGHT',0,-4);popup:SetFrameLevel(menu:GetFrameLevel()+2);popup:EnableMouse(true);popup:EnableMouseWheel(true);T.DialogPaper(popup)
     local input=CreateFrame('EditBox',nil,popup);D.filterInput=input;input:SetSize(582,30);input:SetPoint('TOPLEFT',14,-12)
-    input:SetAutoFocus(false);input:SetFont('Fonts\\FRIZQT__.TTF',14,'');input:SetTextColor(.26,.15,.08);input:SetTextInsets(8,8,4,4)
+    input:SetAutoFocus(false);input:SetFont(E.Font(),14,'');input:SetTextColor(.26,.15,.08);input:SetTextInsets(8,8,4,4)
     local face=T.Texture(input,'button-v1');face:SetAllPoints()
     local hint=text(input,'Search collections, locations or skills',12,550);hint:SetPoint('LEFT',8,0);D.filterHint=hint
     input:SetScript('OnTextChanged',function(self,user)
@@ -201,11 +201,11 @@ function D.Build()
         local state={panel=page,scroll=scroll,content=content,width=760,pool={},used={},y=0};D[key]=state
         scroll:SetScript('OnMouseWheel',function(self,delta)self:SetVerticalScroll(math.max(0,math.min(self:GetVerticalScrollRange(),self:GetVerticalScroll()-delta*50)));T.Scroll(state)end)
     end
-    D.previous=button(panel,'Previous page',180);D.previous:SetPoint('BOTTOMLEFT',50,72)
-    D.next=button(panel,'Next page',180);D.next:SetPoint('BOTTOMLEFT',630,72)
+    D.previous=button(panel,E.L['Previous page'],180);D.previous:SetPoint('BOTTOMLEFT',50,72)
+    D.next=button(panel,E.L['Next page'],180);D.next:SetPoint('BOTTOMLEFT',630,72)
     D.pageLabel=text(panel,'',13,360);D.pageLabel:SetJustifyH('CENTER');D.pageLabel:SetPoint('BOTTOMLEFT',250,81)
-    D.cancel=button(panel,'Cancel',130,function()D.Hide()end);D.cancel:SetPoint('BOTTOMRIGHT',-196,30)
-    D.apply=button(panel,'Apply',130);D.apply:SetPoint('BOTTOMRIGHT',-50,30)
+    D.cancel=button(panel,E.L['Cancel'],130,function()D.Hide()end);D.cancel:SetPoint('BOTTOMRIGHT',-196,30)
+    D.apply=button(panel,E.L['Apply'],130);D.apply:SetPoint('BOTTOMRIGHT',-50,30)
     D.note=text(panel,'',12,1260);D.note:SetPoint('BOTTOMLEFT',50,38)
     overlay:SetScript('OnUpdate',function()if not suspended and D.context and not D.Valid(D.context)then D.Hide()end end)
     clearDialog=function()

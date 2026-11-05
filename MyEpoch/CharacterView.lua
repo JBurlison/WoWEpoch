@@ -1,7 +1,7 @@
 local _,E=...
 local V,B,C,T={page=1,query=''},E.Book,E.Characters,E.BookTheme;E.CharacterView=V
 local function text(parent,size,width)
-    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont('Fonts\\FRIZQT__.TTF',size,'');f:SetTextColor(.26,.15,.08)
+    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont(E.Font(),size,'');f:SetTextColor(.26,.15,.08)
     f:SetWidth(width);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
 end
 local function button(parent,label,width,height,fn)
@@ -35,9 +35,9 @@ function V.Build()
     local panel=CreateFrame('Frame',nil,overlay);V.panel=panel;panel:SetSize(680,750);panel:SetPoint('TOPRIGHT',B.frame,'TOPRIGHT',-56,-72);panel:EnableMouse(true)
     T.Photo(panel)
     local heading=text(panel,25,530);heading:SetText('Choose a character');heading:SetPoint('TOPLEFT',30,-30)
-    local close=button(panel,'Close',82,28,V.Hide);close:SetPoint('TOPRIGHT',-26,-26)
+    local close=button(panel,E.L['Close'],82,28,V.Hide);close:SetPoint('TOPRIGHT',-26,-26)
     local hint=text(panel,12,600);hint:SetText('Search names, realms or classes. Each journal stays separate.');hint:SetPoint('TOPLEFT',30,-68)
-    local input=CreateFrame('EditBox',nil,panel);V.input=input;input:SetSize(620,34);input:SetPoint('TOPLEFT',30,-92);input:SetAutoFocus(false);input:SetFont('Fonts\\FRIZQT__.TTF',15,'');input:SetTextColor(.26,.15,.08);input:SetTextInsets(10,10,6,6)
+    local input=CreateFrame('EditBox',nil,panel);V.input=input;input:SetSize(620,34);input:SetPoint('TOPLEFT',30,-92);input:SetAutoFocus(false);input:SetFont(E.Font(),15,'');input:SetTextColor(.26,.15,.08);input:SetTextInsets(10,10,6,6)
     local face=T.Texture(input,'button-v1');face:SetAllPoints()
     input:SetScript('OnEscapePressed',V.Hide);input:SetScript('OnEnterPressed',function(self)self:ClearFocus()end)
     input:SetScript('OnTextChanged',function(self,user)if user then V.query=self:GetText();V.page=1;V.Render()end end)

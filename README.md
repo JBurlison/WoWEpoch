@@ -38,7 +38,15 @@ If you downloaded this repository, copy only its inner `MyEpoch` folder into Add
 
 My Epoch targets **WoW Forever**. Retail and other Classic clients are not supported. No desktop companion is required; **QuestieDB** is an optional source of additional quest information.
 
-## Your first adventure
+## Languages
+
+My Epoch now has an initial translation pass for German, French, Spanish, Brazilian Portuguese, Russian, Korean, Simplified Chinese, and Traditional Chinese. It follows your WoW client language automatically, with English as the fallback. Latin American Spanish currently shares the Spanish translation.
+
+This first pass covers chapter navigation, common controls, and the Calendar. Some detailed reports, illustration descriptions, and generated diary text are still in English. Your own notes, conversations, names, and saved stories are kept exactly as recorded.
+
+Translations aim for the same relaxed, slightly whimsical scrapbook feel in each language, rather than matching English word for word. Suggestions from native speakers are welcome.
+
+## Opening your book
 
 Click the **My Epoch minimap button** or type `/myepoch` to open the book. Recording begins automatically once your character is ready, so there is no session to start manually.
 

@@ -32,7 +32,7 @@ local function color(frame,r,g,b,a)
     local texture=frame:CreateTexture(nil,"BACKGROUND"); texture:SetAllPoints(); texture:SetColorTexture(r,g,b,a or 1); return texture
 end
 local function label(parent,text,size,width)
-    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont("Fonts\\FRIZQT__.TTF",size or 15,"")
+    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size or 15,"")
     f:SetTextColor(unpack(ink)); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); f:SetWidth(width or 760); f:SetText(text); return f
 end
 local function button(parent,text,width,height,fn)
@@ -85,12 +85,12 @@ function B.Acquire(page,kind)
         elseif B.widgetFactories[kind] then f=B.widgetFactories[kind](page.content)
         elseif kind=="edit" then
             f=CreateFrame("EditBox",nil,page.content); f:SetSize(760,140); f:SetMultiLine(true); f:SetAutoFocus(false)
-            f:SetFont("Fonts\\FRIZQT__.TTF",15,""); f:SetTextColor(unpack(ink)); f:SetTextInsets(8,8,8,8)
+            f:SetFont(E.Font(),15,""); f:SetTextColor(unpack(ink)); f:SetTextInsets(8,8,8,8)
             color(f,0.98,0.90,0.70,0.6); f:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
         end
         page.pool[kind][i]=f
     end
-    if kind=="label" then f:SetWidth(B.Width(page)); f:SetFont("Fonts\\FRIZQT__.TTF",16,""); f:SetTextColor(unpack(ink)); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); f:SetSpacing(0) end
+    if kind=="label" then f:SetWidth(B.Width(page)); f:SetFont(E.Font(),16,""); f:SetTextColor(unpack(ink)); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); f:SetSpacing(0) end
     if kind=="button" then
         f.isChapter=false
         f.navExpandable=false;f.navExpanded=false;f.navLabel=nil
@@ -99,7 +99,7 @@ function B.Acquire(page,kind)
         if f.navigationShade then f.navigationShade:Hide()end
         f.face:Show();f:SetSize(B.Width(page),30);f.text:SetWidth(B.Width(page)-16)
         f.text:ClearAllPoints();f.text:SetPoint("CENTER");f.text:SetJustifyH("CENTER")
-        f.text:SetFont("Fonts\\FRIZQT__.TTF",13,"");E.BookTheme.ButtonStyle(f)
+        f.text:SetFont(E.Font(),13,"");E.BookTheme.ButtonStyle(f)
     end
     if kind=="edit" then f:SetWidth(B.Width(page));f.inputValue=nil;f.inputLabel=nil end
     if kind=="timeline" then f:SetWidth(B.Width(page));f.text:SetWidth(B.Width(page)-70);f.date:SetWidth(B.Width(page)-70);f.tag:SetWidth(B.Width(page)-70)end
@@ -107,7 +107,7 @@ function B.Acquire(page,kind)
     f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+(page.navIndent or 0),-page.y); f:Show(); return f
 end
 function B.Text(page,text,size)
-    local f=B.Acquire(page,"label"); f:SetFont("Fonts\\FRIZQT__.TTF",size or 16,"")
+    local f=B.Acquire(page,"label"); f:SetFont(E.Font(),size or 16,"")
     f:SetText(E.Text(text)); local height=math.max(size or 16,f:GetStringHeight()); f:SetHeight(height)
     page.y=page.y+height+14; return f
 end
@@ -164,9 +164,9 @@ end
 function B.Tabs(page,labels,selected,callback)
     local y=page.y;local width=math.min(150,(B.Width(page)-6*(#labels-1))/#labels)
     for i,name in ipairs(labels)do
-        page.y=y;local choice=name;local f=B.Action(page,name,function()callback(choice)end)
+        page.y=y;local choice=name;local f=B.Action(page,E.L[name],function()callback(choice)end)
         f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+(i-1)*(width+6),-y)
-        f:SetSize(width,40);f.text:SetWidth(width-16);f.text:SetFont('Fonts\\FRIZQT__.TTF',14,'')
+        f:SetSize(width,40);f.text:SetWidth(width-16);f.text:SetFont(E.Font(),14,'')
         E.BookTheme.ButtonStyle(f,name==selected and'active'or'tab')
     end
     page.y=y+52
@@ -191,7 +191,7 @@ function B.Note(page,key,canEdit)
     f:SetHeight(140); f:SetMultiLine(true); f:SetScript("OnEnterPressed",nil)
     f:SetText(c.notes[key] and c.notes[key].text or "")
     f:SetScript("OnTextChanged",function(self,user) if user and B.Character()==c and (not canEdit or canEdit()) then S.Note(c,key,self:GetText(),A.Now()) end end)
-    page.y=page.y+155; B.Text(page,"Notes save as you type and stay separate from generated writing.",12)
+    page.y=page.y+155; B.Text(page,E.L["Notes save as you type and stay separate from generated writing."],12)
 end
 function B.Clear(page)
     for _,pool in pairs(page.pool) do for _,f in ipairs(pool) do f:Hide() end end
@@ -462,7 +462,7 @@ function B.Render(reset)
     B.Clear(B.left); B.Clear(B.right)
     if B.Navigation then B.Navigation.Begin()end
     -- Buttons shared with calendar cells must regain the regular list geometry.
-    for _,p in ipairs({B.left,B.right}) do for _,f in ipairs(p.pool.button or {}) do f:SetSize(B.Width(p),30); f.text:SetWidth(B.Width(p)-16); f.text:SetFont("Fonts\\FRIZQT__.TTF",13,"") end end
+    for _,p in ipairs({B.left,B.right}) do for _,f in ipairs(p.pool.button or {}) do f:SetSize(B.Width(p),30); f.text:SetWidth(B.Width(p)-16); f.text:SetFont(E.Font(),13,"") end end
     local left,right=B.left,B.right; if B.chapter~="Chronicle" and B.chapter~="Calendar" and B.chapter~="Recaps" and B.chapter~="Quests" and B.chapter~="Company" and B.chapter~="Loot" and B.chapter~="Gold" and B.chapter~="Memories" and B.chapter~="Journey" and B.chapter~="Search" and B.chapter~="Archive" then B.Text(left,B.chapter,32)end
     -- Search has its own cooperative index and preserves in-progress drafts.
     -- It does not need to wait for the general chapter index.
@@ -518,7 +518,7 @@ function B.Render(reset)
             if B.memoryFocus and B.selected~=B.memoryFocus and c.records[B.memoryFocus] then B.Action(right,"Back to this memory",function()B.selected=B.memoryFocus;B.memoryEditing=false;B.Render(true)end)end
             B.Action(right,B.memoryMode=="rediscover" and "Back to On This Day" or "Back to saved memories",function()B.selected=nil;B.memoryFocus=nil;B.memoryOverview=true;B.memoryEditing=false;B.Render(true)end)
         end
-        if B.chapter=="Calendar" then B.Action(right,"Back to this day",function()B.selected=nil; B.Render(true)end) end
+        if B.chapter=="Calendar" then B.Action(right,E.L["Back to this day"],function()B.selected=nil; B.Render(true)end) end
         if B.chapter=="Recaps" and c.records[B.selected].kind~="recap" then
             B.Action(right,"Back to recap",function()B.selected=c.records[B.recapFocus] and B.recapFocus or nil; B.Render(true)end)
         end
@@ -552,17 +552,17 @@ function B.Build()
     drag:SetScript("OnDragStart",function()if not B.inCombat then A.Call("bookStartMoving",frame.StartMoving,frame)end end)
     drag:SetScript("OnDragStop",function()A.Call("bookStopMoving",frame.StopMovingOrSizing,frame)end)
     local title=label(frame,"My Epoch",18,600);title:SetPoint("TOP",0,-14);title:SetJustifyH("CENTER");title:SetTextColor(.91,.74,.34)
-    local eyebrow=label(frame,"A LIFE IN AZEROTH",11,400);eyebrow:SetPoint("TOPLEFT",83,-66);eyebrow:SetTextColor(.75,.65,.43)
-    local tagline=label(frame,"Every adventure leaves a story.",16,450);tagline:SetPoint("TOPLEFT",83,-89);tagline:SetTextColor(.84,.74,.53)
+    local eyebrow=label(frame,E.L["A LIFE IN AZEROTH"],11,400);eyebrow:SetPoint("TOPLEFT",83,-66);eyebrow:SetTextColor(.75,.65,.43)
+    local tagline=label(frame,E.L["Every adventure leaves a story."],16,450);tagline:SetPoint("TOPLEFT",83,-89);tagline:SetTextColor(.84,.74,.53)
     -- Shared preparation writers may report a temporary status here. The
     -- character and chapter already appear in the picker and tabs.
     B.heading=label(frame,"",11,476); B.heading:SetPoint("TOPLEFT",680,-106); B.heading:SetTextColor(0.74,0.65,0.48)
     B.heading:SetHeight(16); B.heading:SetMaxLines(1); B.heading:SetJustifyH("CENTER")
     local close=button(frame,"X",28,26,function() B.Close(true) end);close:SetPoint("TOPRIGHT",-14,-10);E.BookTheme.ButtonStyle(close,"active");B.closeButton=close
-    local journal=label(frame,"THE JOURNAL OF",11,270); journal:SetPoint("TOPRIGHT",-56,-51);journal:SetJustifyH("CENTER");journal:SetTextColor(0.70,0.59,0.38)
+    local journal=label(frame,E.L["THE JOURNAL OF"],11,270); journal:SetPoint("TOPRIGHT",-56,-51);journal:SetJustifyH("CENTER");journal:SetTextColor(0.70,0.59,0.38)
     B.characterMeta=label(frame,"",11,400); B.characterMeta:SetPoint("TOPRIGHT",-56,-108); B.characterMeta:SetJustifyH("RIGHT"); B.characterMeta:SetTextColor(0.74,0.65,0.48)
     B.characterMeta:SetMaxLines(1);B.characterMeta:SetHeight(16)
-    B.characterButton=button(frame,"Character",270,40,function()
+    B.characterButton=button(frame,E.L["Character"],270,40,function()
         E.CharacterView.Toggle()
     end); B.characterButton:SetPoint("TOPRIGHT",-56,-66)
     -- A recessed selector with its own arrow well, distinct from chapter tabs.
@@ -597,13 +597,13 @@ function B.Build()
         scroll:SetScript("OnMouseWheel",function(self,delta) self:SetVerticalScroll(math.max(0,math.min(self:GetVerticalScrollRange(),self:GetVerticalScroll()-delta*50))); E.BookTheme.Scroll(B[key])end)
         B[key]={panel=page,scroll=scroll,content=content,pool={},used={},y=0,width=nav and 196 or 684}
     end
-    local capture=button(frame,"Capture a moment",170,30,function()
+    local capture=button(frame,E.L["Capture a moment"],170,30,function()
         MyEpoch_Capture()
     end); B.captureButton=capture; capture:SetPoint("TOPLEFT",986,-73)
-    local memory=button(frame,"+ Write a memory",170,30,function()
+    local memory=button(frame,E.L["+ Write a memory"],170,30,function()
         E.MemoryView.Create()
     end); B.memoryButton=memory; memory:SetPoint("TOPLEFT",808,-73)
-    local illustrations=button(frame,"Illustrations",120,30,function()E.ArtDialog.OpenForPage()end); illustrations:SetPoint("TOPLEFT",680,-73);B.illustrations=illustrations
+    local illustrations=button(frame,E.L["Illustrations"],120,30,function()E.ArtDialog.OpenForPage()end); illustrations:SetPoint("TOPLEFT",680,-73);B.illustrations=illustrations
     frame:SetScript("OnShow",function()if E.ArtDialog then E.ArtDialog.RestoreCapture()end end)
     frame:SetScript("OnHide",function() A.Call("bookStopMoving",frame.StopMovingOrSizing,frame);B.pendingInputDrafts=nil; if E.ArtDialog and not B.captureHiding then E.ArtDialog.Hide(true)end; if E.CharacterView then E.CharacterView.Hide()end; if not B.combatHiding and not B.captureHiding then B.reopen=false; if E.Capture then E.Capture.CancelRestore() end end end)
     if UISpecialFrames then table.insert(UISpecialFrames,"MyEpochBook") end

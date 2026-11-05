@@ -7,7 +7,7 @@ local chatChannels={
 }
 for _,p in ipairs({{"companyControl","calendarControl"},{"companyStat","calendarStat"},{"companyRule","calendarRule"},{"companyRow","questRow"}})do B.widgetFactories[p[1]]=B.widgetFactories[p[2]]end
 local function font(parent,size,width)
-    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont("Fonts\\FRIZQT__.TTF",size,""); f:SetWidth(width); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); f:SetTextColor(0.29,0.19,0.11); return f
+    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size,""); f:SetWidth(width); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); f:SetTextColor(0.29,0.19,0.11); return f
 end
 B.widgetFactories.companyChat=function(parent)
     local f=CreateFrame("Button",nil,parent)

@@ -4,6 +4,7 @@ import runpy
 from xml.etree import ElementTree
 from lupa.lua51 import LuaRuntime
 ROOT = Path(__file__).resolve().parents[1]
+runpy.run_path(str(ROOT / 'tests/localization_host.py'))['main']()
 runpy.run_path(str(ROOT / 'tests/bundled_quest_build_spec.py'))
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute('E = {}; time=os.time; date=os.date')

@@ -2,7 +2,7 @@ local _,E=...
 local V,B,L,A,F,T={},E.Book,E.Items,E.API,E.Economy,E.BookTheme; E.LootLayout=V
 for _,p in ipairs({{"lootControl","calendarControl"},{"lootStat","calendarStat"},{"lootRule","calendarRule"},{"lootSource","questRow"}})do B.widgetFactories[p[1]]=B.widgetFactories[p[2]]end
 local function font(p,size,width)
-    local f=p:CreateFontString(nil,"OVERLAY"); f:SetFont("Fonts\\FRIZQT__.TTF",size,""); f:SetWidth(width)
+    local f=p:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size,""); f:SetWidth(width)
     f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); f:SetTextColor(.29,.19,.11); return f
 end
 local function rowFrame(p)
@@ -60,7 +60,7 @@ function V.Stats(page,metrics)
     local n,y=0,page.y
     for _,m in ipairs(metrics)do if m[1] and m[1]>0 then
         local f=B.Acquire(page,"lootStat"); f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+(n%4)*(B.Width(page)/4),-y-math.floor(n/4)*76)
-        f:SetSize(B.Width(page)/4-8,70); f.value:SetFont("Fonts\\FRIZQT__.TTF",m[3] and 19 or 24,"")
+        f:SetSize(B.Width(page)/4-8,70); f.value:SetFont(E.Font(),m[3] and 19 or 24,"")
         f.value:SetText(E.Text(m[3] or tostring(m[1]))); f.value:SetWidth(B.Width(page)/4-12);f.caption:SetWidth(B.Width(page)/4-12); f.caption:SetText(string.upper(m[2])); n=n+1
     end end
     if n>0 then page.y=y+math.ceil(n/4)*76; rule(page)end
@@ -121,7 +121,7 @@ function V.Records(page,rows,key,receipts)
     clamp(key,#rows,8)
     if #rows==0 then B.Text(page,"No matching recorded history. Try widening the filters.",14); return end
     if receipts then
-        local h=B.Acquire(page,"lootHeader");h:SetWidth(B.Width(page));h.text:SetWidth(B.Width(page)-310); h:SetHeight(36); h.text:SetFont("Fonts\\FRIZQT__.TTF",13,"")
+        local h=B.Acquire(page,"lootHeader");h:SetWidth(B.Width(page));h.text:SetWidth(B.Width(page)-310); h:SetHeight(36); h.text:SetFont(E.Font(),13,"")
         h.text:SetText("Item & recipient"); h.quantity:SetText("Qty."); h.value:SetText("Vendor estimate"); h.meta:SetText(""); h.tint:SetAlpha(.4); h.accent:Hide(); page.y=page.y+36
     end
     for i=(B[key]-1)*8+1,math.min(#rows,B[key]*8)do local r=rows[#rows-i+1]

@@ -2,7 +2,7 @@ local _,E=...
 local V,T,B,A,S={},E.QuestAtlas,E.Book,E.API,E.Store; E.QuestView=V
 local sourceOpen,objectivePages={},{}
 local function font(parent,size)
-    local f=parent:CreateFontString(nil,"OVERLAY");f:SetFont("Fonts\\FRIZQT__.TTF",size,"")
+    local f=parent:CreateFontString(nil,"OVERLAY");f:SetFont(E.Font(),size,"")
     f:SetTextColor(.29,.19,.11);f:SetJustifyH("LEFT");f:SetJustifyV("TOP");return f
 end
 B.widgetFactories.questDetailField=function(parent)

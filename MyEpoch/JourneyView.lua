@@ -61,7 +61,7 @@ function V.Draw(page,art,clusters)
     for _,texture in ipairs(frame.tiles) do texture:Hide() end
     for _,pin in ipairs(frame.pins) do pin:Hide(); pin:SetScript("OnClick",nil) end
     frame.art=art; frame.clusterCount=#clusters.clusters; frame.rejected=false; frame.loadingElapsed=0; frame.loadingPoll=0
-    if not frame.message then frame.message=frame:CreateFontString(nil,"OVERLAY"); frame.message:SetFont("Fonts\\FRIZQT__.TTF",15,""); frame.message:SetPoint("CENTER"); frame.message:SetTextColor(0.3,0.15,0.07) end
+    if not frame.message then frame.message=frame:CreateFontString(nil,"OVERLAY"); frame.message:SetFont(E.Font(),15,""); frame.message:SetPoint("CENTER"); frame.message:SetTextColor(0.3,0.15,0.07) end
     frame.message:SetWidth(math.max(40,w-28))
     if art then
         local left,top=16,16; frame.geometry={left=left,top=top,width=w,height=h}
@@ -78,7 +78,7 @@ function V.Draw(page,art,clusters)
             if not pin then
                 pin=CreateFrame("Button",nil,frame); frame.pins[i]=pin
                 pin.fill=pin:CreateTexture(nil,"BACKGROUND"); pin.fill:SetAllPoints()
-                pin.text=pin:CreateFontString(nil,"OVERLAY"); pin.text:SetPoint("CENTER"); pin.text:SetFont("Fonts\\FRIZQT__.TTF",13,""); pin.text:SetTextColor(1,0.95,0.75)
+                pin.text=pin:CreateFontString(nil,"OVERLAY"); pin.text:SetPoint("CENTER"); pin.text:SetFont(E.Font(),13,""); pin.text:SetTextColor(1,0.95,0.75)
                 pin:SetHighlightTexture("Interface\\Buttons\\WHITE8X8"); pin:GetHighlightTexture():SetAlpha(0.25)
             end
             local many=#cluster.records>1; local selected=B.journeyBucket==cluster.key

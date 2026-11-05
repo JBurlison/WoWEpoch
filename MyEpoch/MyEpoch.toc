@@ -3,13 +3,22 @@
 ## Notes: A character scrapbook of adventures, companions, and progress.
 ## Author: JBurlison
 ## IconTexture: Interface\AddOns\MyEpoch\Media\Book\emblem-small-v1.tga
-## Version: 0.1.1
+## Version: 0.1.2
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever
 ## X-Curse-Project-ID: 1785036
 
 Core.lua
+Localization.lua
+Locales/deDE.lua
+Locales/frFR.lua
+Locales/esES.lua
+Locales/ptBR.lua
+Locales/ruRU.lua
+Locales/koKR.lua
+Locales/zhCN.lua
+Locales/zhTW.lua
 RetentionWork.lua
 Store.lua
 History.lua

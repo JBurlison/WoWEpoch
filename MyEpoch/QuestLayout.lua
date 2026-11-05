@@ -2,7 +2,7 @@ local _,E=...
 local V,B,T,A,S=E.QuestView,E.Book,E.BookTheme,E.API,E.Store
 for _,pair in ipairs({{"questControl","calendarControl"},{"questStat","calendarStat"},{"questRule","calendarRule"}})do B.widgetFactories[pair[1]]=B.widgetFactories[pair[2]]end
 local function font(parent,size,w)
-    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont("Fonts\\FRIZQT__.TTF",size,""); f:SetWidth(w)
+    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size,""); f:SetWidth(w)
     f:SetTextColor(0.29,0.19,0.11); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); return f
 end
 B.widgetFactories.questRow=function(parent)
@@ -133,12 +133,12 @@ function V.Creatures(page,c,attempts)
     end
     if #report.groups>0 then
         local header=place(B.Acquire(page,"questCreature"),page,0,page.y,B.Width(page),30);creatureColumns(page,header)
-        for _,f in ipairs({header.name,header.count,header.location})do f:SetFont("Fonts\\FRIZQT__.TTF",10,"")end
+        for _,f in ipairs({header.name,header.count,header.location})do f:SetFont(E.Font(),10,"")end
         header.disclosure:SetText(""); header:EnableMouse(false); header:SetScript("OnClick",nil)
         header.name:SetText("CREATURE"); header.count:SetText("DISTINCT KILLS"); header.location:SetText("RECORDED LOCATION"); page.y=page.y+30
         clamp("questKillPage",#report.groups,8)
         for i=(B.questKillPage-1)*8+1,math.min(#report.groups,B.questKillPage*8)do local g=report.groups[i]; local f=B.Acquire(page,"questCreature"); f:SetWidth(B.Width(page));creatureColumns(page,f)
-            for _,label in ipairs({f.name,f.count,f.location})do label:SetFont("Fonts\\FRIZQT__.TTF",14,"")end
+            for _,label in ipairs({f.name,f.count,f.location})do label:SetFont(E.Font(),14,"")end
             f.name:SetText(E.Text(g.name)); f.count:SetText(g.count); f.location:SetText(E.Text(g.zone))
             local npc,location=g.npcID or g.name,g.mapID or g.zone
             local choice=B.questKillSources

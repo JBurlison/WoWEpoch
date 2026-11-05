@@ -6,8 +6,8 @@ local function pages(rows,key,size)
     return (B[key]-1)*size+1,math.min(#rows,B[key]*size),count
 end
 local function pager(page,key,count)
-    if B[key]>1 then B.Action(page,'Previous page',function()B[key]=B[key]-1;redraw()end)end
-    if B[key]<count then B.Action(page,'Next page',function()B[key]=B[key]+1;redraw()end)end
+    if B[key]>1 then B.Action(page,E.L['Previous page'],function()B[key]=B[key]-1;redraw()end)end
+    if B[key]<count then B.Action(page,E.L['Next page'],function()B[key]=B[key]+1;redraw()end)end
 end
 local function amount(value)return value~=nil and string.format('%.0f',value)or'Unavailable'end
 local function sourceName(row)return row.name or row.sourceGUID or(row.sourceCreatureID and 'Creature '..row.sourceCreatureID)or'Unidentified source'end

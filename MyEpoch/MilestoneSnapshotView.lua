@@ -28,7 +28,7 @@ local function reset(f)
     f.icon.image:SetTexture(nil);f.icon.image:Hide();f.icon.unknown:Show()
 end
 local function font(parent,size)
-    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont('Fonts\\FRIZQT__.TTF',size,'');f:SetTextColor(.29,.19,.11);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
+    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont(E.Font(),size,'');f:SetTextColor(.29,.19,.11);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
 end
 local function loggedIn(c)
     if E.current~=c or type(UnitGUID)~='function'then return false end
@@ -225,7 +225,7 @@ end
 local statReadLabels={restricted='Restricted read',unavailable='API unavailable',failed='Read failed',missing='Not supplied'}
 local function statLine(f,index,row,width,y,size)
     local line=f.lines[index];if not line then line={label=font(f,12),value=font(f,12)};f.lines[index]=line;line.value:SetJustifyH('RIGHT')end
-    line.label:SetFont('Fonts\\FRIZQT__.TTF',size or 12,'');line.value:SetFont('Fonts\\FRIZQT__.TTF',size or 12,'')
+    line.label:SetFont(E.Font(),size or 12,'');line.value:SetFont(E.Font(),size or 12,'')
     local unit=text(row.unit);local value=number(row.value)
     local display=value~=nil and formatted(value)..(unit~=''and' '..unit or'')or statReadLabels[text(row.readStatus)]or'Not recorded'
     line.label:SetText(E.Text(text(row.label,text(row.key,'Stat'))));line.value:SetText(display)

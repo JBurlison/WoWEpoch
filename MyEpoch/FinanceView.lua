@@ -4,7 +4,7 @@ B=E.Book; E.FinanceView=V
 local T=E.BookTheme
 B.widgetFactories.financeStat=B.widgetFactories.calendarStat
 local function font(parent,size,width)
-    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont("Fonts\\FRIZQT__.TTF",size,""); f:SetWidth(width)
+    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size,""); f:SetWidth(width)
     f:SetTextColor(.29,.19,.11); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); return f
 end
 B.widgetFactories.financeRow=function(parent)
@@ -23,7 +23,7 @@ local function fitRow(page,f)
 end
 local function header(page,left,middle,right)
     local f=B.Acquire(page,"financeHeader"); fitRow(page,f); f:SetHeight(34); f.meta:Hide(); f:SetScript("OnClick",nil)
-    for _,pair in ipairs({{f.text,left},{f.amount,middle},{f.balance,right}})do pair[1]:SetFont("Fonts\\FRIZQT__.TTF",10,""); pair[1]:SetText(pair[2])end
+    for _,pair in ipairs({{f.text,left},{f.amount,middle},{f.balance,right}})do pair[1]:SetFont(E.Font(),10,""); pair[1]:SetText(pair[2])end
     page.y=page.y+38
 end
 local function money(value)
@@ -39,7 +39,7 @@ local function actions(page,items,columns)
     if B.Navigation.Grid(page,items,columns)then return end
     columns=columns or 3; local start=page.y; local width=(B.Width(page)-(columns-1)*8)/columns
     for i,item in ipairs(items) do
-        local f=B.Acquire(page,"button"); f:SetSize(width,32); f.text:SetWidth(width-12); f.text:SetFont("Fonts\\FRIZQT__.TTF",12,"")
+        local f=B.Acquire(page,"button"); f:SetSize(width,32); f.text:SetWidth(width-12); f.text:SetFont(E.Font(),12,"")
         f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+((i-1)%columns)*(width+8),-start-math.floor((i-1)/columns)*38)
         f.text:SetText(E.Text(item[1])); f:SetScript("OnClick",item[2]); T.ButtonStyle(f,item[3] and "filter" or nil)
     end
@@ -51,7 +51,7 @@ local function metrics(page,rows)
     for i,row in ipairs(shown)do
         local f=B.Acquire(page,"financeStat"); f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+((i-1)%4)*(B.Width(page)/4),-start-math.floor((i-1)/4)*84)
         f:SetSize(B.Width(page)/4-8,78); f.value:SetWidth(B.Width(page)/4-12); f.caption:SetWidth(B.Width(page)/4-12)
-        f.value:SetFont("Fonts\\FRIZQT__.TTF",19,"")
+        f.value:SetFont(E.Font(),19,"")
         f.value:SetText(row[3]=="count" and tostring(row[2]) or row[3]=="percent" and string.format("%.1f%%",row[2]) or money(row[2]))
         f.caption:SetText(string.upper(E.Text(row[1])))
     end
@@ -102,7 +102,7 @@ local function picker(page)
         {"Cancel picker",function()B.goldPicker=nil; B.Render()end},
         {"Next month",function()B.goldPickerMonth=A.ShiftPeriod(first,"monthly",1); B.Render()end}})
     local start=page.y; local cell=B.Width(page)/7; local names={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"}
-    for i,name in ipairs(names) do local f=B.Acquire(page,"label"); f:SetWidth(cell-2); f:SetHeight(20);f:SetFont("Fonts\\FRIZQT__.TTF",9,"");f:SetJustifyH("CENTER"); f:SetText(name)
+    for i,name in ipairs(names) do local f=B.Acquire(page,"label"); f:SetWidth(cell-2); f:SetHeight(20);f:SetFont(E.Font(),9,"");f:SetJustifyH("CENTER"); f:SetText(name)
         f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+(page.navIndent or 0)+(i-1)*cell,-start)
     end
     start=start+27
@@ -110,7 +110,7 @@ local function picker(page)
     while day<nextMonth do
         local value=A.Day(day); local label=tostring(date("*t",day).day)
         if value==(B.goldPicker=="from" and B.goldFrom or B.goldThrough) then label="["..label.."]" end
-        local f=B.Acquire(page,"button"); f:SetSize(cell-2,28); f.text:SetWidth(cell-4);f.text:SetFont("Fonts\\FRIZQT__.TTF",10,""); f.text:SetText(label)
+        local f=B.Acquire(page,"button"); f:SetSize(cell-2,28); f.text:SetWidth(cell-4);f.text:SetFont(E.Font(),10,""); f.text:SetText(label)
         f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+(page.navIndent or 0)+(cells%7)*cell,-start-math.floor(cells/7)*38)
         f:SetScript("OnClick",function()V.ChooseDate(B.goldPicker,value)end)
         cells=cells+1; day=A.ShiftDay(day,1)
@@ -127,7 +127,7 @@ local function graphLabel(plot,text,x,y,width,align,size)
     local f=plot.labels[plot.labelsUsed]
     if not f then f=font(plot,size or 10,width);plot.labels[plot.labelsUsed]=f end
     f:ClearAllPoints();f:SetPoint("BOTTOMLEFT",plot,"BOTTOMLEFT",x,y);f:SetSize(width,16)
-    f:SetFont("Fonts\\FRIZQT__.TTF",size or 10,"");f:SetJustifyH(align or "CENTER");f:SetText(text);f:Show()
+    f:SetFont(E.Font(),size or 10,"");f:SetJustifyH(align or "CENTER");f:SetText(text);f:Show()
 end
 function V.Graph(page,report,range,mode)
     local plot=B.Acquire(page,"plot");local width=B.Width(page);plot:SetSize(width,280); plot.textures=plot.textures or {}; plot.used=0

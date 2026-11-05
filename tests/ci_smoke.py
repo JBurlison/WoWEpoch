@@ -23,6 +23,7 @@ SPECS = (
     'retention_controls_spec.lua',
 )
 HOSTS = (
+    'localization_host.py',
     'quest_completed_history_host.py',
     'recap_completed_periods_host.py',
     'recorder_owner_lifecycle_spec.py',

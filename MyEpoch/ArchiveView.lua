@@ -30,7 +30,7 @@ local function stats(page,rows)
 end
 local function card(page,title,status,detail,action)
     local f=B.Acquire(page,"archiveRow");f:SetWidth(B.Width(page));f.text:SetText(E.Text(title));f.status:SetText(E.Text(status or""))
-    f.meta:SetFont("Fonts\\FRIZQT__.TTF",13,"");f.meta:SetText(E.Text(detail or""))
+    f.meta:SetFont(E.Font(),13,"");f.meta:SetText(E.Text(detail or""))
     local h=math.max(f.text:GetStringHeight(),f.status:GetStringHeight());f.meta:ClearAllPoints();f.meta:SetPoint("TOPLEFT",12,-h-20)
     f:SetHeight(math.max(78,h+f.meta:GetStringHeight()+38));f.tint:SetAlpha(0);f.accent:SetAlpha(0)
     f:GetHighlightTexture():SetAlpha(action and .08 or 0);f:SetScript("OnClick",action);page.y=page.y+f:GetHeight();return f

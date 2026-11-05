@@ -34,7 +34,19 @@ The post-merge workflow pushes `v<version>` only after tests and ZIP validation 
 
 The GitHub Release and CurseForge file are separate outputs. Confirm the first tag's successful delivery in GitHub Webhooks, then inspect CurseForge Builds and Files for the correct folder layout and Forever game version. New projects/files may wait for CurseForge moderation. A saved Source setting alone does not prove a successful package. If release publication fails after the tag push, inspect the existing tag and finish that same release manually; do not move or replace the tag.
 
-## Local checks
+## Localization
+
+`MyEpoch/Localization.lua` selects the client locale and provides an English fallback. Locale tables live in `MyEpoch/Locales/`; `esMX` shares `esES`, and `enGB` shares `enUS`. The initial Portuguese translation is Brazilian Portuguese (`ptBR`). Only the active table is loaded into memory.
+
+Translate the intention, not the English syntax. My Epoch should sound like a warm, easygoing scrapbook with a little whimsy. Adapt metaphors, rhythm, and idioms when a literal version would feel awkward. Keep action labels short and unmistakable; do not sacrifice clarity to make every button poetic. Use terminology familiar to players of that WoW language. These initial translations still welcome native-speaker review.
+
+Use explicit `E.L[key]` lookups at presentation boundaries. Keep record IDs, chapter keys, filter IDs, slash commands, player names, item links, saved chat, and personal writing unchanged. Do not translate arbitrary text globally in shared rendering helpers. Full sentences with named placeholders (`E.Format`) allow translators to reorder words; preserve every placeholder name. Use `E.Count` and the locale's plural families for counts, and `E.LocaleDate` for Calendar dates. Russian count forms and date-month cases are separate. Use `E.Font()` to respect Blizzard's locale-specific alphabet fonts.
+
+The first pass contains 152 messages and 13 count families per language, covering navigation, common controls, and Calendar presentation. Generated diary prose, artwork descriptions, and deeper report text remain follow-up work. Adding a language does not rewrite historical journal content.
+
+Run `python -B -X utf8 tests/localization_host.py` after locale changes. It checks every supported client locale, aliases, fallback, placeholder preservation, plural forms, UI callbacks, and unchanged player text. It is also part of the fast CI suite. Verify long labels and non-Latin glyphs visually in the target client; host tests cannot prove font rendering.
+
+## Running local checks
 
 Use Python 3.13 or newer and Git. Create a virtual environment, then run:
 
