@@ -1,0 +1,122 @@
+name: Addon release
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: addon-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  version:
+    name: Check release version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.version.outputs.changed }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      filename: ${{ steps.version.outputs.filename }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Test release rules and package layout
+        run: python -m unittest discover -s tests -p test_release.py -v
+      - name: Compare versions
+        id: version
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python tools/release.py --base "$BASE_SHA"
+
+  build:
+    name: Test and package addon
+    needs: version
+    if: needs.version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+          cache: pip
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run addon regression tests
+        run: python -B -X utf8 tests/run.py
+      - name: Validate catalogs and build release ZIP
+        run: python -B -X utf8 tools/package.py
+      - name: Upload installable ZIP and checksum
+        id: artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: MyEpoch-${{ needs.version.outputs.version }}-Forever
+          path: |
+            dist/${{ needs.version.outputs.filename }}
+            dist/${{ needs.version.outputs.filename }}.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Link download in run summary
+        env:
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: printf '\n[Download the addon ZIP and checksum](%s)\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish merged release
+    needs: [version, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: MyEpoch-${{ needs.version.outputs.version }}-Forever
+          path: dist
+      - name: Verify downloaded package
+        working-directory: dist
+        env:
+          ZIP_NAME: ${{ needs.version.outputs.filename }}
+        run: sha256sum --check "$ZIP_NAME.sha256"
+      - name: Create version tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          ZIP_NAME: ${{ needs.version.outputs.filename }}
+        run: |
+          # Existing tags/releases are never silently replaced.
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; refusing to overwrite it."
+            exit 1
+          fi
+          if gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Tag $RELEASE_TAG already exists; refusing to reuse it."
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" "dist/$ZIP_NAME" "dist/$ZIP_NAME.sha256" \
+            --target "$GITHUB_SHA" --title "My Epoch $RELEASE_VERSION" --generate-notes --draft
+          gh release edit "$RELEASE_TAG" --draft=false
