@@ -104,12 +104,13 @@ end
 local function amount(page,r)
     local B=E.Book
     if r.rewardType=="item" then
-        E.LedgerStyle.Item(page,r.itemID,r.title,r.quantity,"Quest "..r.questID.." · Reported item reward",r.itemLink)
+        E.LedgerStyle.Item(page,r.itemID,E.Display.Item(r.itemID,r.title),r.quantity,E.Format("Quest {quest} · Reported item reward",{quest=E.Display.Quest(r.questID,tostring(r.questID))}),r.itemLink)
     else
         local info=A.Call("questRewardCurrency",C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo,r.currencyID)
         local name=type(info)=="table" and type(info.name)=="string" and info.name~="" and info.name or r.title
-        B.Text(page,(name or "Currency").." × "..r.quantity,16)
-        B.Text(page,"Quest "..r.questID.." · Currency ID "..r.currencyID,12)
+        if name=="Currency "..r.currencyID then name=E.L["Currency"].." "..r.currencyID end
+        B.Text(page,(name or E.L["Currency"]).." × "..r.quantity,16)
+        B.Text(page,E.Format("Quest {quest} · Currency ID {currency}",{quest=E.Display.Quest(r.questID,tostring(r.questID)),currency=r.currencyID}),12)
     end
 end
 local view
@@ -122,56 +123,56 @@ function R.List(page,c,qid)
             and (qid and B.questAtlasID==qid and not B.selected or not qid and B.lootMode=="quest_rewards")
     end
     local rows,n,pages,total,preparing=R.Page(c,qid,state.page)
-    if preparing then B.Text(page,"Preparing recorded quest rewards…",13);return end
+    if preparing then B.Text(page,E.L["Preparing recorded quest rewards…"],13);return end
     state.page=n
     if total==0 then
-        if not qid then B.Text(page,"No quest reward events recorded for this character.",15)end
+        if not qid then B.Text(page,E.L["No quest reward events recorded for this character."],15)end
         return
     end
-    local section=B.Section(page,"Recorded quest rewards")
+    local section=B.Section(page,E.L["Recorded quest rewards"])
     for _,r in ipairs(rows)do
         amount(page,r)
         local selected=r
-        B.Action(page,"Open reward event · "..A.RecordDate(r).." · #"..r.sequence,function()
+        B.Action(page,E.Format("Open reward event · {date} · #{sequence}",{date=A.RecordDate(r),sequence=r.sequence}),function()
             if here() and state.page==n and R.Valid(c,selected)then B.selected=selected.id;B.Render(true)end
         end)
     end
     if pages>1 then
-        B.Text(page,"Reward page "..n.." of "..pages,12)
+        B.Text(page,E.Format("Reward page {page} of {pages}",{page=n,pages=pages}),12)
         local function turn(to)return function()if here() and state.page==n then state.page=to;B.Render()end end end
-        if n>1 then B.Action(page,"Newer reward events",turn(n-1))end
-        if n<pages then B.Action(page,"Older reward events",turn(n+1))end
+        if n>1 then B.Action(page,E.L["Newer reward events"],turn(n-1))end
+        if n<pages then B.Action(page,E.L["Older reward events"],turn(n+1))end
     end
     B.EndSection(page,section)
 end
 function R.Detail(page,c,r)
-    if not R.Valid(c,r)then E.Book.Text(page,"This reward event is unavailable.",14);return end
+    if not R.Valid(c,r)then E.Book.Text(page,E.L["This reward event is unavailable."],14);return end
     local B=E.Book
     local function here()return B.Character()==c and B.selected==r.id and R.Valid(c,r)end
-    B.Text(page,"QUEST REWARD EVENT",12);amount(page,r)
-    B.Text(page,A.RecordDate(r).." · Local observation time",13)
-    B.Text(page,"Client source · "..r.sourceEvent,13)
-    B.Text(page,"Recipient and specific quest occurrence are unknown.",13)
-    B.Text(page,r.rewardType=="currency" and "This currency amount is kept separately from wallet gold." or "Loot receipt totals use the separate item acquisition records.",14)
+    B.Text(page,E.L["QUEST REWARD EVENT"],12);amount(page,r)
+    B.Text(page,E.Format("{date} · Local observation time",{date=A.RecordDate(r)}),13)
+    B.Text(page,E.Format("Client source · {source}",{source=r.sourceEvent}),13)
+    B.Text(page,E.L["Recipient and specific quest occurrence are unknown."],13)
+    B.Text(page,r.rewardType=="currency" and E.L["This currency amount is kept separately from wallet gold."] or E.L["Loot receipt totals use the separate item acquisition records."],14)
     local loc=r.observerLocation or {}
-    if loc.zone or loc.mapID then B.Text(page,"Recorder location · "..(loc.zone or ("Map "..loc.mapID))..(loc.subzone and " / "..loc.subzone or ""),13)end
+    if loc.zone or loc.mapID then B.Text(page,E.Format("Recorder location · {location}",{location=E.Display.Map(loc.mapID,loc.zone or E.Format("Map {id}",{id=loc.mapID}))})..(loc.subzone and " / "..loc.subzone or ""),13)end
     if r.observerGroupState=="group" then
-        B.Text(page,"The recorder was grouped when this event arrived.",13)
+        B.Text(page,E.L["The recorder was grouped when this event arrived."],13)
         local g=c.records[r.observerGroup]
-        if g and g.character==c.id and g.kind=="group" then B.Action(page,"Open the recorder’s group",function()
+        if g and g.character==c.id and g.kind=="group" then B.Action(page,E.L["Open the recorder’s group"],function()
             if here() and c.records[g.id]==g then E.SearchView.Open({character=c.id,record=g.id})end
         end)end
-    elseif r.observerGroupState=="solo" then B.Text(page,"Recorder party status · Solo",13)end
-    if r.rewardType=="item" then B.Action(page,"Browse receipts for this item",function()
+    elseif r.observerGroupState=="solo" then B.Text(page,E.L["Recorder party status · Solo"],13)end
+    if r.rewardType=="item" then B.Action(page,E.L["Browse receipts for this item"],function()
         if here()then
             B.lootPreset="all";B.lootMode="receipts";B.lootFilters={item="item:"..r.itemID}
             B.lootQuery=nil;B.lootOwn=false;B.lootDimension="item";B.lootFacet=nil;B.lootError=nil;B.lootPage=1;B.lootReceiptPage=1
             B.SetChapter("Loot")
         end
     end)end
-    B.Action(page,"Open quest "..r.questID,function()if here()then B.SetChapter("Quests");E.QuestView.Select(r.questID)end end)
-    B.Action(page,"Open quest rewards in Loot",function()if here()then B.lootMode="quest_rewards";B.SetChapter("Loot");B.selected=nil;B.Render(true)end end)
-    if S.Timestamp(r)then B.Action(page,"Open this calendar day",function()
+    B.Action(page,E.Format("Open quest {quest}",{quest=E.Display.Quest(r.questID,tostring(r.questID))}),function()if here()then B.SetChapter("Quests");E.QuestView.Select(r.questID)end end)
+    B.Action(page,E.L["Open quest rewards in Loot"],function()if here()then B.lootMode="quest_rewards";B.SetChapter("Loot");B.selected=nil;B.Render(true)end end)
+    if S.Timestamp(r)then B.Action(page,E.L["Open this calendar day"],function()
         if here()then B.SetChapter("Calendar");B.calendarFilter="quest_reward";E.CalendarView.SelectDay(r.ts,"Events")end
     end)end
     B.Note(page,"record:"..r.id)

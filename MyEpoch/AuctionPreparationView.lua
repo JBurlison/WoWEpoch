@@ -33,7 +33,7 @@ local function shield(enabled)
  end
 end
 local function status(text)
- if B.heading then B.heading:SetText(E.Text(text..' / Previous page remains visible'))end
+ if B.heading then B.heading:SetText(E.Text(E.Format('{status} / Previous page remains visible',{status=E.FinanceView.Reason(text or 'Preparing auction history')})))end
 end
 function G.Cancel()
  P.Cancel(G.job);G.job=nil;G.desired=nil;G.owner=nil;G.active=nil;G.reset=nil;G.resume=nil;shield(false)

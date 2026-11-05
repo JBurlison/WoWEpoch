@@ -18,7 +18,8 @@ end
 local function paragraph(page,text,size,inset)
     local width=B.Width(page)
     local y=page.y; local f=B.Text(page,text,size); inset=inset or 0
-    f:SetWidth(width-inset*2); f:SetSpacing(4); f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+inset,-y)
+    f:SetWidth(width-inset*2); f:SetSpacing(4); f:SetMaxLines(0); f:SetHeight(0)
+    f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+inset,-y)
     local h=math.max(size,f:GetStringHeight()); f:SetHeight(h); page.y=y+h+14; return f
 end
 local function panel(page,top,bottom)
@@ -34,7 +35,16 @@ function V.Allowed(c,r)
         or r.kind=='gold'
         or r.kind=='auction'and(r.source=='purchase'or r.source=='owned'and r.auctionData and r.auctionData.statusLabel=='Reported sold')
         or r.kind=='quest'and r.status=='completed'or r.kind=='loot'and r.recipient==c.id
-        or (r.kind=='xp'or r.kind=='travel'or r.kind=='duel'or r.kind=='battleground'or r.kind=='roll_win')and r.subject==c.id
+        or (r.kind=='xp'or r.kind=='duel'or r.kind=='battleground'or r.kind=='roll_win')and r.subject==c.id
+end
+function V.FilterSources(rows,excluded)
+    local shown,kinds,counts={},{},{}
+    for _,r in ipairs(rows)do
+        if not counts[r.kind]then kinds[#kinds+1]=r.kind;counts[r.kind]=0 end
+        counts[r.kind]=counts[r.kind]+1
+        if not(excluded and excluded[r.kind])then shown[#shown+1]=r end
+    end
+    table.sort(kinds);return shown,kinds,counts
 end
 function V.Sources(c,r)
     local rows,missing,seen={},0,{}
@@ -57,40 +67,40 @@ function V.Crafting(c,r)
 end
 function V.CraftingDetails(page,c,r)
     local model=E.CraftProjectionPreparation.Recap(c,r)
-    if not model then B.Text(page,"Preparing complete crafting history...",14);return end
+    if not model then B.Text(page,E.L["Preparing complete crafting history..."],14);return end
     local rows=model.crafting;if #rows==0 then return end
-    B.Text(page,'Crafting professions and recipes',20)
-    B.Text(page,'Current associations from surviving source receipts. Inferred links are labeled; unavailable sources remain unknown. Saved recap totals are kept separately.',12)
+    B.Text(page,E.L['Crafting professions and recipes'],20)
+    B.Text(page,E.L['Current associations from surviving source receipts. Inferred links are labeled; unavailable sources remain unknown. Saved recap totals are kept separately.'],12)
     local pages=math.max(1,math.ceil(#rows/6));B.recapCraftPage=math.max(1,math.min(B.recapCraftPage or 1,pages))
     for i=(B.recapCraftPage-1)*6+1,math.min(#rows,B.recapCraftPage*6)do local row=rows[i]
-        B.Text(page,row.profession..' / '..row.recipe..' / '..E.Number(row.quantity)..' items in '..E.Number(row.receipts)..' receipts',14)
+        B.Text(page,E.Format('{profession} / {recipe} / {items} items in {receipts} receipts',{profession=row.profession,recipe=row.recipe,items=E.Number(row.quantity),receipts=E.Number(row.receipts)}),14)
     end
-    if B.recapCraftPage>1 then B.Action(page,'Previous crafting groups',function()B.recapCraftPage=B.recapCraftPage-1;B.Render()end)end
-    if B.recapCraftPage<pages then B.Action(page,'More crafting groups',function()B.recapCraftPage=B.recapCraftPage+1;B.Render()end)end
+    if B.recapCraftPage>1 then B.Action(page,E.L['Previous crafting groups'],function()B.recapCraftPage=B.recapCraftPage-1;B.Render()end)end
+    if B.recapCraftPage<pages then B.Action(page,E.L['More crafting groups'],function()B.recapCraftPage=B.recapCraftPage+1;B.Render()end)end
 end
 function V.Stats(facts)
     if not facts then return {} end
     local stats={}; local function add(value,label)if value and value>0 then stats[#stats+1]={value=E.Number(value),label=label}end end
-    if facts.activeSeconds and facts.activeSeconds>0 then stats[#stats+1]={value=E.Duration(facts.activeSeconds),label="Active play time"}end
+    if facts.activeSeconds and facts.activeSeconds>0 then stats[#stats+1]={value=E.LocaleDuration(facts.activeSeconds),label=E.L["Active play time"]}end
     local counts=facts.counts
     if counts then
-        add(counts.levels,"Level changes"); add((counts.skills or 0)+(counts.professions or 0),"Skill / profession changes")
-        add(counts.deaths,'Deaths')
+        add(counts.levels,E.L["Level changes"]); add((counts.skills or 0)+(counts.professions or 0),E.L["Skill / profession changes"])
+        add(counts.deaths,E.L['Deaths'])
     end
     for _,kind in ipairs({"crafted","gathered"})do
         local total=0; for _,item in pairs(facts[kind] or {})do total=total+(item.quantity or 0)end
         add(total,kind=="crafted" and "Items crafted" or "Items gathered")
     end
-    add(facts.damageTaken,'Damage taken');add(facts.healthGained,'Health gained')
-    for _,entry in ipairs({{'goldGained','Gold gained'},{'goldLost','Gold lost'}})do
+    add(facts.damageTaken,E.L['Damage taken']);add(facts.healthGained,E.L['Health gained'])
+    for _,entry in ipairs({{'goldGained',E.L['Gold gained']},{'goldLost',E.L['Gold lost']}})do
         if (facts[entry[1]]or 0)>0 then stats[#stats+1]={value=E.Money(facts[entry[1]]),label=entry[2]}end
     end
-    if (facts.goldGained or 0)>0 or (facts.goldLost or 0)>0 then stats[#stats+1]={value=E.Money(facts.netGold or (facts.goldGained or 0)-(facts.goldLost or 0)),label='Net gold'}end
-    if counts then add(counts.auctionsBought,'Auctions bought');add(counts.auctionsSold,'Auctions sold')end
-    add(facts.xpGained,'XP gained');add(facts.distanceYards,'Distance (est. yd)')
-    if (facts.longestSessionSeconds or 0)>0 then stats[#stats+1]={value=E.Duration(facts.longestSessionSeconds),label='Longest active session'}end
-    if counts then for _,entry in ipairs({{'quests','Quests completed'},{'looted','Items looted'},{'rollsWon','Item rolls won'},
-        {'duelsWon','Duels won'},{'duelsLost','Duels lost'},{'bgsWon','Battlegrounds won'},{'bgsLost','Battlegrounds lost'}})do add(counts[entry[1]],entry[2])end end
+    if (facts.goldGained or 0)>0 or (facts.goldLost or 0)>0 then stats[#stats+1]={value=E.Money(facts.netGold or (facts.goldGained or 0)-(facts.goldLost or 0)),label=E.L['Net gold']}end
+    if counts then add(counts.auctionsBought,E.L['Auctions bought']);add(counts.auctionsSold,E.L['Auctions sold'])end
+    add(facts.xpGained,E.L['XP gained']);add(facts.distanceYards,E.L['Distance (est. yd)'])
+    if (facts.longestSessionSeconds or 0)>0 then stats[#stats+1]={value=E.LocaleDuration(facts.longestSessionSeconds),label=E.L['Longest active session']}end
+    if counts then for _,entry in ipairs({{'quests',E.L['Quests completed']},{'looted',E.L['Items looted']},{'rollsWon',E.L['Item rolls won']},
+        {'duelsWon',E.L['Duels won']},{'duelsLost',E.L['Duels lost']},{'bgsWon',E.L['Battlegrounds won']},{'bgsLost',E.L['Battlegrounds lost']}})do add(counts[entry[1]],entry[2])end end
     return stats
 end
 local function stamp(ts,value)
@@ -98,11 +108,18 @@ local function stamp(ts,value)
     return A.Date(ts)
 end
 function V.Heading(r)
-    if r.periodKind=="milestone" then return (r.title or "Milestone journey"):gsub(" %- the journey$","")end
+    if r.periodKind=="milestone" then
+        if E.locale~='enUS'then
+            local id=r.key and r.key:match('^milestone:(.+)$')
+            local c=B.Character();local source=id and c and c.records[id]
+            if source then return E.Display.RecordTitle(source)end
+        end
+        return (r.title or E.L["Milestone journey"]):gsub(" %- the journey$","")
+    end
     local from=r.startStamp and A.ParseDay(r.startStamp.day) or r.from
     local through=r.endStamp and A.ParseDay(r.endStamp.day) or r.through
-    if not from or not through then return r.title or "Saved recap"end
-    return date("%b %d, %Y",from).." - "..date("%b %d, %Y",A.ShiftDay(through,-1))
+    if not from or not through then return r.title or E.L["Saved recap"]end
+    return E.locale=='enUS'and(date("%b %d, %Y",from).." - "..date("%b %d, %Y",A.ShiftDay(through,-1)))or E.Format('{from} to {through}',{from=E.LocaleDate(from),through=E.LocaleDate(A.ShiftDay(through,-1))})
 end
 function V.Navigate(kind,day)
     if kind and kind~='milestone'and not day then
@@ -141,93 +158,105 @@ function V.SelectMilestone(c,event)
 end
 function V.ChoiceLabel(r)
     local from=r.startStamp and A.ParseDay(r.startStamp.day)or r.from
-    if r.periodKind=='milestone'then return V.Heading(r)..' - '..date('%b %d, %Y',r.through or r.ts)end
-    if from and r.periodKind=='daily'then return date('%b %d, %Y',from)end
-    if from and r.periodKind=='monthly'then return date('%B %Y',from)end
+    if r.periodKind=='milestone'then return V.Heading(r)..' - '..(E.locale=='enUS'and date('%b %d, %Y',r.through or r.ts)or E.LocaleDate(r.through or r.ts))end
+    if from and r.periodKind=='daily'then return E.locale=='enUS'and date('%b %d, %Y',from)or E.LocaleDate(from)end
+    if from and r.periodKind=='monthly'then return E.locale=='enUS'and date('%B %Y',from)or E.LocaleDate(from,'monthYear')end
     if from and r.periodKind=='yearly'then return date('%Y',from)end
     return V.Heading(r)
 end
 function V.Illustration(page,c,r)
     if not E.ArtView then return end
-    B.Action(page,"Choose recap illustration",function()E.ArtDialog.OpenRecord(r)end)
+    B.Action(page,E.L["Choose recap illustration"],function()E.ArtDialog.OpenRecord(r)end)
     local art,message=E.Artwork.ForRecord(c,r)
     if art then
         E.ArtView.Image(page,art,B.Width(page),240,false,true)
-        B.Text(page,"Decorative illustration | "..art.title,11)
+        B.Text(page,E.Format('Decorative illustration: {title}',{title=art.title}),11)
     elseif message then B.Text(page,message,11)end
 end
 function V.Record(page,c,r)
-    if not D.Visible(c,r)then B.Text(page,'This period will be ready after a later login.',18);return end
+    if not D.Visible(c,r)then B.Text(page,E.L['This period will be ready after a later login.'],18);return end
     if B.chapter~="Recaps"then V.Illustration(page,c,r)end
     local width=B.Width(page)
     B.recapFocus=r.id; V.lastRecord=r; D.MarkRead(c,r)
     local projection=E.CraftProjectionPreparation.Recap(c,r)
-    if not projection then B.Text(page,"Preparing this recap and its source records...",18);return end
-    local job=E.JournalViews.Job(r);local writing,writeError
-    -- Completed calendar recaps are saved snapshots. Watching them repeatedly
-    -- reannounces readiness and can close a reader's open navigation popup.
-    if job and r.periodKind=='milestone'then local _;_,writing,writeError=E.JournalViews.Watch(c,job,A.Now())end
-    B.Text(page,string.upper(r.periodKind or "Saved").." RECAP  -  "..string.upper(c.identity.name or ""),11):SetTextColor(0.54,0.40,0.23)
+    if not projection then B.Text(page,E.L["Preparing this recap and its source records..."],18);return end
+    -- Read the saved recap without starting another writer. JournalJobs already
+    -- schedules milestone corrections for affected sources and boundaries;
+    -- the live view watch also invalidates on unrelated character activity.
+    local period=({daily='Daily',weekly='Weekly',monthly='Monthly',yearly='Yearly',milestone='Milestone'})[r.periodKind]or'Saved recap'
+    B.Text(page,E.Format('{period} recap — {name}',{period=E.L[period],name=c.identity.name or ''}),11):SetTextColor(0.54,0.40,0.23)
     B.Text(page,V.Heading(r),29)
-    if r.from and r.through then B.Text(page,stamp(r.from,r.startStamp).."  to  "..stamp(r.through,r.endStamp)..(r.periodKind=="milestone" and " (through milestone)" or " (end exclusive)"),12)end
-    local status=r.from and A.Now()<r.from and "Upcoming" or r.inProgress and "In progress" or "Recorded interval"
-    B.Text(page,status.."  /  Partial source coverage"..(r.partialBoundary and "  /  Previous milestone unknown" or ""),12):SetTextColor(0.52,0.30,0.15)
+    if r.from and r.through then B.Text(page,E.Format('{from} to {through}',{from=stamp(r.from,r.startStamp),through=stamp(r.through,r.endStamp)})..' / '..E.L[r.periodKind=='milestone'and'Through milestone'or'End exclusive'],12)end
+    local status=r.from and A.Now()<r.from and E.L["Upcoming"] or r.inProgress and E.L["In progress"] or E.L["Recorded interval"]
+    B.Text(page,E.L[status]..' / '..E.L['Partial source coverage']..(r.partialBoundary and ' / '..E.L['Previous milestone unknown']or''),12):SetTextColor(0.52,0.30,0.15)
     if r.periodKind~='milestone'then
-        paragraph(page,'Saved from recorded daily facts as of '..A.RecordDate({ts=r.generatedAt or r.ts})..'. Later source corrections are not reflected in this saved snapshot.',12)
+        paragraph(page,E.Format('Saved from daily facts on {date}. Later corrections do not change this snapshot.',{date=A.RecordDate({ts=r.generatedAt or r.ts})}),12)
     end
     local stats=V.Stats(r.facts)
     if #stats>0 then local y=page.y+8; rule(page,y-8)
         local columns=math.max(1,math.min(#stats,math.floor(width/165)));local cell=width/columns
         for i,entry in ipairs(stats)do local f=place(B.Acquire(page,"recapStat"),page,((i-1)%columns)*cell,y+math.floor((i-1)/columns)*80,cell-6,74); f.value:SetWidth(cell-10); f.caption:SetWidth(cell-10)
-            f.value:SetFont(STANDARD_TEXT_FONT or 'Fonts\\FRIZQT__.TTF',18);f.value:SetText(entry.value); f.caption:SetText(string.upper(entry.label))end
+            f.value:SetFont(STANDARD_TEXT_FONT or E.Font(),18);f.value:SetText(entry.value); local caption=E.L[entry.label];f.caption:SetText(E.locale=='enUS'and string.upper(caption)or caption)end
         page.y=y+math.ceil(#stats/columns)*80; rule(page,page.y); page.y=page.y+20
     end
     local top=page.y; page.y=top+18
-    paragraph(page,r.text or "No generated writing is available for this saved recap.",17,22)
-    if writing=='pending'then paragraph(page,'Updating the saved recap...',12)end
-    if writeError then
-        paragraph(page,writeError,12)
-        control(page,'Retry writing',22,page.y,160,function()E.JournalViews.Retry(c,job);B.Render()end);page.y=page.y+42
-    end
+    paragraph(page,E.DiaryPresentation.Recap(r)or E.L["No generated writing is available for this saved recap."],17,22)
     local y=page.y
-    if r.facts then control(page,E.JournalJobs.Retelling(c,r)and"Writing..."or"Another telling",22,y,160,function()
+    if r.facts then control(page,E.JournalJobs.Retelling(c,r)and E.L["Writing..."]or E.L["Another telling"],22,y,160,function()
         E.JournalJobs.RequestRetell(c,r);B.Render()
     end)end
-    control(page,r.starred and "Starred - keep this recap" or "Keep this recap",192,y,225,function()r.starred=not r.starred; S.Changed(c,r); B.Render()end,r.starred)
+    control(page,r.starred and E.L["Starred - keep this recap"] or E.L["Keep this recap"],192,y,225,function()r.starred=not r.starred; S.Changed(c,r); B.Render()end,r.starred)
     page.y=y+52; panel(page,top,page.y); page.y=page.y+20
-    local err=E.JournalJobs.RetellError(c,r);if err then paragraph(page,err,12)end
+    local err=E.JournalJobs.RetellError(c,r);if err then paragraph(page,E.L[err],12)end
     V.CraftingDetails(page,c,r)
-    B.Text(page,"Your notes for this chapter",16)
+    B.Text(page,E.L["Your notes for this chapter"],16)
     local key=D.NoteKey(c,r); local note=place(B.Acquire(page,"edit"),page,0,page.y,width,110)
     note:SetMultiLine(true); note:SetScript("OnEnterPressed",nil); note:SetScript("OnTextChanged",nil); note:SetText(c.notes[key] and c.notes[key].text or "")
     note:SetScript("OnTextChanged",function(self,user)if user then S.Note(c,key,self:GetText(),A.Now())end end)
-    page.y=page.y+124; B.Text(page,"Notes save as you type and stay separate from the generated writing.",12)
-    local rows,missing=projection.sources,projection.missing
-    control(page,(B.recapSourcesOpen and "- " or "+ ").."Follow the source records ("..E.Number(#rows)..")",0,page.y,350,function()B.recapSourcesOpen=not B.recapSourcesOpen; B.Render()end); page.y=page.y+44
+    page.y=page.y+124; B.Text(page,E.L["Notes save as you type and stay separate from the generated writing."],12)
+    local all,missing=projection.sources,projection.missing
+    local rows,kinds,counts=V.FilterSources(all,B.recapSourceExcluded)
+    local beside=width>=540
+    control(page,(B.recapSourcesOpen and "- " or "+ ")..E.Format('Follow the source records ({count})',{count=E.Number(#rows)}),0,page.y,math.min(350,width),function()B.recapSourcesOpen=not B.recapSourcesOpen; B.Render()end)
+    if not beside then page.y=page.y+40 end
+    control(page,E.L['Filter sources'],beside and 360 or 0,page.y,math.min(170,width),function()B.recapFiltersOpen=not B.recapFiltersOpen;B.Render()end,B.recapFiltersOpen)
+    page.y=page.y+44
+    if B.recapFiltersOpen then
+        local columns=math.max(1,math.floor(width/170));local cell=width/columns;local choices={{kind=false,label=E.L['All events']}}
+        for _,kind in ipairs(kinds)do choices[#choices+1]={kind=kind,label=E.Display.Kind(kind)..' ('..E.Number(counts[kind])..')'}end
+        for i,choice in ipairs(choices)do local kind=choice.kind
+            control(page,choice.label,((i-1)%columns)*cell,page.y+math.floor((i-1)/columns)*38,cell-6,function()
+                B.recapSourceExcluded=B.recapSourceExcluded or{}
+                if kind then B.recapSourceExcluded[kind]=not B.recapSourceExcluded[kind]or nil else B.recapSourceExcluded={}end
+                B.recapSourcePage=1;B.recapSourcesOpen=true;B.Render()
+            end,kind and not(B.recapSourceExcluded or{})[kind]or not kind and not next(B.recapSourceExcluded or{}))
+        end
+        page.y=page.y+math.ceil(#choices/columns)*38+8
+    end
     if B.recapSourcesOpen then
-        if (r.unavailableSourceCount or 0)>0 then B.Text(page,E.Number(r.unavailableSourceCount).." original source record(s) were unavailable when this rollup was saved; their daily totals are retained.",13)end
-        if missing>0 then B.Text(page,E.Number(missing).." linked source record(s) are no longer available.",13)end
+        if (r.unavailableSourceCount or 0)>0 then B.Text(page,E.Format('{count} source records were unavailable when saved; their daily totals remain.',{count=E.Number(r.unavailableSourceCount)}),13)end
+        if missing>0 then B.Text(page,E.Format('{count} linked source records are no longer available.',{count=E.Number(missing)}),13)end
         B.recapSourcePage=math.max(1,math.min(B.recapSourcePage or 1,math.max(1,math.ceil(#rows/8))))
         for i=(B.recapSourcePage-1)*8+1,math.min(#rows,B.recapSourcePage*8)do local source=rows[i]
-            local f=B.Acquire(page,"recapEntry"); f:SetWidth(width);f.text:SetWidth(width-105);f.category:SetWidth(width-105); f.clock:SetText(date("%b %d",source.ts)); f.category:SetText(string.upper(source.kind))
-            f.text:SetText(E.Text(source.title or source.kind)); local h=math.max(62,f.text:GetStringHeight()+39); f:SetHeight(h)
+            local f=B.Acquire(page,"recapEntry"); f:SetWidth(width);f.text:SetWidth(width-105);f.category:SetWidth(width-105); f.clock:SetText(date(E.locale=='enUS'and"%b %d"or"%d/%m",source.ts)); f.category:SetText(E.Display.Kind(source.kind))
+            f.text:SetText(E.Text(E.Display.RecordTitle(source))); local h=math.max(62,f.text:GetStringHeight()+39); f:SetHeight(h)
             f:SetScript("OnClick",function()B.selected=source.id; B.Render(true)end); page.y=page.y+h
         end
         local y=page.y+8
-        if B.recapSourcePage>1 then control(page,"Earlier sources",0,y,155,function()B.recapSourcePage=B.recapSourcePage-1; B.Render()end)end
-        if B.recapSourcePage*8<#rows then control(page,"More sources",165,y,155,function()B.recapSourcePage=B.recapSourcePage+1; B.Render()end)end
+        if B.recapSourcePage>1 then control(page,E.L["Earlier sources"],0,y,155,function()B.recapSourcePage=B.recapSourcePage-1; B.Render()end)end
+        if B.recapSourcePage*8<#rows then control(page,E.L["More sources"],165,y,155,function()B.recapSourcePage=B.recapSourcePage+1; B.Render()end)end
         if #rows>8 then page.y=y+44 end
     end
-    paragraph(page,'Totals cover recorded activity only. AFK is excluded. Damage uses readable wound reports; health gained measures observed increases, including regeneration, and may miss overlapping damage/healing. Gold is wallet movement, not profit. Each identifiable auction counts once, when its purchase or sold status is first recorded. Repeated refreshes and commodity purchases without a distinct auction reference are excluded. Unobserved, restricted and expired history remains unknown.',12)
-    paragraph(page,'Loot totals count personal item receipts, including rewards whose exact source is unknown. Roll wins count reported winners, not received items. Distance is a sampled estimate that excludes taxis, large jumps and recording gaps. Longest session means active time observed within this recap. Unknown duel and battleground outcomes are not counted as losses.',12)
+    paragraph(page,E.L['Totals cover recorded activity only. AFK is excluded. Damage uses readable wound reports; health gained measures observed increases, including regeneration, and may miss overlapping damage/healing. Gold is wallet movement, not profit. Each identifiable auction counts once, when its purchase or sold status is first recorded. Repeated refreshes and commodity purchases without a distinct auction reference are excluded. Unobserved, restricted and expired history remains unknown.'],12)
+    paragraph(page,E.L['Loot totals count personal item receipts, including rewards whose exact source is unknown. Roll wins count reported winners, not received items. Distance is a sampled estimate that excludes taxis, large jumps and recording gaps. Longest session means active time observed within this recap. Unknown duel and battleground outcomes are not counted as losses.'],12)
 end
 function V.Render(left,right)
     local width=B.Width(left)
     V.lastRecord=nil
     local c=B.Character(); B.recapKind=B.recapKind or "weekly"; B.recapDate=B.recapDate or A.ShiftPeriod(c.state.recapLoginThrough or A.DayStart(A.Now()),B.recapKind,-1)
-    B.Text(left,"RECAPS  -  "..string.upper(c.identity.name or ""),11):SetTextColor(0.54,0.40,0.23)
-    B.Text(left,"Chapters of progress",30)
-    paragraph(left,"Your progress, adventures, survival, loot, gold, and victories.",15)
+    B.Text(left,E.Format('Recaps — {name}',{name=c.identity.name or ''}),11):SetTextColor(0.54,0.40,0.23)
+    B.Text(left,E.L["Chapters of progress"],30)
+    paragraph(left,E.L["Your progress, adventures, survival, loot, gold, and victories."],15)
     local groups=V.Available(c)
     local expiredKey=B.recapExpiredKey
     if expiredKey and not D.Expired(c,'recaps',expiredKey)then expiredKey=nil end
@@ -259,34 +288,34 @@ function V.Render(left,right)
     local modes={}
     for _,p in ipairs(periods)do
         local kind=p[1];local saved=groups[kind]
-        if #saved>0 then modes[#modes+1]={p[2],function()V.Navigate(kind)end,B.recapKind==kind,function()
+        if #saved>0 then modes[#modes+1]={E.L[p[2]],function()V.Navigate(kind)end,B.recapKind==kind,function()
             local unread=0;for _,entry in ipairs(saved)do if not entry.read then unread=unread+1 end end;return unread
         end}end
     end
     B.Navigation.Subviews(modes)
     if #rows>0 then B.Navigation.Controls(function(nav)
-        B.Text(nav,'SAVED RECAP',11)
+        B.Text(nav,E.L['SAVED RECAP'],11)
         local choices={}
         for _,entry in ipairs(rows)do local recap=entry
             local ts=recap.periodKind=='milestone'and(recap.through or recap.ts)or(recap.startStamp and A.ParseDay(recap.startStamp.day)or recap.from or recap.ts)
             choices[#choices+1]={V.ChoiceLabel(recap),function()V.SelectSaved(c,recap)end,r==recap,
                 {year=tonumber(date('%Y',ts)),month=tonumber(date('%m',ts)),record=recap}}
         end
-        B.Navigation.Combo(nav,r and V.ChoiceLabel(r)or'Choose a recap',choices)
+        B.Navigation.Combo(nav,r and V.ChoiceLabel(r)or E.L['Choose a recap'],choices)
     end)end
     local top=left.y; left.y=top+18
-    paragraph(left,"Quietly kept, ready to revisit.",20,20)
-    paragraph(left,"New recaps appear with a small indicator. Opening a recap marks it read. Calendar periods are written after they end, at your next login. Generated words never replace your notes.",14,20)
+    paragraph(left,E.L["Quietly kept, ready to revisit."],20,20)
+    paragraph(left,E.L["New recaps appear with a small indicator. Opening a recap marks it read. Calendar periods are written after they end, at your next login. Generated words never replace your notes."],14,20)
     panel(left,top,left.y+4); left.y=left.y+24
-    paragraph(left,"Local-time weeks run Tuesday to Monday. A milestone's chapter starts after the previous milestone of that same type. Missing boundaries and unrecorded time stay unknown.",12)
+    paragraph(left,E.L["Local-time weeks run Tuesday to Monday. A milestone's chapter starts after the previous milestone of that same type. Missing boundaries and unrecorded time stay unknown."],12)
     if r then V.Illustration(left,c,r)end
     if r then B.recapFocus=r.id; if not selected then V.Record(right,c,r)end
     elseif not selected and expiredKey then
-        B.Text(right,'This recap has expired',29)
-        paragraph(right,'Its generated writing expired under your retention policy. Your personal notes remain available below.',16)
+        B.Text(right,E.L['This recap has expired'],29)
+        paragraph(right,E.L['Its generated writing expired under your retention policy. Your personal notes remain available below.'],16)
         B.Note(right,'recap:'..expiredKey)
     elseif not selected then
-        B.Text(right,"No saved recaps yet",29)
-        paragraph(right,"Recaps will appear here when they have been written for this character. Calendar recaps become available after the period ends and you log in again.",16)
+        B.Text(right,E.L["No saved recaps yet"],29)
+        paragraph(right,E.L["Recaps will appear here when they have been written for this character. Calendar recaps become available after the period ends and you log in again."],16)
     end
 end

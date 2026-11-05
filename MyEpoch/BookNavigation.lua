@@ -17,14 +17,14 @@ function N.ClearBadge(f)
     end
 end
 function N.RecapBadge(f,count,label)
-    N.ClearBadge(f);f.text:SetText(label or "Recaps");f.text:SetWidth(f:GetWidth()-(f.navExpandable and 32 or 46))
+    N.ClearBadge(f);f.text:SetText(label or E.L["Recaps"]);f.text:SetWidth(f:GetWidth()-(f.navExpandable and 32 or 46))
     if not count or count<=0 then return end
     if not f.recapBadge then
         local badge=CreateFrame("Frame",nil,f);f.recapBadge=badge;badge:EnableMouse(false)
         badge:SetPoint("RIGHT",-7,0);badge:SetHeight(22)
         badge.border=badge:CreateTexture(nil,"BACKGROUND");badge.border:SetAllPoints();badge.border:SetColorTexture(.46,.76,.65,1)
         badge.fill=badge:CreateTexture(nil,"ARTWORK");badge.fill:SetPoint("TOPLEFT",1,-1);badge.fill:SetPoint("BOTTOMRIGHT",-1,1);badge.fill:SetColorTexture(.06,.28,.26,1)
-        badge.text=badge:CreateFontString(nil,"OVERLAY");badge.text:SetFont("Fonts\\FRIZQT__.TTF",12,"")
+        badge.text=badge:CreateFontString(nil,"OVERLAY");badge.text:SetFont(E.Font(),12,"")
         badge.text:SetPoint("CENTER");badge.text:SetJustifyH("CENTER");badge.text:SetTextColor(.94,1,.85)
     end
     local text=E.Number(count);local badge=f.recapBadge;badge.text:SetText(text)
@@ -32,7 +32,7 @@ function N.RecapBadge(f,count,label)
     local measured=badge.text.GetStringWidth and badge.text:GetStringWidth()or #text*7
     local size=math.max(24,measured+14);badge:SetWidth(size);badge.text:SetWidth(size-8);badge:Show()
     f.text:SetWidth(math.max(24,f:GetWidth()-48-size));f.recapBadgeCount=count
-    f.recapBadgeHint=text..(count==1 and" unread recap"or" unread recaps")
+    f.recapBadgeHint=E.Count('unread recap','unread recaps',count)
     f:SetScript("OnEnter",function(self)
         local tip=GameTooltip
         if not self.recapBadgeCount or not tip or type(tip.SetOwner)~="function"or type(tip.SetText)~="function"or type(tip.Show)~="function"then return end
@@ -76,7 +76,7 @@ function N.Button(page,label,callback,active)
     f.navLabel=label;f.navExpandable=false;f.navExpanded=false;f.navSubview=false;f.navActive=active==true
     if f.expandArrow then f.expandArrow:Hide()end
     f.text:ClearAllPoints();f.text:SetPoint("LEFT",8,0);f.text:SetJustifyH("LEFT")
-    f.text:SetFont("Fonts\\FRIZQT__.TTF",12,"");f.text:SetTextColor(active and 1 or .82,active and .88 or .73,active and .65 or .54)
+    f.text:SetFont(E.Font(),12,"");f.text:SetTextColor(active and 1 or .82,active and .88 or .73,active and .65 or .54)
     T.ButtonStyle(f,active and "filter" or nil)
     if f.face then f.face:Hide()end
     if not f.navigationShade then f.navigationShade=f:CreateTexture(nil,"BACKGROUND");f.navigationShade:SetAllPoints()end
@@ -86,7 +86,7 @@ end
 function N.Disclosure(f,open)
     f.navExpandable=true;f.navExpanded=open==true
     if not f.expandArrow then
-        f.expandArrow=f:CreateFontString(nil,"OVERLAY");f.expandArrow:SetFont("Fonts\\FRIZQT__.TTF",12,"")
+        f.expandArrow=f:CreateFontString(nil,"OVERLAY");f.expandArrow:SetFont(E.Font(),12,"")
         f.expandArrow:SetPoint("RIGHT",-7,0);f.expandArrow:SetWidth(12);f.expandArrow:SetTextColor(.91,.81,.61)
     end
     f.expandArrow:SetText(open and "v"or">");f.expandArrow:Show();f.text:SetWidth(f:GetWidth()-32)
@@ -128,14 +128,14 @@ function N.CloseCombo()
     N.comboContext=nil
 end
 local function comboText(parent,value,size,x,y,w)
-    local text=parent:CreateFontString(nil,'OVERLAY');text:SetFont('Fonts\\FRIZQT__.TTF',size,'')
+    local text=parent:CreateFontString(nil,'OVERLAY');text:SetFont(E.Font(),size,'')
     text:SetPoint('TOPLEFT',x,-y);text:SetWidth(w);text:SetJustifyH('LEFT');text:SetTextColor(.29,.19,.11);text:SetText(value)
     return text
 end
 local function comboButton(parent,label,w,h,callback)
     local f=CreateFrame('Button',nil,parent);f:SetSize(w,h)
     f.face=T.Texture(f,'button-v1');f.face:SetAllPoints()
-    f.text=f:CreateFontString(nil,'OVERLAY');f.text:SetFont('Fonts\\FRIZQT__.TTF',13,'')
+    f.text=f:CreateFontString(nil,'OVERLAY');f.text:SetFont(E.Font(),13,'')
     f.text:SetPoint('LEFT',12,0);f.text:SetWidth(w-24);f.text:SetJustifyH('LEFT');f.text:SetMaxLines(2);f.text:SetText(label)
     T.ButtonStyle(f);f:SetScript('OnClick',callback);return f
 end
@@ -178,8 +178,8 @@ function N.OpenComboFilter(kind,anchor)
     end
     local keys=E.SortedKeys(values)
     if kind=='year'then table.sort(keys,function(a,b)return a>b end)else table.sort(keys)end
-    local options={{label=kind=='year'and'All years'or'All months'}}
-    for _,value in ipairs(keys)do options[#options+1]={value=value,label=kind=='year'and tostring(value)or months[value]}end
+    local options={{label=E.L[kind=='year'and'All years'or'All months']}}
+    for _,value in ipairs(keys)do options[#options+1]={value=value,label=kind=='year'and tostring(value)or E.L[months[value]]}end
     ctx.filterKind=kind;ctx.filterOptions=options;ctx.filterOffset=0
     N.comboFilterPanel:ClearAllPoints();N.comboFilterPanel:SetPoint('TOPLEFT',anchor,'BOTTOMLEFT',0,-3)
     N.comboFilterPanel:Show();N.UpdateComboFilter()
@@ -190,8 +190,8 @@ function N.FilterCombo()
     for _,item in ipairs(ctx.items)do local data=item[4]
         if (not ctx.year or data and data.year==ctx.year)and(not ctx.month or data and data.month==ctx.month)then ctx.filtered[#ctx.filtered+1]=item end
     end
-    N.comboYear.text:SetText((ctx.year and tostring(ctx.year)or'All years')..'  v')
-    N.comboMonth.text:SetText((ctx.month and months[ctx.month]or'All months')..'  v')
+    N.comboYear.text:SetText((ctx.year and tostring(ctx.year)or E.L['All years'])..'  v')
+    N.comboMonth.text:SetText(E.L[ctx.month and months[ctx.month]or'All months']..'  v')
     N.UpdateCombo()
 end
 function N.UpdateCombo()
@@ -215,7 +215,7 @@ function N.UpdateCombo()
     end
     local visible=math.max(1,math.min(8,count));local height=visible*44
     N.comboPanel:SetHeight(110+height+36)
-    N.comboCount:SetText(E.Number(count)..(count==1 and' saved recap'or' saved recaps'))
+    N.comboCount:SetText(E.Format('Saved recaps: {count}',{count=E.Number(count)}))
     if count==0 then N.comboEmpty:Show()else N.comboEmpty:Hide()end
     syncScroll(N.comboScroll,count,8,ctx.offset,height-4)
 end
@@ -232,22 +232,22 @@ function N.Combo(page,label,items)
             popup:SetWidth(500);popup:SetFrameLevel(overlay:GetFrameLevel()+2);popup:SetClampedToScreen(true)
             popup:EnableMouse(true);popup:EnableMouseWheel(true);T.DialogPaper(popup)
             local ribbon=popup:CreateTexture(nil,'ARTWORK');ribbon:SetPoint('TOPLEFT',3,-3);ribbon:SetPoint('TOPRIGHT',-3,-3);ribbon:SetHeight(38);ribbon:SetColorTexture(.36,.13,.085,1)
-            local title=comboText(popup,'Choose a recap',18,18,12,390);title:SetTextColor(.98,.88,.65)
+            local title=comboText(popup,E.L['Choose a recap'],18,18,12,390);title:SetTextColor(.98,.88,.65)
             local close=comboButton(popup,'x',28,26,N.CloseCombo);close:SetPoint('TOPRIGHT',-10,-8)
             close.text:ClearAllPoints();close.text:SetPoint('CENTER');close.text:SetWidth(20);close.text:SetJustifyH('CENTER')
-            comboText(popup,'YEAR',10,18,52,220);comboText(popup,'MONTH',10,258,52,220)
-            N.comboYear=comboButton(popup,'All years  v',224,30,function()N.OpenComboFilter('year',N.comboYear)end);N.comboYear:SetPoint('TOPLEFT',16,-68)
-            N.comboMonth=comboButton(popup,'All months  v',224,30,function()N.OpenComboFilter('month',N.comboMonth)end);N.comboMonth:SetPoint('TOPLEFT',256,-68)
+            comboText(popup,E.L['YEAR'],10,18,52,220);comboText(popup,E.L['MONTH'],10,258,52,220)
+            N.comboYear=comboButton(popup,E.L['All years']..'  v',224,30,function()N.OpenComboFilter('year',N.comboYear)end);N.comboYear:SetPoint('TOPLEFT',16,-68)
+            N.comboMonth=comboButton(popup,E.L['All months']..'  v',224,30,function()N.OpenComboFilter('month',N.comboMonth)end);N.comboMonth:SetPoint('TOPLEFT',256,-68)
             N.comboButtons={}
             for i=1,8 do
                 local row=comboButton(popup,'',450,44);row:SetPoint('TOPLEFT',16,-110-(i-1)*44);N.comboButtons[i]=row
-                row.text:SetFont('Fonts\\FRIZQT__.TTF',14,'')
+                row.text:SetFont(E.Font(),14,'')
                 row.tint=row:CreateTexture(nil,'BACKGROUND');row.tint:SetAllPoints()
                 row.selectedBar=row:CreateTexture(nil,'ARTWORK');row.selectedBar:SetPoint('TOPLEFT');row.selectedBar:SetPoint('BOTTOMLEFT');row.selectedBar:SetWidth(3);row.selectedBar:SetColorTexture(.60,.40,.14,1)
                 local line=row:CreateTexture(nil,'BORDER');line:SetPoint('BOTTOMLEFT',8,0);line:SetPoint('BOTTOMRIGHT',-8,0);line:SetHeight(1);line:SetColorTexture(.45,.30,.14,.14)
             end
             N.comboCount=comboText(popup,'',11,18,0,440);N.comboCount:ClearAllPoints();N.comboCount:SetPoint('BOTTOMLEFT',18,12)
-            N.comboEmpty=comboText(popup,'No recaps match these dates.',13,28,124,420)
+            N.comboEmpty=comboText(popup,E.L['No recaps match these dates.'],13,28,124,420)
             N.comboScroll=scrollbar(popup,function(offset)if N.comboContext then N.comboContext.offset=offset;N.UpdateCombo()end end)
             N.comboScroll:SetPoint('TOPRIGHT',-16,-112)
             local function scroll(_,delta)
@@ -314,12 +314,12 @@ function N.Major(c)
     end
     local choices={}
     for _,pair in ipairs({{"all","Major milestones"},{"level","Character levels"},{"skills","Skills & professions"}})do local key=pair[1]
-        choices[#choices+1]={pair[2],function()B.chronicleKind=key;B.selected=nil;B.page=1;B.Render(true)end,(B.chronicleKind or"all")==key}
+        choices[#choices+1]={E.L[pair[2]],function()B.chronicleKind=key;B.selected=nil;B.page=1;B.Render(true)end,(B.chronicleKind or"all")==key}
     end
     N.Subviews(choices)
     N.Controls(function(nav)
-        B.Text(nav,"YEAR",11)
-        local options={{"All recorded years",function()B.chronicleYear=nil;B.selected=nil;B.page=1;B.Render(true)end,not B.chronicleYear}}
+        B.Text(nav,E.L["YEAR"],11)
+        local options={{E.L["All recorded years"],function()B.chronicleYear=nil;B.selected=nil;B.page=1;B.Render(true)end,not B.chronicleYear}}
         for _,value in ipairs(E.SortedKeys(years))do local year=value;options[#options+1]={year,function()B.chronicleYear=year;B.selected=nil;B.page=1;B.Render(true)end,B.chronicleYear==year}end
         N.Grid(nav,options)
     end)
@@ -340,11 +340,11 @@ function N.Render(c)
     local scroll=page.scroll:GetVerticalScroll();local activeY
     N.shown={owner=c,chapter=B.chapter,selected=B.selected,record=B.selected and c.records[B.selected]}
     B.Clear(page);N.group=0;B.tabs={}
-    local heading=B.Text(page,"YOUR SCRAPBOOK",10);heading:SetTextColor(.72,.62,.42)
+    local heading=B.Text(page,E.L["YOUR SCRAPBOOK"],10);heading:SetTextColor(.72,.62,.42)
     for _,name in ipairs(N.chapters)do
         local chapter=name;local active=chapter==B.chapter
         if active then activeY=page.y end
-        local f=N.Button(page,chapter,function()N.open=nil;B.SetChapter(chapter)end,active)
+        local f=N.Button(page,E.L[chapter],function()N.open=nil;B.SetChapter(chapter)end,active)
         f.isChapter=true
         f.navigationShade:Hide()
         f:SetHeight(32);page.y=page.y+5;B.tabs[chapter]=f

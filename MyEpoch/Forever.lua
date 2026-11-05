@@ -57,11 +57,11 @@ function A.Call(label,fn,...)
 end
 function A.Now() return time() end
 function A.Day(ts) return date("%Y-%m-%d",ts) end
-function A.Date(ts) return date("%d %b %Y %H:%M",ts) end
+function A.Date(ts) return E.Display and E.Display.Date(ts)or date("%d %b %Y %H:%M",ts) end
 function A.RecordDate(r)
     local ts=E.Store.Timestamp(r)
-    if not ts then return "Event date unknown" end
-    return r.datePrecision=="day" and (A.Day(ts).." (date only)") or A.Date(ts)
+    if not ts then return E.L["Event date unknown"] end
+    return r.datePrecision=="day" and (A.Day(ts).." ("..E.L['Date only']:lower()..")") or A.Date(ts)
 end
 function A.ClockStamp(ts)
     local ok,offset=pcall(date,"%z",ts)

@@ -33,30 +33,30 @@ function V.Record(page,c,r)
   end
  end
  local confirmed=review.status=='confirmed'
- L.Section(page,confirmed and'Returned stock / origin confirmed'or review.hasReview and'Return confirmation / match withdrawn'or'Review a possible auction return')
+ L.Section(page,confirmed and E.L["Returned stock / origin confirmed"]or review.hasReview and E.L["Return confirmation / match withdrawn"]or E.L["Review a possible auction return"])
  if review.itemID then
-  L.Item(page,review.itemID,L.Name(review.itemID),review.quantity,review.auctionID and'Auction '..review.auctionID or'Recorded listing')
+  L.Item(page,review.itemID,L.Name(review.itemID),review.quantity,review.auctionID and E.Format('Auction {id}',{id=review.auctionID}) or E.L["Recorded listing"])
  end
  if review.unresolvedQuantity and review.unresolvedQuantity>0 then
-  B.Text(page,('%d posted / %d in this parcel / %d unresolved'):format(review.postedQuantity,review.quantity,review.unresolvedQuantity),13)
-  B.Text(page,'FIFO assigns the last posted units to the observed remainder. The earlier units have no matched sale.',12)
+  B.Text(page,E.Format('{posted} posted / {parcel} in this parcel / {unresolved} unresolved',{posted=review.postedQuantity,parcel=review.quantity,unresolved=review.unresolvedQuantity}),13)
+  B.Text(page,E.L["FIFO assigns the last posted units to the observed remainder. The earlier units have no matched sale."],12)
  end
  if confirmed then
-  B.Text(page,'You confirmed this parcel came from the listing. Its original acquisition cost is restored by inference.',13)
+  B.Text(page,E.L["You confirmed this parcel came from the listing. Its original acquisition cost is restored by inference."],13)
  elseif review.hasReview then
-  B.Text(page,why or'The recorded evidence no longer supports this return. Its cost is not restored.',13)
+  B.Text(page,E.L[why] or E.L["The recorded evidence no longer supports this return. Its cost is not restored."],13)
  else
-  B.Text(page,'The client does not identify auction-return mail. Confirm only if this parcel is your unsold stock from the linked listing.',13)
+  B.Text(page,E.L["The client does not identify auction-return mail. Confirm only if this parcel is your unsold stock from the linked listing."],13)
  end
- B.Text(page,'Returned stock is separate from income, profit and deposit refunds.',12)
+ B.Text(page,E.L["Returned stock is separate from income, profit and deposit refunds."],12)
  local links={}
- for _,entry in ipairs({{'Original posting',review.posting},{'Cancellation / expiry',review.closure},{'Collected parcel',review.collection}})do
+ for _,entry in ipairs({{E.L["Original posting"],review.posting},{E.L["Cancellation / expiry"],review.closure},{E.L["Collected parcel"],review.collection}})do
   if entry[2]and c.records[entry[2]]then links[#links+1]={entry[1],open(entry[2])}end
  end
  F.Actions(page,links,2)
- if confirm and not confirmed then B.Action(page,'This is my returned stock',act(confirm))end
- if clear and review.hasReview then B.Action(page,'Remove return confirmation',act(clear))end
+ if confirm and not confirmed then B.Action(page,E.L["This is my returned stock"],act(confirm))end
+ if clear and review.hasReview then B.Action(page,E.L["Remove return confirmation"],act(clear))end
  local message=V.message
- if message and message.owner==c and message.record==r then B.Text(page,message.text,13)end
+ if message and message.owner==c and message.record==r then B.Text(page,E.L[message.text],13)end
  B.EndSection(page,section)
 end

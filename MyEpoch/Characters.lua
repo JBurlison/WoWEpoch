@@ -44,8 +44,8 @@ function C.Rows(query)
 end
 function C.Description(c)
     local i=c.identity or{};local level=c.state.level or i.level;local parts={}
-    if finite(level)and level>0 then parts[#parts+1]='Level '..level end
-    parts[#parts+1]=i.className or i.classFile or'Class not recorded'
-    parts[#parts+1]=i.realm and i.realm~=''and i.realm or'Realm not recorded'
+    if finite(level)and level>0 then parts[#parts+1]=E.Format('Level {level}',{level=level}) end
+    parts[#parts+1]=E.Display.Class(i)
+    parts[#parts+1]=i.realm and i.realm~=''and i.realm or E.L['Realm not recorded']
     return table.concat(parts,'  /  ')
 end

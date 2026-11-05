@@ -27,7 +27,7 @@ local function shield(enabled)
   elseif page.craftShield then page.craftShield:Hide()end
  end end
 end
-local function status(message)if B.heading then B.heading:SetText(message..' / Previous page remains visible')end end
+local function status(message)if B.heading then B.heading:SetText(E.Format('{status} / Previous page remains visible',{status=E.FinanceView and E.FinanceView.Reason(message)or E.L[message]}))end end
 local function keepDrafts(c)
  local shown=G.shown
  if not shown or shown.owner~=c or shown.chapter~=B.chapter or shown.selected~=B.selected or shown.record~=(B.selected and c.records[B.selected])then return end

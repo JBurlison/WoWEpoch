@@ -10,7 +10,7 @@ local function number(v)
 end
 local function text(v,fallback)v=plain(v);return type(v)=='string'and v~=''and v or fallback or''end
 local function formatted(v)
-    v=number(v);if not v then return 'Not recorded' end
+    v=number(v);if not v then return E.L['Not recorded'] end
     if v%1==0 then return string.format('%.0f',v)end
     return (string.format('%.2f',v):gsub('0+$',''):gsub('%.$',''))
 end
@@ -28,17 +28,21 @@ local function reset(f)
     f.icon.image:SetTexture(nil);f.icon.image:Hide();f.icon.unknown:Show()
 end
 local function font(parent,size)
-    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont('Fonts\\FRIZQT__.TTF',size,'');f:SetTextColor(.29,.19,.11);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
+    local f=parent:CreateFontString(nil,'OVERLAY');f:SetFont(E.Font(),size,'');f:SetTextColor(.29,.19,.11);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
 end
 local function loggedIn(c)
     if E.current~=c or type(UnitGUID)~='function'then return false end
     local ok,id=pcall(UnitGUID,'player');return ok and text(id)==c.id
 end
+local function modelScript(m,name)
+    local ok,supported=pcall(m.HasScript,m,name);return ok and supported==true
+end
 local function stopModel(f)
-    f.token=nil;f.layoutToken=nil
+    f.token=nil;f.layoutToken=nil;f.dragX=nil
     f:SetScript('OnUpdate',nil)
     local m=f.model;if not m then return end
-    for _,script in ipairs({'OnUpdate','OnModelLoaded','OnModelCleared','OnDressModel'})do pcall(m.SetScript,m,script,nil)end
+    for _,script in ipairs({'OnUpdate','OnModelLoaded','OnModelCleared','OnDressModel','OnMouseDown','OnMouseUp'})do if modelScript(m,script)then pcall(m.SetScript,m,script,nil)end end
+    pcall(m.EnableMouse,m,false)
     pcall(m.SetAlpha,m,0);pcall(m.Hide,m)
     if type(m.ClearModel)=='function'then pcall(m.ClearModel,m)end
 end
@@ -57,11 +61,11 @@ local function modelPreview(page,c,r,s,state,area)
     f:SetSize(area.width,area.height);f.status:SetWidth(area.width-24);f.brandTitle:SetWidth(area.width-24);f.brand:Show();f.brandTitle:Show()
     local chapter=B.chapter
     local function unavailable(message)
-        stopModel(f);message=message or'3D preview unavailable here. Saved equipment remains around this page.'
+        stopModel(f);message=message or E.L['3D preview unavailable here. Saved equipment remains around this page.']
         state.previewError=message;f.status:SetText(message);f.brand:Show();f.brandTitle:Show()
     end
-    if not loggedIn(c)then f.status:SetText('3D preview requires this character to be logged in.');return end
-    if not state.preview then f.status:SetText('Saved gear / current appearance');return end
+    if not loggedIn(c)then f.status:SetText(E.L['3D preview requires this character to be logged in.']);return end
+    if not state.preview then f.status:SetText(E.L['Saved gear / current appearance']);return end
     if state.previewError then f.status:SetText(state.previewError);return end
     if not f.model then local ok,m=pcall(CreateFrame,'DressUpModel',nil,f);if ok then f.model=m end end
     local m=f.model
@@ -71,7 +75,7 @@ local function modelPreview(page,c,r,s,state,area)
     for _,row in ipairs(type(s.equipment)=='table'and s.equipment or{})do if type(row)=='table'then
         local slot=number(row.slot)
         if visibleSlots[slot]then
-            if seen[slot]then unavailable('Saved equipment has conflicting slots; use the recorded item list.');return end;seen[slot]=true
+            if seen[slot]then unavailable(E.L['Saved equipment has conflicting slots; use the recorded item list.']);return end;seen[slot]=true
             if row.status=='equipped'then
                 local link=text(row.link);local id=number(row.itemID)
                 if link==''and id and id>0 and id%1==0 then link='item:'..string.format('%.0f',id);partial=true end
@@ -81,34 +85,71 @@ local function modelPreview(page,c,r,s,state,area)
     end end
     for slot in pairs(visibleSlots)do if not seen[slot]then partial=true end end
     table.sort(items,function(a,b)return a.slot<b.slot end)
-    local token={};f.token=token;local busy=false;local bodyLoaded=false;local loadedWhileDressing=false;local dirty=true;local settle=false;local elapsed,retry=0,0
+    local token={};f.token=token;local busy=false;local bodyLoaded=false;local loadedFileID;local loadedWhileDressing=false;local dirty=true;local settle=false;local elapsed,retry=0,0
     local function current()return f.token==token and V.state==state and state.preview and state.tab=='Equipment'and B.chapter==chapter and valid(c,r,s)and loggedIn(c)end
+    local rotatable=type(m.SetFacing)=='function'and type(m.GetFacing)=='function'and type(m.GetEffectiveScale)=='function'
+        and type(GetCursorPosition)=='function'and type(IsMouseButtonDown)=='function'
+        and modelScript(m,'OnMouseDown')and modelScript(m,'OnMouseUp')
+    local function cursorX()
+        local ok,x=pcall(GetCursorPosition);x=ok and number(x)
+        local good,scale=pcall(m.GetEffectiveScale,m);scale=good and number(scale)
+        if x and scale and scale>0 then return x/scale end
+    end
+    if rotatable then
+        m:EnableMouse(true)
+        m:SetScript('OnMouseDown',function(_,button)
+            if button=='LeftButton'and current()and not dirty and not settle then f.dragX=cursorX()end
+        end)
+        m:SetScript('OnMouseUp',function(_,button)if f.token==token and button=='LeftButton'then f.dragX=nil end end)
+    end
     local function invalidate()
         if f.token~=token then return end
-        if not current()then unavailable('Preview closed because the selected character or milestone changed.');return end
+        if not current()then unavailable(E.L['Preview closed because the selected character or milestone changed.']);return end
         if busy then return end
-        m:SetAlpha(0);dirty=true;settle=false;retry=0;f.brand:Show();f.brandTitle:Show();f.status:SetText('Loading saved gear...')
+        f.dragX=nil;m:SetAlpha(0);dirty=true;settle=false;retry=0;f.brand:Show();f.brandTitle:Show();f.status:SetText(E.L['Loading saved gear...'])
     end
     m:SetAlpha(0);m:ClearAllPoints();m:SetPoint('TOPLEFT',8,-8);m:SetSize(area.width-16,area.height-76)
     local ok=pcall(function()
-        m:SetScript('OnModelLoaded',function()if f.token~=token then return end;bodyLoaded=true;if busy then loadedWhileDressing=true else invalidate()end end);m:SetScript('OnDressModel',invalidate)
-        m:SetScript('OnModelCleared',function()if f.token~=token then return end;bodyLoaded=false;invalidate()end)
+        if not modelScript(m,'OnModelLoaded')then error('Model load callback unavailable')end
+        m:SetScript('OnModelLoaded',function()if f.token~=token then return end;bodyLoaded=true;loadedFileID=nil;if busy then loadedWhileDressing=true else invalidate()end end)
+        if modelScript(m,'OnDressModel')then m:SetScript('OnDressModel',invalidate)end
+        -- Forever DressUpModel does not expose every ModelScene actor callback.
+        if modelScript(m,'OnModelCleared')then m:SetScript('OnModelCleared',function()if f.token~=token then return end;bodyLoaded=false;loadedFileID=nil;invalidate()end)end
         m:SetAutoDress(false);m:SetUseTransmogChoices(false);m:SetUseTransmogSkin(false);m:ClearModel();m:Show()
         if m:SetUnit('player',false,true)~=true then error('Player model unavailable')end
         m:Undress()
     end)
     if not ok then unavailable();return end
-    f.status:SetText('Loading saved gear...')
+    f.status:SetText(E.L['Loading saved gear...'])
     m:SetScript('OnUpdate',function(_,delta)
         if f.token~=token then return end
-        if not current()then unavailable('Preview closed because the selected character or milestone changed.');return end
-        if not dirty and not settle then return end
+        if not current()then unavailable(E.L['Preview closed because the selected character or milestone changed.']);return end
+        local ready,id=pcall(m.GetModelFileID,m);if not ready then unavailable();return end;id=number(id)
+        -- Keep cleared/replaced models hidden even when OnModelCleared is absent.
+        if loadedFileID and id~=loadedFileID then bodyLoaded=false;loadedFileID=nil;invalidate()end
+        if not dirty and not settle then
+            if f.dragX then
+                local ok,down=pcall(IsMouseButtonDown,'LeftButton');local x=cursorX()
+                if not ok or not down or not x then f.dragX=nil;return end
+                local facing=((state.previewFacing or 0)+(x-f.dragX)*.01)%(2*math.pi)
+                if pcall(m.SetFacing,m,facing)then state.previewFacing=facing;f.dragX=x else f.dragX=nil end
+            end
+            return
+        end
         elapsed=elapsed+(number(delta)or 0);retry=retry-(number(delta)or 0)
-        if elapsed>15 then unavailable('Saved gear preview did not finish loading. Close and reopen the preview to retry.');return end
-        if settle then settle=false;elapsed=0;f.brand:Hide();f.brandTitle:Hide();m:SetAlpha(1);f.status:SetText(partial and'Saved gear / current appearance / partial gear'or'Saved gear / current appearance');return end
+        if elapsed>15 then unavailable(E.L['Saved gear preview did not finish loading. Close and reopen the preview to retry.']);return end
+        if settle then
+            settle=false;elapsed=0;f.brand:Hide();f.brandTitle:Hide()
+            if rotatable then
+                if state.previewFacing==nil then local good,facing=pcall(m.GetFacing,m);state.previewFacing=good and number(facing)or 0 end
+                pcall(m.SetFacing,m,state.previewFacing)
+            end
+            m:SetAlpha(1)
+            local caption=partial and E.L['Saved gear / current appearance / partial gear']or E.L['Saved gear / current appearance']
+            f.status:SetText(caption..(rotatable and '\n'..E.L['Drag left or right to rotate.']or''));return
+        end
         if retry>0 or not bodyLoaded then return end;retry=.25
-        local ready,id=pcall(m.GetModelFileID,m);if not ready then unavailable();return end
-        if not number(id)or id<=0 then return end
+        if not id or id<=0 then return end;loadedFileID=id
         busy=true;loadedWhileDressing=false;local pending=false;local dressed=pcall(function()
             m:SetAlpha(0);m:SetAutoDress(false);m:SetUseTransmogChoices(false);m:SetUseTransmogSkin(false);m:Undress()
             for _,item in ipairs(items)do
@@ -118,7 +159,7 @@ local function modelPreview(page,c,r,s,state,area)
                 if result==3 then pending=true elseif result~=0 then error('Saved item cannot be previewed')end
             end
         end);busy=false
-        if not dressed then unavailable('One or more saved items could not be previewed. The equipment list remains available.');return end
+        if not dressed then unavailable(E.L['One or more saved items could not be previewed. The equipment list remains available.']);return end
         if not pending and not loadedWhileDressing then dirty=false;settle=true end
     end)
 end
@@ -126,14 +167,14 @@ local function previewControls(page,c,r,s,state,area)
     modelPreview(page,c,r,s,state,area)
     if not loggedIn(c)then return end
     local chapter=B.chapter;local y=page.y
-    local button=B.Action(page,state.preview and'Hide gear preview'or'Show gear preview',function()
+    local button=B.Action(page,state.preview and E.L['Hide gear preview']or E.L['Show gear preview'],function()
         if not valid(c,r,s)or V.state~=state or state.tab~='Equipment'or B.chapter~=chapter or not loggedIn(c)then return end
         if B.Navigation and B.Navigation.KeepDrafts then B.Navigation.KeepDrafts()end
         state.preview=not state.preview;state.previewError=nil;B.Render()
     end)
     button:ClearAllPoints();button:SetPoint('TOPLEFT',page.content,'TOPLEFT',area.x+(area.width-button:GetWidth())/2,-area.y-area.height-8);page.y=y
 end
-local slotNames={'Head','Neck','Shoulders','Shirt','Chest','Waist','Legs','Feet','Wrists','Hands','Finger 1','Finger 2','Trinket 1','Trinket 2','Back','Main hand','Off hand','Ranged','Tabard'}
+local slotNames={E.L['Head'],E.L['Neck'],E.L['Shoulders'],E.L['Shirt'],E.L['Chest'],E.L['Waist'],E.L['Legs'],E.L['Feet'],E.L['Wrists'],E.L['Hands'],E.L['Finger 1'],E.L['Finger 2'],E.L['Trinket 1'],E.L['Trinket 2'],'Back',E.L['Main hand'],E.L['Off hand'],E.L['Ranged'],E.L['Tabard']}
 local leftSlots={1,2,3,15,5,4,19,9};local rightSlots={10,6,7,8,11,12,13,14}
 B.widgetFactories.milestoneSheet=function(parent)
     local f=CreateFrame('Frame',nil,parent);E.BookTheme.DialogPaper(f);return f
@@ -161,7 +202,7 @@ local function equipment(page,c,r,s,state)
         local row=not duplicates[slot]and rows[slot]or nil
         local status=row and text(row.status)or'unavailable';local f=B.Acquire(page,'milestoneEquipment');reset(f)
         f.slot=slot;f.row=row;f:SetSize(width,38);f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',x,-y)
-        f.text:SetWidth(width-46);f.meta:SetWidth(width-46);f.text:SetText(slotNames[slot]);f.meta:SetText(status=='equipped'and'Equipped'or status=='empty'and'Empty slot'or'Unavailable')
+        f.text:SetWidth(width-46);f.meta:SetWidth(width-46);f.text:SetText(slot==15 and E.locale~='enUS'and E.L['Cloak']or slotNames[slot]);f.meta:SetText(status=='equipped'and E.L['Equipped']or status=='empty'and E.L['Empty slot']or E.L['Unavailable'])
         f.icon.unknown:SetText(status=='empty'and'-'or'?')
         f.icon.border:SetColorTexture(state.equipmentSlot==slot and .68 or .42,state.equipmentSlot==slot and .44 or .29,.14,.8)
         local chapter=B.chapter
@@ -183,8 +224,8 @@ local function equipment(page,c,r,s,state)
                 local ok=pcall(function()
                     tip:SetOwner(f.icon,'ANCHOR_RIGHT');tip:SetHyperlink(link~=''and link or'item:'..string.format('%.0f',id))
                     if type(tip.AddLine)=='function'then
-                        if number(row.durability)and number(row.maxDurability)then tip:AddLine('Saved durability: '..formatted(row.durability)..' / '..formatted(row.maxDurability),.95,.85,.62)end
-                        if link==''then tip:AddLine('Base item; exact link not recorded',.95,.85,.62)end
+                        if number(row.durability)and number(row.maxDurability)then tip:AddLine(E.Format('Saved durability: {current} / {maximum}',{current=formatted(row.durability),maximum=formatted(row.maxDurability)}),.95,.85,.62)end
+                        if link==''then tip:AddLine(E.L['Base item; exact link not recorded'],.95,.85,.62)end
                     end
                     tip:Show()
                 end)
@@ -200,7 +241,7 @@ local function equipment(page,c,r,s,state)
     equipmentStats(page,c,r,s,state,{x=24+w,y=start,width=total-w-12,height=400})
     page.y=start+412
 end
-local groupDefinitions={{'attributes','Attributes'},{'defense','Defense'},{'offense','Offense'},{'resources','Resources & movement'},{'other','Other recorded stats'}}
+local groupDefinitions={{'attributes',E.L['Attributes']},{'defense',E.L['Defense']},{'offense',E.L['Offense']},{'resources',E.L['Resources & movement']},{'other',E.L['Other recorded stats']}}
 local function visibleStat(row)
     return type(row)=='table'and not(text(row.readStatus)=='restricted'and number(row.value)==nil)
 end
@@ -222,13 +263,35 @@ B.widgetFactories.milestoneStats=function(parent)
     local f=CreateFrame('Frame',nil,parent);f.paper=E.BookTheme.Texture(f,'ledger-line-v1');f.paper:SetAllPoints()
     f.text=font(f,17);f.text:SetPoint('TOPLEFT',12,-12);f.lines={};return f
 end
-local statReadLabels={restricted='Restricted read',unavailable='API unavailable',failed='Read failed',missing='Not supplied'}
+local statReadLabels={restricted=E.L['Restricted read'],unavailable=E.L['API unavailable'],failed=E.L['Read failed'],missing=E.L['Not supplied']}
+-- Snapshot labels are addon-authored schema text. Translate their presentation,
+-- leaving the saved values and keys intact (including unknown future fields).
+local function statLabel(label)
+    for _,suffix in ipairs({'base','bonus','modifier','positive modifier','negative modifier'})do
+        local base=label:match('^(.-) %('..suffix..'%)$')
+        if base then return E.Format('{stat} ('..suffix..')',{stat=statLabel(base)})end
+    end
+    local base=label:match('^(.-) rating bonus$')
+    if base then return E.Format('{stat} rating bonus',{stat=statLabel(base)})end
+    base=label:match('^(.-) rating$')
+    if base then return E.Format('{stat} rating',{stat=statLabel(base)})end
+    local school=label:match('^(.-) resistance$')
+    if school then return E.Format('{school} resistance',{school=E.L[school]})end
+    school=label:match('^(.-) spell bonus damage$')
+    if school then return E.Format('{school} spell bonus damage',{school=E.L[school]})end
+    local mode,resource=label:match('^(Current) (.+)$')
+    if not mode then mode,resource=label:match('^(Maximum) (.+)$')end
+    local resources={MANA='Mana',RAGE='Rage',ENERGY='Energy',FOCUS='Focus',power='Power'}
+    if mode and resources[resource]then return E.Format(mode..' {resource}',{resource=E.L[resources[resource]]})end
+    return E.L[label]
+end
+function V.StatLabel(row)return statLabel(text(row.label,text(row.key,'Stat')))end
 local function statLine(f,index,row,width,y,size)
     local line=f.lines[index];if not line then line={label=font(f,12),value=font(f,12)};f.lines[index]=line;line.value:SetJustifyH('RIGHT')end
-    line.label:SetFont('Fonts\\FRIZQT__.TTF',size or 12,'');line.value:SetFont('Fonts\\FRIZQT__.TTF',size or 12,'')
-    local unit=text(row.unit);local value=number(row.value)
-    local display=value~=nil and formatted(value)..(unit~=''and' '..unit or'')or statReadLabels[text(row.readStatus)]or'Not recorded'
-    line.label:SetText(E.Text(text(row.label,text(row.key,'Stat'))));line.value:SetText(display)
+    line.label:SetFont(E.Font(),size or 12,'');line.value:SetFont(E.Font(),size or 12,'')
+    local unit=E.L[text(row.unit)];local value=number(row.value)
+    local display=value~=nil and formatted(value)..(unit~=''and' '..unit or'')or statReadLabels[text(row.readStatus)]or E.L['Not recorded']
+    line.label:SetText(E.Text(V.StatLabel(row)));line.value:SetText(display)
     line.label:SetWidth(width*.58);line.value:SetWidth(width*.36);line.label:ClearAllPoints();line.value:ClearAllPoints();line.label:SetPoint('TOPLEFT',12,-y);line.value:SetPoint('TOPRIGHT',-12,-y)
     line.label:Show();line.value:Show();return math.max(20,line.label:GetStringHeight(),line.value:GetStringHeight())+5
 end
@@ -237,7 +300,7 @@ local function clearStats(f)
     for _,line in ipairs(f.lines)do line.label:Hide();line.value:Hide()end
 end
 equipmentStats=function(page,c,r,s,state,area)
-    local f=B.Acquire(page,'milestoneStats');f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',area.x,-area.y);f:SetSize(area.width,area.height);f.text:SetWidth(area.width-24);f.text:SetText('Saved stats')
+    local f=B.Acquire(page,'milestoneStats');f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',area.x,-area.y);f:SetSize(area.width,area.height);f.text:SetWidth(area.width-24);f.text:SetText(E.L['Saved stats'])
     f.headings=f.headings or{};clearStats(f)
     local map={};for _,g in ipairs(V.StatGroups(s))do map[g.key]=g end
     local y,n,h=39,0,0
@@ -254,9 +317,9 @@ equipmentStats=function(page,c,r,s,state,area)
             end
         end
     end
-    if n==0 then local empty=f.headings[1]or font(f,12);f.headings[1]=empty;empty:ClearAllPoints();empty:SetPoint('TOPLEFT',12,-42);empty:SetWidth(area.width-24);empty:SetText('Stats not recorded');empty:Show()end
+    if n==0 then local empty=f.headings[1]or font(f,12);f.headings[1]=empty;empty:ClearAllPoints();empty:SetPoint('TOPLEFT',12,-42);empty:SetWidth(area.width-24);empty:SetText(E.L['Stats not recorded']);empty:Show()end
     local old=page.y;local chapter=B.chapter
-    local button=B.Action(page,'All stat groups',function()
+    local button=B.Action(page,E.L['All stat groups'],function()
         if not valid(c,r,s)or V.state~=state or B.chapter~=chapter then return end
         if B.Navigation and B.Navigation.KeepDrafts then B.Navigation.KeepDrafts()end
         state.tab='Stats';state.statGroup=nil;B.Render()
@@ -265,7 +328,7 @@ equipmentStats=function(page,c,r,s,state,area)
 end
 local function stats(page,c,r,s,state,brief)
     local groups=V.StatGroups(s);local present={};for _,g in ipairs(groups)do if #g.rows>0 then present[#present+1]=g end end
-    if #present==0 then if not brief then B.Text(page,'Stats were not recorded.',14)end;return end
+    if #present==0 then if not brief then B.Text(page,E.L['Stats were not recorded.'],14)end;return end
     local chapter=B.chapter
     local function change(group)
         if not valid(c,r,s)or V.state~=state or B.chapter~=chapter then return end
@@ -275,12 +338,12 @@ local function stats(page,c,r,s,state,brief)
     local selected
     if not brief and state.statGroup then for _,g in ipairs(present)do if g.key==state.statGroup then selected=g end end end
     if selected then
-        B.Action(page,'Back to stat groups',function()change(nil)end)
-        local f=B.Acquire(page,'milestoneStats');f:SetWidth(B.Width(page));f.text:SetWidth(B.Width(page)-24);f.text:SetText(selected.title..' / all '..#selected.rows..' recorded fields')
+        B.Action(page,E.L['Back to stat groups'],function()change(nil)end)
+        local f=B.Acquire(page,'milestoneStats');f:SetWidth(B.Width(page));f.text:SetWidth(B.Width(page)-24);f.text:SetText(E.Format('{group} / all {count} recorded fields',{group=selected.title,count=#selected.rows}))
         clearStats(f)
         local y=42;for i,entry in ipairs(selected.rows)do y=y+statLine(f,i,entry.row,B.Width(page)-24,y)end;f:SetHeight(y+12);page.y=page.y+f:GetHeight()+10;return
     end
-    B.Text(page,brief and'Saved character stats'or'Recorded character sheet',19)
+    B.Text(page,brief and E.L['Saved character stats']or E.L['Recorded character sheet'],19)
     local w=(B.Width(page)-12)/2;local start=page.y;local rowHeight=0;local count=brief and math.min(2,#present)or#present
     for i=1,count do local g=present[i];local col=(i-1)%2
         if col==0 and i>1 then start=start+rowHeight+12;rowHeight=0 end
@@ -291,12 +354,12 @@ local function stats(page,c,r,s,state,brief)
         for _,entry in ipairs(g.rows)do local key=text(entry.row.key):lower();if not key:find('base')and not key:find('positive')and not key:find('negative')and not key:find('bonus')and not key:find('modifier')then selectedRows[#selectedRows+1]=entry;shown[entry.index]=true end end
         for _,entry in ipairs(g.rows)do if not shown[entry.index]then selectedRows[#selectedRows+1]=entry end end
         for n=1,math.min(5,#selectedRows)do y=y+statLine(f,n,selectedRows[n].row,w-24,y)end
-        f:SetHeight(y+48);local oldY=page.y;page.y=start+y;local button=B.Action(page,'All '..#g.rows..' '..g.title:lower()..' fields',function()change(g.key)end)
+        f:SetHeight(y+48);local oldY=page.y;page.y=start+y;local button=B.Action(page,E.Format('All {count} fields: {group}',{count=#g.rows,group=g.title}),function()change(g.key)end)
         button:SetWidth(math.min(button:GetWidth(),w-24));button.text:SetWidth(button:GetWidth()-16);button:ClearAllPoints();button:SetPoint('TOPLEFT',page.content,'TOPLEFT',24+col*(w+12),-start-y);page.y=oldY
         rowHeight=math.max(rowHeight,f:GetHeight())
     end
     page.y=start+rowHeight+12
-    if brief then B.Action(page,'All stat groups',function()change(nil)end)end
+    if brief then B.Action(page,E.L['All stat groups'],function()change(nil)end)end
 end
 B.widgetFactories.milestoneSkill=function(parent)
     local f=CreateFrame('Frame',nil,parent)
@@ -319,10 +382,10 @@ local function rankBar(page,row,title,maxLabel)
     if known and rank>0 then f.fill:SetWidth((width-4)*math.min(1,rank/cap));f.fill:Show()else f.fill:Hide()end
     if known and rank>=cap then f.fill:SetColorTexture(.27,.48,.25,1)else f.fill:SetColorTexture(.20,.43,.59,1)end
     local extras={};local modifier=number(row.modifier);local temporary=number(row.tempPoints)
-    if modifier and modifier~=0 then extras[#extras+1]='Modifier '..(modifier>0 and'+'or'')..formatted(modifier)end
-    if modifier==nil then extras[#extras+1]='Modifier not recorded'end
-    if temporary and temporary~=0 then extras[#extras+1]='Temporary points '..(temporary>0 and'+'or'')..formatted(temporary)
-    elseif temporary==nil then extras[#extras+1]='Temporary points not recorded'end
+    if modifier and modifier~=0 then extras[#extras+1]=E.Format('Modifier {value}',{value=(modifier>0 and'+'or'')..formatted(modifier)})end
+    if modifier==nil then extras[#extras+1]=E.L['Modifier not recorded']end
+    if temporary and temporary~=0 then extras[#extras+1]=E.Format('Temporary points {value}',{value=(temporary>0 and'+'or'')..formatted(temporary)})
+    elseif temporary==nil then extras[#extras+1]=E.L['Temporary points not recorded']end
     f.bonus:SetWidth(width);f.bonus:SetText(table.concat(extras,' / '));if #extras>0 then f.bonus:Show()else f.bonus:Hide()end
     local height=#extras>0 and 78+math.max(12,f.bonus:GetStringHeight())or 68
     f:SetHeight(height);page.y=page.y+height+12
@@ -332,35 +395,35 @@ function V.WeaponReading(page,c,r)
     if r.kind~='weapon_observation' and not (r.kind=='milestone' and r.subject==c.id and r.milestoneType=='skill') then return end
     local reading=r.weaponReading
     if type(reading)~='table' or type(reading.version)~='string' or type(reading.build)~='string' or type(reading.reader)~='string' then return end
-    B.Text(page,'Recorded weapon skill',21)
-    rankBar(page,reading,text(r.skillName,'Weapon skill '..r.skillID),'Observed max')
-    local class=text(reading.className,'Class unknown')
-    if number(reading.classID) then class=class..' (Class ID '..formatted(reading.classID)..')' end
-    B.Text(page,'Character level '..formatted(reading.level)..'  /  '..class,14)
-    B.Text(page,'Forever '..reading.version..' (build '..reading.build..')  /  C_SkillInfo.'..reading.reader,13)
+    B.Text(page,E.L['Recorded weapon skill'],21)
+    rankBar(page,reading,E.Display.Skill(r.skillID,text(r.skillName,E.Format('Weapon skill {id}',{id=r.skillID}))),E.L['Observed max'])
+    local class=text(reading.className,E.L['Class unknown'])
+    if number(reading.classID) then class=E.Format('{class} (Class ID {id})',{class=class,id=formatted(reading.classID)})end
+    B.Text(page,E.Format('Character level {level} / {class}',{level=formatted(reading.level),class=class}),14)
+    B.Text(page,E.Format('Forever {version} (build {build}) / C_SkillInfo.{reader}',{version=reading.version,build=reading.build,reader=reading.reader}),13)
 end
 local function skills(page,s)
     local rows=type(s.skills)=='table'and s.skills or{}
-    if #rows==0 then B.Text(page,'Skills were not recorded.',14);return end
-    for _,group in ipairs({{'profession','Professions'},{'weapon','Weapon skills'},{'other','Other skills'}})do
+    if #rows==0 then B.Text(page,E.L['Skills were not recorded.'],14);return end
+    for _,group in ipairs({{'profession',E.L['Professions']},{'weapon',E.L['Weapon skills']},{'other',E.L['Other skills']}})do
         local section
         for _,row in ipairs(rows)do if type(row)=='table'and (row.category==group[1]or(group[1]=='other'and row.category~='profession'and row.category~='weapon'))then
             if not section then section=B.Section(page,group[2])end
-            rankBar(page,row,text(row.name,'Skill'),'Max')
+            rankBar(page,row,E.Display.Skill(row.id,text(row.name,E.L['Skill'])),E.L['Max'])
         end end
         if section then B.EndSection(page,section)end
     end
 end
 function V.Render(page,r)
-    local c=B.Character();B.Text(page,'Character at this milestone',21)
-    if not owned(c,r)then B.Text(page,'No character snapshot is available for this milestone.',14);V.state=nil;return end
+    local c=B.Character();B.Text(page,E.L['Character at this milestone'],21)
+    if not owned(c,r)then B.Text(page,E.L['No character snapshot is available for this milestone.'],14);V.state=nil;return end
     local s=r.characterSnapshot
-    if type(s)~='table'or s.version~=1 or s.character~=c.id then B.Text(page,'A character snapshot was not recorded for this milestone.',14);V.state=nil;return end
-    if not V.state or V.state.owner~=c or V.state.record~=r or V.state.snapshot~=s then V.state={owner=c,record=r,snapshot=s,tab='Equipment'}end
+    if type(s)~='table'or s.version~=1 or s.character~=c.id then B.Text(page,E.L['A character snapshot was not recorded for this milestone.'],14);V.state=nil;return end
+    if not V.state or V.state.owner~=c or V.state.record~=r or V.state.snapshot~=s then V.state={owner=c,record=r,snapshot=s,tab='Equipment',preview=true}end
     local state=V.state
-    local stamp=number(s.capturedAt);local date='Capture time not recorded'
+    local stamp=number(s.capturedAt);local date=E.L['Capture time not recorded']
     if stamp then local ok,value=pcall(A.Date,stamp);if ok and type(value)=='string'then date=value end end
-    B.Text(page,date..(number(s.level)and' / Level '..formatted(s.level)or''),12)
+    B.Text(page,number(s.level)and E.Format('{date} / Level {level}',{date=date,level=formatted(s.level)})or date,12)
     local chapter=B.chapter
     B.Tabs(page,{'Equipment','Stats','Skills'},state.tab,function(selected)
             if not valid(c,r,s)or V.state~=state or B.chapter~=chapter then return end
@@ -374,9 +437,12 @@ function V.Render(page,r)
             if visibleStat(row)then total=total+1;if number(row.value)~=nil then recorded=recorded+1 end
             else hidden=hidden+1 end
         end end
-        if hidden>0 then coverage=recorded..' of '..total..' values recorded at capture. Missing values show the read result.'end
+        if hidden>0 then coverage=E.Format('{recorded} of {total} values recorded at capture. Missing values show the read result.',{recorded=recorded,total=total})end
     end
-    if coverage~=''and state.tab~='Equipment'then B.Text(page,coverage,12)end
+    if coverage~=''and state.tab~='Equipment'then
+        local recorded,total=coverage:match('^(%d+) of (%d+) values recorded at capture%. Missing values show the read result%.$')
+        B.Text(page,recorded and E.Format('{recorded} of {total} values recorded at capture. Missing values show the read result.',{recorded=recorded,total=total})or E.L[coverage],12)
+    end
     if state.tab=='Equipment'then equipment(page,c,r,s,state)
     elseif state.tab=='Stats'then stats(page,c,r,s,state,false)
     else skills(page,s)end

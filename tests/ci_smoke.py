@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 # Keep this list deliberately small; do not auto-discover the stress suite.
 SPECS = (
     'calendar_tabs_spec.lua',
+    'milestone_snapshot_view_spec.lua',
+    'recap_readability_spec.lua',
+    'experience_sources_spec.lua',
     'finance_view_spec.lua',
     'economy_spec.lua',
     'inventory_spec.lua',
@@ -23,6 +26,7 @@ SPECS = (
     'retention_controls_spec.lua',
 )
 HOSTS = (
+    'localization_host.py',
     'quest_completed_history_host.py',
     'recap_completed_periods_host.py',
     'recorder_owner_lifecycle_spec.py',

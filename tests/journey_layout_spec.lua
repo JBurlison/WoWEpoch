@@ -1,4 +1,6 @@
 local B,V,J,S=E.Book,E.JourneyView,E.Journey,E.Store
+local savedItemInfo=C_Item.GetItemInfo;C_Item.GetItemInfo=function()return nil end
+local savedQuestTitle=C_QuestLog.GetTitleForQuestID;C_QuestLog.GetTitleForQuestID=function()return nil end
 local c=E.db.characters['myepoch-ui-fixture-032'];local savedMap=C_Map
 -- Host-only map fixture exercises crop geometry and selection, not API availability.
 C_Map={GetMapInfo=function(id)return{mapID=id,name='Orgrimmar'}end,GetMapArtID=function()return 2176 end,
@@ -49,4 +51,6 @@ local other=S.Character('journey-layout-other',{name='Other'});B.ChangeCharacter
 assert(not V.lastLocation and not other.state.journeyShowDeaths)
 B.ChangeCharacter(c.id);assert(B.journeyChooser and B.journeyLocationPage==2)
 C_Map=savedMap
+C_Item.GetItemInfo=savedItemInfo
+C_QuestLog.GetTitleForQuestID=savedQuestTitle
 print('PASS Journey layout: framed cropped map, nonzero totals, hidden deaths, source return, map-phase uncertainty, literal location search, long bounded rows and isolated view state')

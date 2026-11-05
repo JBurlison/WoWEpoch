@@ -148,7 +148,7 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif event=="PLAYER_REGEN_DISABLED" then E.Book.Combat(true)
     elseif event=="PLAYER_REGEN_ENABLED" then E.Book.Combat(false)
     elseif event=="DISPLAY_SIZE_CHANGED" or event=="UI_SCALE_CHANGED" then E.Book.Fit();E.Minimap.Position()
-    elseif event:match("^CHAT_MSG_") and event~="CHAT_MSG_LOOT" and event~='CHAT_MSG_SYSTEM' then E.Collectors.Chat(event,...)
+    elseif event:match("^CHAT_MSG_") and event~="CHAT_MSG_LOOT" and event~='CHAT_MSG_SYSTEM' and event~='CHAT_MSG_COMBAT_XP_GAIN' then E.Collectors.Chat(event,...)
     elseif E.Collectors.handlers[event] then E.Collectors.handlers[event](...) end
 end)
 frame:SetScript("OnUpdate",function(_,delta)
@@ -161,6 +161,7 @@ frame:SetScript("OnUpdate",function(_,delta)
     E.Gathering.Process()
     E.GoldChecks.Process()
     E.Book.PreparationTick()
+    if E.DiaryPresentation then E.DiaryPresentation.Tick()end
     if E.MobDropView then E.MobDropView.Tick()end
     if E.CraftProjectionPreparation then E.CraftProjectionPreparation.Process(4000)end
     if E.AuctionPreparationView then E.AuctionPreparationView.Process(4000)end

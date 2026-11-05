@@ -9,10 +9,10 @@ filters[#filters+1]={"recap","Recaps",76}
 kinds[#kinds+1]={"kill","mob defeated","mobs defeated","Mob defeated","Mobs defeated"}
 filters[#filters+1]={"kill","Mobs defeated",112}
 local internal={travel=true,kill_observation=true,mail_scan=true,mail_request=true,mail_notice=true,trade_offer=true,trade_notice=true,play=true,objective=true,diary=true,wallet_window=true,money_evidence=true,cost_lot=true,stock_reset=true,stock_move=true}
-local names={group="Group adventure",quest="Quest completed",quest_reward="Quest reward event",encounter_loot="Encounter loot notice",quest_attempt="Quest attempt",auction="Auction observation",trade="Player trade",mail="Envelope observed",mail_collection="Mailbox collection",loot="Loot receipt",crafted="Crafted",gathered="Gathered",gather_action="Gathering action",
-    kill="Mob defeated",xp="Experience gained",milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Captured moment",gold="Gold",chat="Group chat",pull="Meter observation",encounter="Boss encounter",gap="Recording coverage"}
+local names={group="Group adventure",quest="Quest completed",quest_reward="Quest reward event",encounter_loot="Encounter loot notice",quest_attempt="Quest attempt",auction=E.L["Auction observation"],trade=E.L["Player trade"],mail=E.L["Envelope observed"],mail_collection=E.L["Mailbox collection"],loot="Loot receipt",crafted="Crafted",gathered="Gathered",gather_action=E.L["Gathering action"],
+    kill="Mob defeated",xp="Experience gained",milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Captured moment",gold="Gold",chat="Group chat",pull=E.L["Meter observation"],encounter="Boss encounter",gap=E.L["Recording coverage"]}
 local function font(parent,size,w,lines)
-    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont("Fonts\\FRIZQT__.TTF",size,"")
+    local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size,"")
     f:SetTextColor(0.29,0.19,0.11); f:SetWidth(w); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP")
     if lines then f:SetMaxLines(lines)end
     return f
@@ -26,7 +26,7 @@ end
 B.widgetFactories.calendarDay=function(parent)
     local f=CreateFrame("Button",nil,parent); f.face=T.Texture(f,"calendar-day-v1"); f.face:SetAllPoints()
     f.number=font(f,18,42,1); f.number:SetPoint("TOPLEFT",7,-5)
-    f.today=font(f,8,47,1); f.today:SetPoint("TOPRIGHT",-6,-10); f.today:SetJustifyH("RIGHT"); f.today:SetText("TODAY")
+    f.today=font(f,8,47,1); f.today:SetPoint("TOPRIGHT",-6,-10); f.today:SetJustifyH("RIGHT"); f.today:SetText(E.L["TODAY"])
     f.text=font(f,9,92,3); f.text:SetPoint("TOPLEFT",7,-23)
     f.hint=font(f,9,92,1); f.hint:SetPoint("BOTTOMLEFT",7,5); f.hint:SetTextColor(0.48,0.28,0.15)
     hover(f); return f
@@ -151,7 +151,7 @@ function V.Jump(value)
 end
 function V.SelectMonth(year,month)
     if type(year)~="number"or year%1~=0 or year<1 or year>9999 or type(month)~="number"or month%1~=0 or month<1 or month>12 then
-        B.calendarError="Enter a whole year from 1 to 9999.";B.Render();return
+        B.calendarError=E.L["Enter a whole year from 1 to 9999."];B.Render();return
     end
     local ok,day,err=pcall(function()
         local first,message=A.ParseDay(string.format("%04d-%02d-01",year,month))
@@ -159,14 +159,14 @@ function V.SelectMonth(year,month)
         local _,finish=A.Period(first,"monthly");local last=date("*t",A.ShiftDay(finish,-1)).day
         return A.ShiftDay(first,math.min(date("*t",B.day or A.Now()).day,last)-1)
     end)
-    if not ok or not day then B.calendarError=ok and err or "This calendar month is unavailable on this client.";B.Render();return end
+    if not ok or not day then B.calendarError=ok and err or E.L["This calendar month is unavailable on this client."];B.Render();return end
     V.SelectDay(day)
 end
 local function metricLines(counts)
     local lines={}; local line=""
     for _,entry in ipairs(kinds)do local n=counts[entry[1]]
         if n and n>0 then
-            local text=n.." "..(n==1 and entry[2] or entry[3]); local combined=line=="" and text or line.." / "..text
+            local text=E.Count(entry[2],entry[3],n); local combined=line=="" and text or line.." / "..text
             if #combined>22 and line~="" then lines[#lines+1]=line; line=text else line=combined end
         end
     end
@@ -175,32 +175,32 @@ local function metricLines(counts)
 end
 function V.Month(left,c,prepared)
     local width=B.Width(left)
-    B.Text(left,"CHAPTER II  -  THE DAYS OF YOUR JOURNEY  -  LOCAL TIME",11):SetTextColor(0.54,0.40,0.23)
+    B.Text(left,E.L["CHAPTER II  -  THE DAYS OF YOUR JOURNEY  -  LOCAL TIME"],11):SetTextColor(0.54,0.40,0.23)
     left.y=left.y-6
-    B.Text(left,"A calendar of adventures",30)
+    B.Text(left,E.L["A calendar of adventures"],30)
     left.y=left.y-6
-    B.Text(left,"A day is more than a number. Open it and follow its stories.",15)
+    B.Text(left,E.L["A day is more than a number. Open it and follow its stories."],15)
     left.y=left.y-6
     local start,finish=A.Period(B.day,"monthly"); local d=date("*t",start); local y=left.y
     control(left,"<",0,y,40,function()V.SelectDay(A.ShiftPeriod(B.day,"monthly",-1))end)
-    local title=B.Text(left,date("%B %Y",start),25); title:ClearAllPoints(); title:SetPoint("TOPLEFT",left.content,"TOPLEFT",66,-y-3); title:SetWidth(width-108); title:SetJustifyH("CENTER")
+    local title=B.Text(left,E.LocaleDate(start,"monthYear"),25); title:ClearAllPoints(); title:SetPoint("TOPLEFT",left.content,"TOPLEFT",66,-y-3); title:SetWidth(width-108); title:SetJustifyH("CENTER")
     control(left,">",width-40,y,40,function()V.SelectDay(A.ShiftPeriod(B.day,"monthly",1))end); left.y=y+46
     B.Navigation.Controls(function(nav)
-        B.Text(nav,"MONTH",11)
+        B.Text(nav,E.L["MONTH"],11)
         local choices={}
         for month=1,12 do local value=month;local ts=A.ParseDay(string.format("%04d-%02d-01",d.year,month))
-            choices[#choices+1]={date("%B",ts),function()V.SelectMonth(d.year,value)end,d.month==month}
+            choices[#choices+1]={E.LocaleDate(ts,"month"),function()V.SelectMonth(d.year,value)end,d.month==month}
         end
         B.Navigation.Grid(nav,choices)
-        B.Text(nav,"YEAR",11)
+        B.Text(nav,E.L["YEAR"],11)
         B.Input(nav,tostring(d.year),function(value)V.SelectMonth(tonumber(value),d.month)end)
-        B.Text(nav,"Jump to a day (YYYY-MM-DD)",11);B.Input(nav,A.Day(B.day),V.Jump)
-        B.Navigation.Button(nav,"Today",function()V.SelectDay(A.Now())end)
+        B.Text(nav,E.L["Jump to a day (YYYY-MM-DD)"],11);B.Input(nav,A.Day(B.day),V.Jump)
+        B.Navigation.Button(nav,E.L["Today"],function()V.SelectDay(A.Now())end)
         if B.calendarError then B.Text(nav,B.calendarError,12)end
     end)
     y=left.y; local cellWidth=(width-6*gap)/7
     for i,name in ipairs({"MON","TUE","WED","THU","FRI","SAT","SUN"})do
-        local f=B.Text(left,name,10); f:ClearAllPoints(); f:SetPoint("TOPLEFT",left.content,"TOPLEFT",12+(i-1)*(cellWidth+gap),-y); f:SetWidth(cellWidth); f:SetJustifyH("CENTER"); f:SetTextColor(0.54,0.40,0.23)
+        local f=B.Text(left,E.L[name],10); f:ClearAllPoints(); f:SetPoint("TOPLEFT",left.content,"TOPLEFT",12+(i-1)*(cellWidth+gap),-y); f:SetWidth(cellWidth); f:SetJustifyH("CENTER"); f:SetTextColor(0.54,0.40,0.23)
     end
     local top=y+22; local offset=(d.wday+5)%7; local dates={}; local ts=start
     while ts<finish do dates[#dates+1]=ts; ts=A.ShiftDay(ts,1)end
@@ -218,19 +218,19 @@ function V.Month(left,c,prepared)
             local maxLines=math.max(1,math.floor((cellHeight-26)/10))
             if #lines>maxLines then
                 local shortened={}; for i=1,maxLines-1 do shortened[i]=lines[i]end
-                shortened[maxLines]="More inside >"; lines=shortened
+                shortened[maxLines]=E.L["More inside >"]; lines=shortened
             end
-            local text=report.pending and (prepared.error and "Activity unavailable" or "Preparing activity...") or #lines>0 and table.concat(lines,"\n") or (hasNote and "Personal notes" or #report.records>0 and "Recorded activity" or "No recorded history")
+            local text=report.pending and (prepared.error and E.L["Activity unavailable"] or E.L["Preparing activity..."]) or #lines>0 and table.concat(lines,"\n") or E.L[hasNote and "Personal notes" or #report.records>0 and "Recorded activity" or "No recorded history"]
             f.text:SetWidth(cellWidth-14); f.text:SetHeight(cellHeight-26); f.text:SetMaxLines(maxLines); f.text:SetText(text)
             f.hint:SetWidth(cellWidth-14); f.hint:SetHeight(12)
-            if report.highlight and #lines<=1 and #(lines[1] or "")<=19 and cellHeight>=56 then f.hint:SetText(E.Text(report.highlight.title or report.highlight.kind)); f.hint:Show()else f.hint:Hide()end
+            if report.highlight and #lines<=1 and #(lines[1] or "")<=19 and cellHeight>=56 then f.hint:SetText(E.Text(E.Display.RecordTitle(report.highlight))); f.hint:Show()else f.hint:Hide()end
             f:SetScript("OnClick",function()V.SelectDay(day)end)
         end
     end
     left.y=top+gridHeight+10
-    control(left,(B.calendarLegendOpen and "- " or "+ ").."About counts & recording coverage",0,left.y,320,function()B.calendarLegendOpen=not B.calendarLegendOpen; B.Render()end)
+    control(left,(B.calendarLegendOpen and "- " or "+ ")..E.L["About counts & recording coverage"],0,left.y,320,function()B.calendarLegendOpen=not B.calendarLegendOpen; B.Render()end)
     left.y=left.y+38
-    if B.calendarLegendOpen then B.Text(left,"Groups count distinct sessions observed that day; quests count completed turn-ins; loot counts receipts. Crafted/gathered totals count your item units. Milestones include your major progress, deaths and learning. No recorded history does not mean nothing happened. Days use local time; active time excludes recorded AFK.",13)end
+    if B.calendarLegendOpen then B.Text(left,E.L["Groups count distinct sessions observed that day; quests count completed turn-ins; loot counts receipts. Crafted/gathered totals count your item units. Milestones include your major progress, deaths and learning. No recorded history does not mean nothing happened. Days use local time; active time excludes recorded AFK."],13)end
 end
 local groupMetrics={{"quest","quest turned in","quests turned in"},{"loot","loot receipt","loot receipts"},{"chat","chat message","chat messages"}}
 local function groupSummary(counts)
@@ -238,7 +238,7 @@ local function groupSummary(counts)
     local parts={}
     for _,metric in ipairs(groupMetrics) do
         local n=counts[metric[1]]
-        if n then parts[#parts+1]=E.Number(n).." "..metric[n==1 and 2 or 3] end
+        if n then parts[#parts+1]=E.Count(metric[2],metric[3],n) end
     end
     return table.concat(parts," · ")
 end
@@ -265,59 +265,60 @@ local function indexEvents(c,report,work)
 end
 function V.Daily(right,c,report,prepared)
     local width=B.Width(right)
-    B.Text(right,string.upper(c.identity.name or "Your character").."'S DAILY PAGE  -  LOCAL TIME",11):SetTextColor(0.54,0.40,0.23)
-    B.Text(right,date("%A, %B %d, %Y",B.day),29)
+    B.Text(right,E.Format("{name}'s daily page · Local time",{name=c.identity.name or c.id}),11):SetTextColor(0.54,0.40,0.23)
+    B.Text(right,E.LocaleDate(B.day),29)
     local diaryOpen=B.calendarDiaryOpen~=false
     B.Tabs(right,{"Diary","Events"},diaryOpen and "Diary" or "Events",function(tab)
         if B.Character()~=c or B.chapter~="Calendar" then return end
         B.calendarDiaryOpen=tab=="Diary";B.selected=nil;B.Render(true)
     end)
-    local stats={}; for _,entry in ipairs(kinds)do local n=report.counts[entry[1]]; if n and n>0 then stats[#stats+1]={value=n,label=entry[n==1 and 4 or 5]}end end
+    local stats={}; for _,entry in ipairs(kinds)do local n=report.counts[entry[1]]; if n and n>0 then stats[#stats+1]={value=n,label=E.L[entry[n==1 and 4 or 5]]}end end
     local active
     if prepared then active=prepared.playDay==B.day and prepared.activeSeconds
     else active=Q.ActiveTime(c,B.day,A.ShiftDay(B.day,1))end
-    if active and active>0 then stats[#stats+1]={value=E.Duration(active),label="Active play time"}end
+    if active and active>0 then stats[#stats+1]={value=E.LocaleDuration(active),label=E.L["Active play time"]}end
     if #stats>0 then
         local y=right.y+8; rule(right,y-8)
-        for i,entry in ipairs(stats)do local f=place(B.Acquire(right,"calendarStat"),right,((i-1)%6)*(width/6),y+math.floor((i-1)/6)*66,width/6-6,60);f.value:SetWidth(width/6-8);f.caption:SetWidth(width/6-8); f.value:SetText(entry.value); f.caption:SetText(string.upper(entry.label))end
-        right.y=y+math.ceil(#stats/6)*66; rule(right,right.y); right.y=right.y+18
+        local columns=E.locale=='enUS' and 6 or 4
+        for i,entry in ipairs(stats)do local f=place(B.Acquire(right,"calendarStat"),right,((i-1)%columns)*(width/columns),y+math.floor((i-1)/columns)*66,width/columns-6,60);f.value:SetWidth(width/columns-8);f.caption:SetWidth(width/columns-8); f.value:SetText(entry.value); f.caption:SetText(E.locale=='enUS' and string.upper(entry.label) or entry.label)end
+        right.y=y+math.ceil(#stats/columns)*66; rule(right,right.y); right.y=right.y+18
     end
     if prepared and (prepared.playJob or prepared.playDirty or prepared.playError)then
-        B.Text(right,prepared.playError or "Updating active play time for this day...",12)
+        B.Text(right,E.L[prepared.playError or "Updating active play time for this day..."],12)
     end
     local job={kind='daily',from=B.day,through=A.ShiftDay(B.day,1)}
     if diaryOpen then
-        B.Text(right,"The day, in words",26)
+        B.Text(right,E.L["The day, in words"],26)
         local diary,writing,writeError=E.JournalViews.Watch(c,job,A.Now())
         local missing=writing=='expired'and"This day's generated diary expired under your retention policy. Your personal notes remain separate."
             or writing=='error'and"This day's writing is unavailable. Your notes remain available below."or"Preparing this day's diary from recorded history..."
-        paragraph(right,diary and diary.text or missing,16)
-        if diary and writing=='pending'then paragraph(right,'Updating the saved diary...',12)end
+        paragraph(right,diary and E.DiaryPresentation.Daily(c,diary) or E.L[missing],16)
+        if diary and writing=='pending'then paragraph(right,E.L['Updating the saved diary...'],12)end
         if writeError then
-            paragraph(right,writeError,12)
-            control(right,'Retry writing',16,right.y,180,function()E.JournalViews.Retry(c,job);B.Render()end);right.y=right.y+42
+            paragraph(right,E.L[writeError],12)
+            control(right,E.L['Retry writing'],16,right.y,180,function()E.JournalViews.Retry(c,job);B.Render()end);right.y=right.y+42
         end
         if diary and #(diary.refs or {})>0 then
             local busy=E.JournalJobs.Retelling(c,diary)
-            control(right,busy and "Writing another telling..."or"Try another telling",16,right.y,210,function()if not busy then E.JournalJobs.RequestRetell(c,diary);B.Render()end end); right.y=right.y+42
-            local err=E.JournalJobs.RetellError(c,diary);if err then paragraph(right,err,12)end
+            control(right,E.L[busy and "Writing another telling..."or"Try another telling"],16,right.y,210,function()if not busy then E.JournalJobs.RequestRetell(c,diary);B.Render()end end); right.y=right.y+42
+            local err=E.JournalJobs.RetellError(c,diary);if err then paragraph(right,E.L[err],12)end
         end
-        local notes=B.Section(right,"Your own words")
+        local notes=B.Section(right,E.L["Your own words"])
         local key="day:"..A.Day(B.day); local note=place(B.Acquire(right,"edit"),right,20,right.y,width-40,120)
         note:SetMultiLine(true); note:SetScript("OnEnterPressed",nil); note:SetScript("OnTextChanged",nil); note:SetText(c.notes[key] and c.notes[key].text or "")
         note:SetScript("OnTextChanged",function(self,user)if user then E.Store.Note(c,key,self:GetText(),A.Now())end end)
-        right.y=right.y+134; paragraph(right,"Notes save as you type and stay separate from generated writing.",12)
+        right.y=right.y+134; paragraph(right,E.L["Notes save as you type and stay separate from generated writing."],12)
         B.EndSection(right,notes)
         return
     end
-    B.Text(right,"Follow the day's stories",26)
+    B.Text(right,E.L["Follow the day's stories"],26)
     if not report.filters then indexEvents(c,report)end
     B.Navigation.Controls(function(nav)
-        B.Text(nav,"EVENT TYPE",11);local choices,known={},{}
+        B.Text(nav,E.L["EVENT TYPE"],11);local choices,known={},{}
         local function add(kind,label,always)
             known[kind]=true
             if always or #(report.filters[kind] or {})>0 or B.calendarFilter==kind then
-                choices[#choices+1]={label,function()B.calendarFilter=kind;B.calendarPage=1;B.selected=nil;B.Render(true)end,(B.calendarFilter or"all")==kind}
+                choices[#choices+1]={E.L[label],function()B.calendarFilter=kind;B.calendarPage=1;B.selected=nil;B.Render(true)end,(B.calendarFilter or"all")==kind}
             end
         end
         for _,entry in ipairs(filters)do local kind=entry[1]
@@ -330,23 +331,24 @@ function V.Daily(right,c,report,prepared)
     local rows=(not B.calendarFilter or B.calendarFilter=="all") and report.records or report.filters[B.calendarFilter] or {}
     local groupCounts=report.groupCounts
     if report.pending then
-        B.Text(right,prepared.error or "Preparing this day's recorded events...",16)
-        if prepared.error then B.Action(right,"Retry calendar preparation",function()
+        B.Text(right,E.L[prepared.error or "Preparing this day's recorded events..."],16)
+        if prepared.error then B.Action(right,E.L["Retry calendar preparation"],function()
             if B.Character()==c and B.chapter=="Calendar"then V.Retry(c)end
         end)end
         return
     end
-    if #rows==0 then B.Text(right,"No matching recorded events",22); B.Text(right,"Your personal notes are still welcome. Unrecorded activity remains unknown.",14); return end
+    if #rows==0 then B.Text(right,E.L["No matching recorded events"],22); B.Text(right,E.L["Your personal notes are still welcome. Unrecorded activity remains unknown."],14); return end
     B.calendarPage=math.max(1,math.min(B.calendarPage or 1,math.ceil(#rows/12)))
     for i=(B.calendarPage-1)*12+1,math.min(#rows,B.calendarPage*12)do local r=rows[i]
         local activity=report.continuedGroups[r.id]
         local stamp=activity or r
-        local f=B.Acquire(right,"calendarEvent"); f:SetWidth(width);f.text:SetWidth(width-105);f.category:SetWidth(width-105); f.clock:SetText(r.kind=="recap" and "Recap" or stamp.datePrecision=="day" and "Date only" or date("%H:%M",stamp.ts))
-        f.category:SetText(string.upper(activity and "Group activity" or E.Gathering.Inferred(r)and"Inferred gathered"or names[r.kind] or r.kind:gsub("_"," "))); f.text:SetText(E.Text(r.title or names[r.kind] or r.kind))
+        local f=B.Acquire(right,"calendarEvent"); f:SetWidth(width);f.text:SetWidth(width-105);f.category:SetWidth(width-105); f.clock:SetText(r.kind=="recap" and E.L["Recap"] or stamp.datePrecision=="day" and E.L["Date only"] or date("%H:%M",stamp.ts))
+        local category=E.L[activity and "Group activity" or E.Gathering.Inferred(r)and"Inferred gathered"or names[r.kind] or r.kind:gsub("_"," ")]
+        f.category:SetText(E.locale=='enUS' and string.upper(category) or category); f.text:SetText(E.Text(E.Display.RecordTitle(r)))
         local height=math.max(62,math.max(22,f.text:GetStringHeight())+39)
         local summary=r.kind=="group" and r.character==c.id and groupSummary(groupCounts[r.id])
         if r.kind=="recap" then summary=E.RecapView.Heading(r) end
-        if r.kind=="encounter_loot" then summary="Encounter "..r.encounterID.." · "..E.Number(r.quantity).." reported" end
+        if r.kind=="encounter_loot" then summary=E.Format('Encounter {id} · {count} reported',{id=r.encounterID,count=E.Number(r.quantity)})end
         if summary then
             f.summary:SetWidth(width-105); f.summary:SetText(summary); f.summary:Show()
             height=height+f.summary:GetStringHeight()+4
@@ -367,9 +369,9 @@ function V.Daily(right,c,report,prepared)
         right.y=right.y+height
     end
     right.y=right.y+10; y=right.y
-    if B.calendarPage>1 then control(right,"Earlier events",0,y,150,function()B.calendarPage=B.calendarPage-1; B.Render(true)end)end
-    if B.calendarPage*12<#rows then control(right,"Later events",160,y,150,function()B.calendarPage=B.calendarPage+1; B.Render(true)end)end
-    if #rows>12 then right.y=y+42; B.Text(right,"Page "..B.calendarPage.." of "..math.ceil(#rows/12).."  -  "..#rows.." matching events",11)end
+    if B.calendarPage>1 then control(right,E.L["Earlier events"],0,y,150,function()B.calendarPage=B.calendarPage-1; B.Render(true)end)end
+    if B.calendarPage*12<#rows then control(right,E.L["Later events"],160,y,150,function()B.calendarPage=B.calendarPage+1; B.Render(true)end)end
+    if #rows>12 then right.y=y+42; B.Text(right,E.Format("Page {page} of {pages} · {count} matching events",{page=B.calendarPage,pages=math.ceil(#rows/12),count=E.Number(#rows)}),11)end
 end
 -- One transient month belongs to the visible character. Each prepared day owns
 -- a finite source cut. New arrivals schedule a refreshed cut without restarting
@@ -401,12 +403,12 @@ local function step(state,budget)
             local cut=Q.CalendarCut(state.owner,day,A.ShiftDay(day,1))
             if not cut then return changed end
             state.job=E.RetentionWork.Start(function(work)return dailyProjection(state.owner,day,cut,work)end)
-            if not state.job then state.error="Calendar preparation is unavailable on this client.";return true end
+            if not state.job then state.error=E.L["Calendar preparation is unavailable on this client."];return true end
         end
         local before=state.job.operations
         local status,report=E.RetentionWork.Step(state.job,budget)
         budget=budget-math.max(1,state.job.operations-before)
-        if status=="failed" then state.error="Calendar preparation stopped. Reopen the month to retry.";state.job=nil;state.jobDay=nil;return true end
+        if status=="failed" then state.error=E.L["Calendar preparation stopped. Reopen the month to retry."];state.job=nil;state.jobDay=nil;return true end
         if not status then break end
         state.days[day]=report;state.job=nil;state.jobDay=nil;changed=true
     end
@@ -423,13 +425,13 @@ local function playStep(state,budget)
         state.playJob=E.RetentionWork.Start(function(work)
             return Q.TimeStats(state.owner,day,A.ShiftDay(day,1),nil,false,work,cut).activeSeconds
         end)
-        if not state.playJob then state.playError="Active play time cannot be prepared on this client." end
+        if not state.playJob then state.playError=E.L["Active play time cannot be prepared on this client."] end
     end
     if state.playJob then
         local status,value=E.RetentionWork.Step(state.playJob,budget)
         if status then
             if status=="done" then state.activeSeconds=value;state.playError=nil
-            else state.activeSeconds=nil;state.playError="Active play time could not be prepared for this day." end
+            else state.activeSeconds=nil;state.playError=E.L["Active play time could not be prepared for this day."] end
             state.playJob=nil;changed=true
         end
     end
@@ -561,6 +563,6 @@ function V.Render(left,right)
     V.Month(left,c,prepared)
     local report=prepared.days[B.day]
     V.lastReport=report
-    if report and prepared and (prepared.todo[B.day] or prepared.jobDay==B.day) then B.Text(right,"Showing the last prepared day while newer observations are added.",12)end
+    if report and prepared and (prepared.todo[B.day] or prepared.jobDay==B.day) then B.Text(right,E.L["Showing the last prepared day while newer observations are added."],12)end
     V.Daily(right,c,report or {counts={},records={},continuedGroups={},pending=true},prepared)
 end

@@ -1,6 +1,27 @@
 local _,E=...
 local V,B,R,A={},E.Book,E.Artwork,E.API; E.ArtView=V
 local T=E.BookTheme
+function V.LocationName(location)
+    -- Catalog physicalMapID is an instance identity, not a UI map ID.
+    return location and location.name
+end
+function V.TagName(key,name)
+    local location=type(key)=='string'and key:match('^location:(.+)$')
+    return location and V.LocationName(R.locations[location]) or E.L[name]
+end
+function V.CollectionName(row)
+    if E.locale=='enUS'then return R.CollectionName(row)end
+    if row and row.characterLevel then return E.Format('{faction} · Level {level}',{faction=E.L[row.faction],level=row.characterLevel})end
+    if row and row.weapon then local weapon=R.weapons[row.weapon];return E.Format('{skill} · {points} points',{skill=E.L[weapon and weapon.name or 'Weapon skill'],points=row.milestone})end
+    local collection=row and(R.professions[row.profession]or R.locations[row.location])
+    return collection and(row.profession and E.L[collection.name]or V.LocationName(collection))or E.L['Anywhere']
+end
+function V.Message(message)
+    if not message then return '' end
+    if message:match('^No illustration selected for this .+%.$')then return E.L['No illustration selected.']end
+    if message:match("^This .+'s illustration is unavailable%. Its saved ID has been preserved%.$")then return E.L['The saved choice is unavailable. Its ID has been preserved.']end
+    return E.L[message]
+end
 local function width(page)return B.Width and B.Width(page)or 760 end
 local function grid(page,context)
     local tile=(width(page)-40)/3;local image=context and tile-12 or tile;local imageHeight=image/2
@@ -10,16 +31,16 @@ local function grid(page,context)
 end
 local function sizeTile(tile,g,context)
     tile:SetSize(g.tile,g.height);tile.text:ClearAllPoints();tile.text:SetPoint('TOPLEFT',6,-g.titleY)
-    tile.text:SetWidth(g.tile-12);tile.text:SetHeight(g.titleHeight);tile.text:SetFont('Fonts\\FRIZQT__.TTF',context and 12 or 13,'')
+    tile.text:SetWidth(g.tile-12);tile.text:SetHeight(g.titleHeight);tile.text:SetFont(E.Font(),context and 12 or 13,'')
     tile.status:ClearAllPoints();tile.status:SetPoint('TOPLEFT',6,-g.titleY-g.titleHeight-4);tile.status:SetWidth(g.tile-12);tile.status:SetHeight(22);tile.status:SetMaxLines(2)
     if context then tile.status:Hide()else tile.status:Show()end
 end
 for _,pair in ipairs({{"artControl","calendarControl"},{"artLocationRow","questRow"}})do B.widgetFactories[pair[1]]=B.widgetFactories[pair[2]]end
 B.widgetFactories.artTile=function(parent)
     local f=CreateFrame("Button",nil,parent)
-    f.text=f:CreateFontString(nil,"OVERLAY");f.text:SetFont("Fonts\\FRIZQT__.TTF",13,"");f.text:SetTextColor(.29,.19,.11)
+    f.text=f:CreateFontString(nil,"OVERLAY");f.text:SetFont(E.Font(),13,"");f.text:SetTextColor(.29,.19,.11)
     f.text:SetWidth(228);f.text:SetHeight(34);f.text:SetMaxLines(2);f.text:SetJustifyH("LEFT");f.text:SetJustifyV("TOP");f.text:SetPoint("TOPLEFT",6,-124)
-    f.status=f:CreateFontString(nil,"OVERLAY");f.status:SetFont("Fonts\\FRIZQT__.TTF",10,"");f.status:SetTextColor(.54,.40,.23)
+    f.status=f:CreateFontString(nil,"OVERLAY");f.status:SetFont(E.Font(),10,"");f.status:SetTextColor(.54,.40,.23)
     f.status:SetWidth(228);f.status:SetJustifyH("LEFT");f.status:SetPoint("TOPLEFT",6,-162)
     f.accent=f:CreateTexture(nil,"ARTWORK");f.accent:SetWidth(3);f.accent:SetPoint("TOPLEFT");f.accent:SetPoint("BOTTOMLEFT");f.accent:SetColorTexture(.52,.23,.12,1)
     f:SetHighlightTexture("Interface\\Buttons\\WHITE8X8");f:GetHighlightTexture():SetAlpha(.08);return f
@@ -40,14 +61,14 @@ local function navigation(page,rows,key,size,state,redraw)
     local B=state or B;redraw=redraw or E.Book.Render
     local _,_,count=bounds(rows,key,size,B);local buttons={}
     if B.navigation then B.navigation(B[key],count,function(delta)B[key]=B[key]+delta;redraw(true)end);return end
-    if B[key]>1 then buttons[#buttons+1]={"Previous page",function()B[key]=B[key]-1;redraw(true)end}end
-    if B[key]<count then buttons[#buttons+1]={"Next page",function()B[key]=B[key]+1;redraw(true)end}end
+    if B[key]>1 then buttons[#buttons+1]={E.L["Previous page"],function()B[key]=B[key]-1;redraw(true)end}end
+    if B[key]<count then buttons[#buttons+1]={E.L["Next page"],function()B[key]=B[key]+1;redraw(true)end}end
     if #buttons>0 then controls(page,buttons,2)end
 end
-local function title(row)return row.title=="Brief not written"and row.type.." illustration "..row.slot.." - planned"or row.title end
+local function title(row)return row.title=="Brief not written"and E.Format('{type} illustration {slot} · Planned',{type=E.L[row.type],slot=row.slot})or row.title end
 local function previewCaption(page,row,fontSize)
     B.Text(page,title(row),24)
-    local collection=R.CollectionName(row)
+    local collection=V.CollectionName(row)
     if row.mob and row.sceneZone and row.combatAction then
         B.Text(page,collection.." · "..row.mob.." · "..row.sceneZone,13)
         B.Text(page,row.combatAction.." "..(row.humor or ""),fontSize)
@@ -78,7 +99,7 @@ function V.Image(page,row,width,height,thumbnail,framed)
     local frame=B.Acquire(page,"artImage"); frame:SetSize(width,height)
     if not frame.image then
         frame.image=frame:CreateTexture(nil,"ARTWORK"); frame.image:SetAllPoints()
-        frame.message=frame:CreateFontString(nil,"OVERLAY"); frame.message:SetPoint("CENTER"); frame.message:SetFont("Fonts\\FRIZQT__.TTF",14,""); frame.message:SetTextColor(0.3,0.15,0.07)
+        frame.message=frame:CreateFontString(nil,"OVERLAY"); frame.message:SetPoint("CENTER"); frame.message:SetFont(E.Font(),14,""); frame.message:SetTextColor(0.3,0.15,0.07)
         frame:SetScript("OnHide",function(self)self:SetScript("OnUpdate",nil); A.Call("artRelease",self.image.SetTexture,self.image,nil); self.image:Hide()end)
     end
     frame.image:ClearAllPoints()
@@ -91,15 +112,15 @@ function V.Image(page,row,width,height,thumbnail,framed)
     end
     frame.message:SetWidth(width-20); frame.image:Hide(); frame.message:Show(); frame:SetScript("OnUpdate",nil)
     local texture=row and (thumbnail and row.thumbnail or row.texture)
-    if not texture then frame.message:SetText("Illustration not available yet")
-    elseif not assignImage(frame.image,texture) then frame.message:SetText("Illustration could not be loaded")
+    if not texture then frame.message:SetText(E.L["Illustration not available yet"])
+    elseif not assignImage(frame.image,texture) then frame.message:SetText(E.L["Illustration could not be loaded"])
     else
-        frame.message:SetText("Loading illustration…"); frame.elapsed=0
+        frame.message:SetText(E.L["Loading illustration…"]); frame.elapsed=0
         local function check(self,delta)
             self.elapsed=self.elapsed+(delta or 0)
             if A.Call("artTextureLoaded",self.image.IsObjectLoaded,self.image)==true then
                 self.image:Show(); self.message:Hide(); self:SetScript("OnUpdate",nil)
-            elseif self.elapsed>=5 then self.message:SetText("Illustration unavailable. Preview it again to retry."); self:SetScript("OnUpdate",nil)end
+            elseif self.elapsed>=5 then self.message:SetText(E.L["Illustration unavailable. Preview it again to retry."]); self:SetScript("OnUpdate",nil)end
         end
         frame:SetScript("OnUpdate",check); check(frame,0)
     end
@@ -112,39 +133,40 @@ function V.Render(left,right,context)
     local c=context and context.owner or B.Character();local location=R.locations[state.artLocation]
     if location and state.artCollection=="catalog" and not state.artChooser then
         local top=left.y
-        local label=B.Text(left,"Search (Enter)",12);label:SetWidth(150)
+        local label=B.Text(left,E.L["Search (Enter)"],12);label:SetWidth(150)
         local input=B.Input(left,state.artCatalogQuery or"",function(value)state.artCatalogQuery=value;state.artPreview=nil;state.artMode=nil;state.artPage=1;state.artError=nil;redraw(true)end)
         input:ClearAllPoints();input:SetPoint('TOPLEFT',left.content,'TOPLEFT',178,-top);input:SetSize(width(left)-166,30);left.y=top+38
     else
-        controls(left,{{location and"Decorating: "..location.name or"Choose a location",function()state.artChooser=not state.artChooser;redraw()end,state.artChooser}},1)
+        controls(left,{{location and E.Format("Decorating: {location}",{location=V.LocationName(location)})or E.L["Choose a location"],function()state.artChooser=not state.artChooser;redraw()end,state.artChooser}},1)
     end
     if state.artChooser or not location then
         local types={};for _,kind in ipairs({"all","Zone","Dungeon","Raid"})do local value=kind
-            types[#types+1]={kind=="all"and"All types"or kind,function()state.artType=value;state.artLocationPage=1;redraw(true)end,(state.artType or"all")==kind}
+            types[#types+1]={E.L[kind=="all"and"All types"or kind],function()state.artType=value;state.artLocationPage=1;redraw(true)end,(state.artType or"all")==kind}
         end;controls(left,types,4)
-        B.Text(left,"Find a location; Enter to search",12)
+        B.Text(left,E.L["Find a location; Enter to search"],12)
         B.Input(left,state.artQuery or"",function(value)state.artQuery=value;state.artLocationPage=1;redraw(true)end)
-        local locations=R.Locations(state.artType,state.artQuery);V.lastLocations=locations
+        local locations={};local query=(state.artQuery or ""):lower();local original={};for _,loc in ipairs(R.Locations(state.artType,state.artQuery))do original[loc.key]=true end
+        for _,loc in ipairs(R.Locations(state.artType))do if original[loc.key]or V.LocationName(loc):lower():find(query,1,true)then locations[#locations+1]=loc end end;V.lastLocations=locations
         local first,last,count=bounds(locations,"artLocationPage",6,state)
-        if #locations==0 then B.Text(left,"No catalog locations match this search.",15)end
-        if count>1 then B.Text(left,"Locations / Page "..state.artLocationPage.." of "..count,12)end
+        if #locations==0 then B.Text(left,E.L["No catalog locations match this search."],15)end
+        if count>1 then B.Text(left,E.Format("Locations · Page {page} of {pages}",{page=state.artLocationPage,pages=count}),12)end
         for i=first,last do local loc=locations[i];local f=B.Acquire(left,"artLocationRow")
             f:SetWidth(width(left));f.text:SetWidth(width(left)-186);f.status:SetWidth(150);f.meta:SetWidth(width(left)-24)
-            f.text:SetText(E.Text(loc.name));f.status:SetText(loc.type);f.meta:SetText("Nine dedicated scenes + the anywhere collection")
+            f.text:SetText(E.Text(V.LocationName(loc)));f.status:SetText(E.L[loc.type]);f.meta:SetText(E.L["Nine dedicated scenes + the anywhere collection"])
             local h=math.max(f.text:GetStringHeight(),f.status:GetStringHeight());f.meta:ClearAllPoints();f.meta:SetPoint("TOPLEFT",12,-h-18);f:SetHeight(h+f.meta:GetStringHeight()+30)
             f.tint:SetAlpha(state.artLocation==loc.key and 1 or 0);f.accent:SetAlpha(state.artLocation==loc.key and 1 or 0)
             f:SetScript("OnClick",function()state.artLocation=loc.key;state.artMode=nil;state.artChooser=false;state.artPreview=nil;state.artPage=1;state.artError=nil;redraw(true)end);left.y=left.y+f:GetHeight()
         end;navigation(left,locations,"artLocationPage",6,state,redraw)
     end
     if not location then
-        B.Text(right,"A LITTLE CHARACTER FOR EVERY CHAPTER",11);B.Text(right,"Choose a place to decorate",29)
-        B.Text(right,"Pick a zone, dungeon or raid on the left. Preview a scene, then save it for this character's pages.",17)
-        B.Text(right,"Nine dedicated illustrations belong to each location. The 27 anywhere illustrations form their own collection.",15)
-        B.Text(right,"Location coverage and final artwork review remain in progress.",13);V.lastPreview=nil;return
+        B.Text(right,E.L["A LITTLE CHARACTER FOR EVERY CHAPTER"],11);B.Text(right,E.L["Choose a place to decorate"],29)
+        B.Text(right,E.L["Pick a zone, dungeon or raid on the left. Preview a scene, then save it for this character's pages."],17)
+        B.Text(right,E.L["Nine dedicated illustrations belong to each location. The 27 anywhere illustrations form their own collection."],15)
+        B.Text(right,E.L["Location coverage and final artwork review remain in progress."],13);V.lastPreview=nil;return
     end
     local current,message=R.Resolve(c,location.key)
     local options={};for _,option in ipairs({{"all","Local + anywhere"},{"local","This location's nine"},{"anywhere","Anywhere collection"},{"catalog","All illustrations"}})do local value=option[1]
-        options[#options+1]={option[2],function()state.artCollection=value;state.artCategory=nil;state.artTag=nil;state.artMode=nil;state.artPreview=nil;state.artPage=1;state.artError=nil;redraw(true)end,(state.artCollection or"all")==value}
+        options[#options+1]={E.L[option[2]],function()state.artCollection=value;state.artCategory=nil;state.artTag=nil;state.artMode=nil;state.artPreview=nil;state.artPage=1;state.artError=nil;redraw(true)end,(state.artCollection or"all")==value}
     end
     local rows=R.Choices(location.key,state.artCollection,state.artCatalogQuery,state.artCategory,state.artTag);local preview=R.rows[state.artPreview];local included={}
     for _,row in ipairs(rows)do included[row.id]=true end
@@ -152,45 +174,45 @@ function V.Render(left,right,context)
     V.lastPreview=preview;V.lastChoices=rows
     if not state.artChooser then
         controls(left,options,4)
-        local first,last,count=bounds(rows,"artPage",pageSize,state);B.Text(left,"The collection / Page "..state.artPage.." of "..count.." / Click a scene to preview",12)
+        local first,last,count=bounds(rows,"artPage",pageSize,state);B.Text(left,E.Format("The collection · Page {page} of {pages} · Click a scene to preview",{page=state.artPage,pages=count}),12)
         local top=left.y
         for i=first,last do local row=rows[i];local n=i-first;local x=12+(n%3)*(geometry.tile+20);local y=top+math.floor(n/3)*stride
             left.y=y;local frame=V.Image(left,row,geometry.image,geometry.imageHeight,true);frame:ClearAllPoints();frame:SetPoint("TOPLEFT",left.content,"TOPLEFT",x+(context and 6 or 0),-y)
             local tile=B.Acquire(left,"artTile");tile:ClearAllPoints();tile:SetPoint("TOPLEFT",left.content,"TOPLEFT",x,-y);sizeTile(tile,geometry,context)
-            tile.artID=row.id;tile.text:SetText(E.Text(title(row)));tile.status:SetText((current and current.id==row.id and"SAVED / "or"")..(row.type=="Anywhere"and"Anywhere"or"Dedicated")..(row.texture and""or" / Not bundled"))
+            tile.artID=row.id;tile.text:SetText(E.Text(title(row)));tile.status:SetText((current and current.id==row.id and (E.locale=="enUS"and"SAVED"or E.L["Saved"]).." / "or"")..E.L[row.type=="Anywhere"and"Anywhere"or"Dedicated"]..(row.texture and""or" / "..E.L["Not bundled"]))
             tile.accent:SetAlpha(preview and preview.id==row.id and 1 or 0);tile:SetScript("OnClick",function()state.artPreview=row.id;state.artMode=nil;state.artError=nil;redraw(true)end)
         end
         left.y=top+math.ceil(math.max(0,last-first+1)/3)*stride;navigation(left,rows,"artPage",pageSize,state,redraw)
-        if #rows==0 then B.Text(left,"No available illustrations match this search.",16)end
+        if #rows==0 then B.Text(left,E.L["No available illustrations match this search."],16)end
     end
-    B.Text(right,"DECORATING / "..location.type:upper(),11);B.Text(right,location.name,29)
-    B.Text(right,current and"Saved choice: "..current.title or message,13)
+    B.Text(right,E.Format("Decorating · {type}",{type=E.L[location.type]}),11);B.Text(right,V.LocationName(location),29)
+    B.Text(right,current and E.Format("Saved choice: {title}",{title=current.title})or V.Message(message),13)
     if preview then
         local actions={}
         if preview.texture then
             local function save()local row,err=R.Select(c,location.key,preview.id);state.artError=err;if row then state.artPreview=row.id end;return row~=nil end
             if context then
-                if state.artMode~="clear" then context.stage(save,"Apply keeps “"..title(preview).."” for "..location.name.." and closes this window.")end
-            else actions[#actions+1]={"Use for "..location.name,function()apply(save)end,current and current.id==preview.id}end
+                if state.artMode~="clear" then context.stage(save,E.Format("Apply keeps “{title}” for {location} and closes this window.",{title=title(preview),location=V.LocationName(location)}))end
+            else actions[#actions+1]={E.Format("Use for {location}",{location=V.LocationName(location)}),function()apply(save)end,current and current.id==preview.id}end
         end
         if #actions>0 then controls(right,actions,2)end
         V.Image(right,preview,width(right),410,false,true)
         previewCaption(right,preview,15)
-        if preview.texture then B.Text(right,preview.approved and"Decorative illustration"or"Development illustration / Final client review pending",12)
-        else B.Text(right,"This scene is planned but has no bundled texture. Your saved choice stays unchanged.",14)end
+        if preview.texture then B.Text(right,E.L[preview.approved and"Decorative illustration"or"Development illustration / Final client review pending"],12)
+        else B.Text(right,E.L["This scene is planned but has no bundled texture. Your saved choice stays unchanged."],14)end
     end
     if c.art and c.art[location.key]then
         local function clear()local ok=R.Clear(c,location.key);state.artError=nil;return ok end
-        controls(right,{{"Clear this location's choice",function()if context then state.artMode="clear";redraw()else apply(clear)end end,state.artMode=="clear"}},2)
-        if context and state.artMode=="clear"then context.stage(clear,"Apply removes this location’s saved choice and closes this window.")end
+        controls(right,{{E.L["Clear this location's choice"],function()if context then state.artMode="clear";redraw()else apply(clear)end end,state.artMode=="clear"}},2)
+        if context and state.artMode=="clear"then context.stage(clear,E.L["Apply removes this location’s saved choice and closes this window."])end
     end
-    if state.artError then B.Text(right,state.artError,14)end
-    B.Text(right,"Previewing does not save a choice. Decorative illustrations never replace captured screenshots or change the facts of a memory.",13)
+    if state.artError then B.Text(right,V.Message(state.artError),14)end
+    B.Text(right,E.L["Previewing does not save a choice. Decorative illustrations never replace captured screenshots or change the facts of a memory."],13)
 end
 function V.Record(page,c,record)
     if record.kind=="milestone"and not R.CanCustomize(c,record)then return end
     if record.kind=='milestone'and R.CanCustomize(c,record)then
-        B.Action(page,"Choose milestone illustration",function()E.ArtDialog.OpenRecord(record)end)
+        B.Action(page,E.L["Choose milestone illustration"],function()E.ArtDialog.OpenRecord(record)end)
     end
     local overridden=record.artMode=='fixed'or record.artMode=='none'or record.artMode=='location'
     local milestones=not overridden and R.MilestoneChoices(c,record)or{}
@@ -203,31 +225,31 @@ function V.Record(page,c,record)
         for i,entry in ipairs(milestones)do if entry.milestone==choice.threshold then selected=i;break end end
         choice.threshold=milestones[selected].milestone
         local weapon=R.weapons["weapon-skill-"..record.skillID]
-        local name=weapon and weapon.name or record.skillName or "Weapon skill"
-        B.Text(page,name.." / "..choice.threshold.." points",18)
+        local name=weapon and E.L[weapon.name]or record.skillName or E.L["Weapon skill"]
+        B.Text(page,E.Format("{skill} · {points} points",{skill=name,points=choice.threshold}),18)
         if #milestones>1 then
             local actions={}
             local function choose(index)return function()choice.threshold=milestones[index].milestone;B.Render()end end
-            if selected>1 then actions[#actions+1]={"Previous milestone",choose(selected-1)}end
-            if selected<#milestones then actions[#actions+1]={"Next milestone",choose(selected+1)}end
+            if selected>1 then actions[#actions+1]={E.L["Previous milestone"],choose(selected-1)}end
+            if selected<#milestones then actions[#actions+1]={E.L["Next milestone"],choose(selected+1)}end
             controls(page,actions,2)
-            B.Text(page,"Recorded milestones / "..selected.." of "..#milestones,12)
+            B.Text(page,E.Format("Recorded milestones · {index} of {count}",{index=selected,count=#milestones}),12)
         end
         local art=milestones[selected].art
-        if art then V.Image(page,art,width(page),410,false,true);B.Text(page,"Decorative illustration | "..R.CollectionName(art).." | "..art.title,12)
+        if art then V.Image(page,art,width(page),410,false,true);B.Text(page,E.L["Decorative illustration"].." | "..V.CollectionName(art).." | "..art.title,12)
         else
             local fallback=R.MilestoneFallback(c,record)
             if fallback then
                 V.Image(page,fallback,width(page),410,false,true)
-                B.Text(page,"Decorative artwork · "..choice.threshold.."-point illustration pending",12)
-            else B.Text(page,"No bundled illustration for "..name.." at "..choice.threshold.." points.",13)end
+                B.Text(page,E.Format("Decorative artwork · {points}-point illustration pending",{points=choice.threshold}),12)
+            else B.Text(page,E.Format("No bundled illustration for {skill} at {points} points.",{skill=name,points=choice.threshold}),13)end
         end
         return
     end
     local row,message,key=R.ForRecord(c,record)
-    if not row then if (record.kind=="memory"or record.kind=="milestone")and record.artMode=="fixed" then B.Text(page,message,14)end;return end
+    if not row then if (record.kind=="memory"or record.kind=="milestone")and record.artMode=="fixed" then B.Text(page,V.Message(message),14)end;return end
     V.Image(page,row,width(page),410,false,true)
-    B.Text(page,"Decorative illustration | "..R.CollectionName(row).." | "..row.title,12)
+    B.Text(page,E.L["Decorative illustration"].." | "..V.CollectionName(row).." | "..row.title,12)
 end
 -- Retained for earlier standalone review fixtures; production entry points use the dialog.
 function V.OpenMemoryInline(record)
@@ -239,11 +261,11 @@ function V.Memory(left,right,context)
     local pageSize=context and 9 or 6;local geometry=grid(left,context);local stride=geometry.stride
     local apply=context and context.apply or function(change)local ok=change();redraw();return ok end
     local c=context and context.owner or B.Character();local record=c.id==state.artMemoryCharacter and c.records[state.artMemoryID]
-    if not R.CanCustomize(c,record)then B.Text(right,"This entry is no longer available in this scrapbook.",18);return end
+    if not R.CanCustomize(c,record)then B.Text(right,E.L["This entry is no longer available in this scrapbook."],18);return end
     local milestone=record.kind=="milestone"or record.kind=="recap";local kind=record.kind
     local function back()B.memoryMode="saved";B.selected=record.id;B.memoryFocus=record.id;B.memoryEditing=false;state.artMemoryID=nil;redraw(true)end
-    if not context then controls(left,{{"Back to this memory",back}},1)end
-    B.Text(left,"Find a scene, mob, place or Easter egg (Enter)",12)
+    if not context then controls(left,{{E.L["Back to this memory"],back}},1)end
+    B.Text(left,E.L["Find a scene, mob, place or Easter egg (Enter)"],12)
     B.Input(left,state.memoryArtQuery or "",function(value)state.memoryArtQuery=value;state.memoryArtMode=nil;state.memoryArtPage=1;state.memoryArtPreview=nil;redraw(true)end)
     local rows=R.MemoryChoices(state.memoryArtQuery,state.artCategory,state.artTag);V.lastMemoryChoices=rows
     local first,last,count=bounds(rows,"memoryArtPage",pageSize,state);local included={};for _,row in ipairs(rows)do included[row.id]=true end
@@ -258,51 +280,51 @@ function V.Memory(left,right,context)
     elseif follow then preview,locationMessage,locationKey=R.LocationChoice(c,record)
     elseif noArt then preview=nil end
     V.lastMemoryPreview=preview
-    B.Text(left,#rows.." available scenes / Page "..state.memoryArtPage.." of "..count,12)
+    B.Text(left,E.Format("Available scenes: {count} · Page {page} of {pages}",{count=#rows,page=state.memoryArtPage,pages=count}),12)
     local top=left.y
     for i=first,last do local row=rows[i];local n=i-first;local x=12+(n%3)*(geometry.tile+20);local y=top+math.floor(n/3)*stride
         left.y=y;local frame=V.Image(left,row,geometry.image,geometry.imageHeight,true);frame:ClearAllPoints();frame:SetPoint("TOPLEFT",left.content,"TOPLEFT",x+(context and 6 or 0),-y)
         local tile=B.Acquire(left,"artTile");tile:ClearAllPoints();tile:SetPoint("TOPLEFT",left.content,"TOPLEFT",x,-y);sizeTile(tile,geometry,context)
-        tile.artID=row.id;tile.text:SetText(E.Text(title(row)));tile.status:SetText(record.artMode=="fixed" and record.artID==row.id and "SAVED FOR THIS "..record.kind:upper() or "Decorative illustration")
+        tile.artID=row.id;tile.text:SetText(E.Text(title(row)));tile.status:SetText(E.L[record.artMode=="fixed" and record.artID==row.id and "Saved for this entry" or "Decorative illustration"])
         tile.accent:SetAlpha(preview and preview.id==row.id and 1 or 0);tile:SetScript("OnClick",function()state.memoryArtPreview=row.id;state.memoryArtMode="fixed";redraw(true)end)
     end
     left.y=top+math.ceil(math.max(0,last-first+1)/3)*stride;navigation(left,rows,"memoryArtPage",pageSize,state,redraw)
-    if #rows==0 then B.Text(left,"No available illustrations match this search.",16)end
-    B.Text(right,"AN ILLUSTRATION FOR THIS "..kind:upper(),11);B.Text(right,record.title or (milestone and"Personal milestone"or"Personal memory"),29)
+    if #rows==0 then B.Text(left,E.L["No available illustrations match this search."],16)end
+    B.Text(right,E.L["An illustration for this entry"],11);B.Text(right,(E.Display and E.Display.RecordTitle(record))or record.title or E.L[milestone and"Personal milestone"or"Personal memory"],29)
     local current,message,currentKey=R.ForRecord(c,record)
     if milestone and record.artMode==nil then
         current=default
-        if pendingThreshold then message="Decorative artwork · "..pendingThreshold.."-point illustration pending"end
+        if pendingThreshold then message=E.Format("Decorative artwork · {points}-point illustration pending",{points=pendingThreshold})end
     end
     local savedLocation=R.locations[currentKey]
-    B.Text(right,record.artMode=="fixed" and (current and "Kept illustration: "..current.title or message) or record.artMode=="none" and "No illustration selected." or milestone and record.artMode~="location"and("Default artwork: "..(current and current.title or message or"No illustration available"))or (savedLocation and "Following location: "..savedLocation.name or "No matching artwork location."),14)
+    B.Text(right,record.artMode=="fixed" and (current and E.Format("Kept illustration: {title}",{title=current.title})or V.Message(message)) or record.artMode=="none" and E.L["No illustration selected."] or milestone and record.artMode~="location"and(E.Format("Default artwork: {title}",{title=current and current.title or V.Message(message)~=""and V.Message(message)or E.L["No illustration available"]}))or (savedLocation and E.Format("Following location: {location}",{location=V.LocationName(savedLocation)}) or E.L["No matching artwork location."]),14)
     local function save(mode,id)return function()local ok,err=R.SelectRecord(c,record.id,mode,id);state.artError=err;return ok end end
     local function select(mode,id)if context then state.memoryArtMode=mode;redraw()else apply(save(mode,id))end end
-    local modes={{"Follow location",function()select("location")end,state.memoryArtMode=="location"},{"No illustration",function()select("none")end,state.memoryArtMode=="none"}}
-    if milestone then table.insert(modes,1,{"Use default",function()select("default")end,state.memoryArtMode=="default"})end
+    local modes={{E.L["Follow location"],function()select("location")end,state.memoryArtMode=="location"},{E.L["No illustration"],function()select("none")end,state.memoryArtMode=="none"}}
+    if milestone then table.insert(modes,1,{E.L["Use default"],function()select("default")end,state.memoryArtMode=="default"})end
     controls(right,modes,milestone and 3 or 2)
     if follow then
         local location=R.locations[locationKey]
-        if location then B.Text(right,"Location preview · "..location.name,14)end
-        if not preview then B.Text(right,locationMessage,14)end
+        if location then B.Text(right,E.Format("Location preview · {location}",{location=V.LocationName(location)}),14)end
+        if not preview then B.Text(right,V.Message(locationMessage),14)end
     elseif noArt then
-        B.Text(right,"This page will have no illustration.",14)
+        B.Text(right,E.L["This page will have no illustration."],14)
     end
     if preview then
-        if not context then controls(right,{{"Use for this memory",function()select("fixed",preview.id)end}},1)end
+        if not context then controls(right,{{E.L["Use for this memory"],function()select("fixed",preview.id)end}},1)end
         V.Image(right,preview,width(right),410,false,true)
-        if defaultPreview and pendingThreshold then B.Text(right,"Decorative artwork · "..pendingThreshold.."-point illustration pending",12)end
+        if defaultPreview and pendingThreshold then B.Text(right,E.Format("Decorative artwork · {points}-point illustration pending",{points=pendingThreshold}),12)end
         previewCaption(right,preview,14)
     end
     if context then
         local mode=state.memoryArtMode or "fixed"
-        if mode=="default"and milestone then context.stage(save(mode),"Apply restores this "..kind.."’s automatic artwork and closes this window.")
-        elseif mode=="location"then context.stage(save(mode),"Apply makes this "..kind.." follow its location’s artwork and closes this window.")
-        elseif mode=="none"then context.stage(save(mode),"Apply removes this "..kind.."’s illustration and closes this window.")
-        elseif preview then context.stage(save("fixed",preview.id),"Apply keeps “"..title(preview).."” with this "..kind.." and closes this window.")end
+        if mode=="default"and milestone then context.stage(save(mode),E.L["Apply restores this entry’s automatic artwork and closes this window."])
+        elseif mode=="location"then context.stage(save(mode),E.L["Apply makes this entry follow its location’s artwork and closes this window."])
+        elseif mode=="none"then context.stage(save(mode),E.L["Apply removes this entry’s illustration and closes this window."])
+        elseif preview then context.stage(save("fixed",preview.id),E.Format("Apply keeps “{title}” with this entry and closes this window.",{title=title(preview)}))end
     end
-    if state.artError then B.Text(right,state.artError,14)end
-    B.Text(right,"Previewing does not save a choice. Illustration choices never edit your words or the linked historical records.",12)
+    if state.artError then B.Text(right,V.Message(state.artError),14)end
+    B.Text(right,E.L["Previewing does not save a choice. Illustration choices never edit your words or the linked historical records."],12)
 end
 
 function V.OpenMemory(record)return E.ArtDialog.OpenMemory(record)end

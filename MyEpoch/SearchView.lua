@@ -11,7 +11,7 @@ chapters.stock_move='Gold'
 chapters.stock_reset='Gold'
 function V.Open(hit)
     local c=B.Character()
-    if hit.character~=c.id then unavailable("This result belongs to another scrapbook. Search this character again."); return false end
+    if hit.character~=c.id then unavailable(E.L["This result belongs to another scrapbook. Search this character again."]); return false end
     if B.chapter=="Search" then B.searchReturnScroll=B.right.scroll:GetVerticalScroll()end
     B.searchHit=hit.id or hit.record or hit.noteKey and "note:"..hit.noteKey
     B.searchError=nil; B.searchNoteKey=nil; B.searchOrigin=true
@@ -19,12 +19,12 @@ function V.Open(hit)
         local r=c.records[hit.record]
         if (hit.kind=="encounter_loot" or r and r.kind=="encounter_loot") and (not r or r.id~=hit.record
             or hit.kind and hit.kind~=r.kind or not E.EncounterLoot.Valid(c,r) or hit.encounterSource and hit.encounterSource~=r)then
-            unavailable("This encounter loot notice is no longer available.");return false
+            unavailable(E.L["This encounter loot notice is no longer available."]);return false
         end
         if (hit.kind=="quest_reward" or r and r.kind=="quest_reward") and (not r or not E.QuestRewards.Valid(c,r)
-            or hit.rewardSource and hit.rewardSource~=r)then unavailable("This quest reward event is no longer available.");return false end
+            or hit.rewardSource and hit.rewardSource~=r)then unavailable(E.L["This quest reward event is no longer available."]);return false end
         if not r or (hit.kind=="chat" or r.kind=="chat") and (r.id~=hit.record or r.character~=c.id
-            or hit.kind=="chat" and r.kind~="chat" or hit.quoteSource~=nil and (hit.quoteSource~=r or hit.group~=r.group)) then unavailable("This source record is no longer available. It has not been replaced with a different entry."); return false end
+            or hit.kind=="chat" and r.kind~="chat" or hit.quoteSource~=nil and (hit.quoteSource~=r or hit.group~=r.group)) then unavailable(E.L["This source record is no longer available. It has not been replaced with a different entry."]); return false end
         B.chapter=chapters[r.kind] or "Search"; B.selected=r.id; B.page=1; B.killMode=nil
         if B.chapter=="Company" then B.companyMode=r.kind=="pull" and "pulls" or "sessions" end
         if r.kind=="pull"then B.pullQuery=nil;B.pullPage=1 end
@@ -61,7 +61,7 @@ function V.Open(hit)
         if questID and E.QuestAtlas.Completed(c,questID)==true then B.chapter="Quests"; B.questAtlasID=questID; B.questZone="all"; B.questFilter="all"; B.questQuery=""; B.selected=nil
         elseif day then B.chapter="Calendar"; B.day=day; B.selected=nil; B.page=1; B.calendarDiaryOpen=true
         else B.chapter="Search"; B.selected=nil; B.searchNoteKey=hit.noteKey end
-    else unavailable("These saved notes are no longer available."); return false end
+    else unavailable(E.L["These saved notes are no longer available."]); return false end
     B.Render(true); return true
 end
 local T=E.BookTheme
@@ -98,109 +98,132 @@ local names={encounter_loot="Encounter loot notice",quest_reward="Quest reward e
     loot="Loot",drop="Observed drop",loot_window="Loot window",crafted="Crafted",gathered="Gathered",craft_request="Craft request",craft_begin="Recipe start",craft_result="Craft result",gather_action="Gathering action",
     gold="Gold",balance="Balance",merchant="Merchant",auction="Auction observation",trade="Trade",trade_offer="Trade offer",trade_notice="Trade notification",item_sale="Sale",sale_return="Return",cost_lot="Cost basis",inventory="Inventory",inventory_gap="Inventory gap",
     bank="Bank",bank_gap="Bank gap",milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Screenshot reference",recap="Recap",diary="Daily diary",play="Play time",note="Saved notes"}
+names.mail='Mail';names.mail_scan='Mailbox observation';names.mail_collection='Mail collection'
+names.mail_request='Mail request';names.mail_notice='Mail notification';names.mail_draft='Mail draft'
+names.stock_move='Inventory outflow';names.stock_reset='Inventory baseline'
+local function hitTitle(hit,source)
+    if source then return E.Display.RecordTitle(source)end
+    if hit.kind=='note'and hit.noteKey then
+        local questID=tonumber(hit.noteKey:match('^quest:(%d+)$'))
+        if questID then return E.Format('Quest notes - {quest}',{quest=E.Display.Quest(questID,(hit.title or ''):match('^Quest notes %- (.*)$'))})end
+        if hit.day then return E.Format('Notes - {date}',{date=hit.day})end
+        return E.L['Saved notes (source unavailable)']
+    end
+    return hit.title
+end
+function V.Excerpt(hit,source,query)
+    -- Preserve actual matched wording. An unfiltered overview need not expose
+    -- the English search-index tokens used internally for generated records.
+    if E.locale~='enUS'and(query or'')==''and source and not hit.matchedNotes
+        and source.kind~='memory'and source.kind~='chat'and source.kind~='screenshot'then return ''end
+    return hit.excerpt or ''
+end
 function V.Render(left,right)
     V.lastResult=nil;V.pending=nil;V.freshness=nil;local c=B.Character()
-    heading(left,"CHAPTER X - FOLLOW A THREAD","Find a thread")
-    B.Text(left,"Search this character's scrapbook, including saved words and original records.",14)
-    B.Text(left,"Search the book; Enter to apply",12)
+    heading(left,E.L["CHAPTER X - FOLLOW A THREAD"],E.L["Find a thread"])
+    B.Text(left,E.L["Search this character's scrapbook, including saved words and original records."],14)
+    B.Text(left,E.L["Search the book; Enter to apply"],12)
     local input=B.Input(left,B.searchDraft or B.search or"",function(value)apply(value)end)
     input:SetScript("OnTextChanged",function(self,user)if user then B.searchDraft=self:GetText()end end)
-    controls(left,{{"Search the book",function()apply(B.searchDraft or B.search or"")end},{"Clear search",function()apply("")end}},2)
-    local filterName="Everything";for _,filter in ipairs(X.filters)do if B.searchFilter==filter[1]then filterName=filter[2]end end
+    controls(left,{{E.L["Search the book"],function()apply(B.searchDraft or B.search or"")end},{E.L["Clear search"],function()apply("")end}},2)
+    local filterName=E.L["Everything"];for _,filter in ipairs(X.filters)do if B.searchFilter==filter[1]then filterName=E.L[filter[2]]end end
     B.Navigation.Controls(function(left)
-    B.Navigation.Branch(left,"Record type: "..filterName,B.searchFiltersOpen,function()B.searchFiltersOpen=not B.searchFiltersOpen;B.Render()end,function(left)
+    B.Navigation.Branch(left,E.Format("Record type: {type}",{type=filterName}),B.searchFiltersOpen,function()B.searchFiltersOpen=not B.searchFiltersOpen;B.Render()end,function(left)
         local rows={};for _,filter in ipairs(X.filters)do local key=filter[1]
-            rows[#rows+1]={filter[2],function()B.searchFiltersOpen=false;apply(B.searchDraft or B.search,key)end,(B.searchFilter or"all")==key}
+            rows[#rows+1]={E.L[filter[2]],function()B.searchFiltersOpen=false;apply(B.searchDraft or B.search,key)end,(B.searchFilter or"all")==key}
         end;B.Navigation.Grid(left,rows,1,true)
     end)
     end)
     left.y=left.y+12
-    paper(left,"One character, one history.","Find recorded quests, loot, company, conversations, progress and keepsakes. Open a result to return to its original page; your notes stay separate from generated writing.")
-    B.Text(left,"Words are matched literally, on this device. Unknown dates stay unknown. Unsaved drafts are not indexed.",13)
-    if B.searchError or B.searchNoteKey or B.selected then controls(left,{{"Back to search results",V.Return}},2)end
-    if B.searchError then heading(right,"A MISSING THREAD","Source unavailable");B.Text(right,B.searchError,17);return end
+    paper(left,E.L["One character, one history."],E.L["Find recorded quests, loot, company, conversations, progress and keepsakes. Open a result to return to its original page; your notes stay separate from generated writing."])
+    B.Text(left,E.L["Words are matched literally, on this device. Unknown dates stay unknown. Unsaved drafts are not indexed."],13)
+    if B.searchError or B.searchNoteKey or B.selected then controls(left,{{E.L["Back to search results"],V.Return}},2)end
+    if B.searchError then heading(right,E.L["A MISSING THREAD"],E.L["Source unavailable"]);B.Text(right,B.searchError,17);return end
     if B.searchNoteKey then
-        heading(right,"YOUR SAVED WORDS","Saved notes")
+        heading(right,E.L["YOUR SAVED WORDS"],E.L["Saved notes"])
         local note=c.notes[B.searchNoteKey]
         if note then
-            paper(right,"The words remain.","These notes do not have an available source page. Their edit date does not establish when the original event happened.")
-            if note.updated then B.Text(right,"Last edited: "..A.Date(note.updated),13)end
+            paper(right,E.L["The words remain."],E.L["These notes do not have an available source page. Their edit date does not establish when the original event happened."])
+            if note.updated then B.Text(right,E.Format("Last edited: {date}",{date=A.Date(note.updated)}),13)end
             B.Note(right,B.searchNoteKey)
-        else B.Text(right,"These notes are no longer available.",17)end
+        else B.Text(right,E.L["These notes are no longer available."],17)end
         return
     end
     if not X.IsReady(c)then
         local ready,done,total=X.WarmStep(c,200)
         if not ready then
-            heading(right,"GATHERING YOUR PAGES","Preparing your history")
-            B.Text(right,"Preparing local search: "..done.." / "..total.." source records",16)
-            B.Text(right,"Your history is being indexed in small batches. Your typed search is preserved.",14);return
+            heading(right,E.L["GATHERING YOUR PAGES"],E.L["Preparing your history"])
+            B.Text(right,E.Format("Preparing local search: {done} / {total} source records",{done=done,total=total}),16)
+            B.Text(right,E.L["Your history is being indexed in small batches. Your typed search is preserved."],14);return
         end
     end
     local result,pending=X.Request(c,B.search,B.searchFilter,B.searchPage,8,true)
     if not result and pending.phase=="index" then
-        heading(right,"GATHERING YOUR PAGES","Updating your index")
-        B.Text(right,"Reading changed pages and saved notes.",14);return
+        heading(right,E.L["GATHERING YOUR PAGES"],E.L["Updating your index"])
+        B.Text(right,E.L["Reading changed pages and saved notes."],14);return
     end
     if not result then
-        heading(right,"FOLLOWING YOUR THREAD","Searching your history")
-        V.pending={character=c,job=pending.job,label=B.Text(right,"Checking saved pages...",16)}
+        heading(right,E.L["FOLLOWING YOUR THREAD"],E.L["Searching your history"])
+        V.pending={character=c,job=pending.job,label=B.Text(right,E.L["Checking saved pages..."],16)}
         V.Progress(c,pending.job)
-        B.Text(right,"Searching and ordering results in small batches. You can change the search or return later.",14)
-        B.Text(right,"If history changes during the search, the results will offer a refresh. Unsaved words stay in the search box.",14);return
+        B.Text(right,E.L["Searching and ordering results in small batches. You can change the search or return later."],14)
+        B.Text(right,E.L["If history changes during the search, the results will offer a refresh. Unsaved words stay in the search box."],14);return
     end
     V.lastResult=result;B.searchPage=result.page
-    heading(right,"SEARCH RESULTS",result.total>0 and result.total..(result.total==1 and" matching record"or" matching records")or"No matching pages")
-    B.Text(right,filterName..((B.search or"")~=""and" / "..B.search or" / All recorded dates"),13)
-    V.freshness={character=c,label=B.Text(right,result.changed and "History changed. Search again to refresh these results." or "Results from this search. Search again to include later changes.",12)}
+    heading(right,E.L["SEARCH RESULTS"],result.total>0 and E.Format(result.total==1 and "{count} matching record" or "{count} matching records",{count=result.total})or E.L["No matching pages"])
+    B.Text(right,filterName..((B.search or"")~=""and" / "..B.search or" / "..E.L["All recorded dates"]),13)
+    V.freshness={character=c,label=B.Text(right,result.changed and E.L["History changed. Search again to refresh these results."] or E.L["Results from this search. Search again to include later changes."],12)}
     if result.total==0 then
-        paper(right,"A thread still to find.","Try a name, a place, an item or words you remember. Choose Everything to include all record types. Only recorded history and saved notes can appear here.");return
+        paper(right,E.L["A thread still to find."],E.L["Try a name, a place, an item or words you remember. Choose Everything to include all record types. Only recorded history and saved notes can appear here."]);return
     end
-    if result.pages>1 then B.Text(right,"Page "..result.page.." of "..result.pages,12)end
+    if result.pages>1 then B.Text(right,E.Format("Page {page} of {pages}",{page=result.page,pages=result.pages}),12)end
     for _,hit in ipairs(result.hits)do
         local f=B.Acquire(right,"searchRow");f:SetWidth(B.Width(right));f.hitID=hit.id
-        f.text:SetText(E.Text(hit.title));f.status:SetText(hit.attribution or names[hit.kind]or hit.kind)
-        f.meta:SetFont("Fonts\\FRIZQT__.TTF",13,"")
-        f.meta:SetText(E.Text((hit.ts and A.RecordDate(hit)or"Event date unknown")..(hit.zone and" / "..hit.zone or"")..(hit.matchedNotes and((B.search or"")~=""and" / Matched saved notes"or" / Includes saved notes")or"").."\n"..hit.excerpt))
+        local source=hit.record and c.records[hit.record]
+        local zone=source and E.Display.Zone(source) or hit.zone
+        f.text:SetText(E.Text(hitTitle(hit,source)));f.status:SetText(E.L[hit.attribution or names[hit.kind]or hit.kind])
+        f.meta:SetFont(E.Font(),13,"")
+        local excerpt=V.Excerpt(hit,source,B.search)
+        f.meta:SetText(E.Text((hit.ts and A.RecordDate(hit)or E.L["Event date unknown"])..(zone and " / "..zone or "")..(hit.matchedNotes and((B.search or"")~=""and" / "..E.L["Matched saved notes"]or" / "..E.L["Includes saved notes"])or"")..(excerpt~=''and'\n'..excerpt or'')))
         local h=math.max(f.text:GetStringHeight(),f.status:GetStringHeight());f.meta:ClearAllPoints();f.meta:SetPoint("TOPLEFT",12,-h-20)
         f:SetHeight(math.max(88,h+f.meta:GetStringHeight()+38));f.tint:SetAlpha(B.searchHit==hit.id and 1 or 0);f.accent:SetAlpha(B.searchHit==hit.id and 1 or 0)
         f:SetScript("OnClick",function()V.Open(hit)end);right.y=right.y+f:GetHeight()
     end
     local pages={}
-    if result.page>1 then pages[#pages+1]={"Previous results",function()B.searchPage=B.searchPage-1;B.searchReturnScroll=0;B.Render(true)end}end
-    if result.page<result.pages then pages[#pages+1]={"More results",function()B.searchPage=B.searchPage+1;B.searchReturnScroll=0;B.Render(true)end}end
+    if result.page>1 then pages[#pages+1]={E.L["Previous results"],function()B.searchPage=B.searchPage-1;B.searchReturnScroll=0;B.Render(true)end}end
+    if result.page<result.pages then pages[#pages+1]={E.L["More results"],function()B.searchPage=B.searchPage+1;B.searchReturnScroll=0;B.Render(true)end}end
     if #pages>0 then right.y=right.y+10;controls(right,pages,2)end
 end
 function V.Transcript(page,group)
-    B.Text(page,"Group transcript",22)
+    B.Text(page,E.L["Group transcript"],22)
     B.Input(page,B.transcriptSearch or "",function(value)B.transcriptSearch=value; B.transcriptPage=1; B.transcriptHighlight=nil; B.Render()end)
     local rows=X.ReadTranscript(B.Character(),group.id,B.transcriptSearch)
     local pages=math.max(1,math.ceil(#rows/12)); B.transcriptPage=math.max(1,math.min(B.transcriptPage or 1,pages))
-    if #rows>0 then B.Text(page,#rows.." recorded messages | page "..B.transcriptPage.." of "..pages,13) end
+    if #rows>0 then B.Text(page,E.Format("{count} recorded messages | page {page} of {pages}",{count=#rows,page=B.transcriptPage,pages=pages}),13) end
     for i=(B.transcriptPage-1)*12+1,math.min(#rows,B.transcriptPage*12) do local r=rows[i]
-        B.Action(page,(B.transcriptHighlight==r.id and "> " or "")..A.Date(r.ts).." - "..(r.author or "Unknown speaker"),function()B.selected=r.id; B.Render()end)
+        B.Action(page,(B.transcriptHighlight==r.id and "> " or "")..A.Date(r.ts).." - "..(r.author or E.L["Unknown speaker"]),function()B.selected=r.id; B.Render()end)
         B.Text(page,r.text or "",15)
     end
-    if B.transcriptPage>1 then B.Action(page,"Earlier messages",function()B.transcriptPage=B.transcriptPage-1; B.Render()end) end
-    if B.transcriptPage<pages then B.Action(page,"Later messages",function()B.transcriptPage=B.transcriptPage+1; B.Render()end) end
-    if #rows==0 then B.Text(page,"No matching recorded messages. Unobserved or restricted chat is unavailable.",14) end
+    if B.transcriptPage>1 then B.Action(page,E.L["Earlier messages"],function()B.transcriptPage=B.transcriptPage-1; B.Render()end) end
+    if B.transcriptPage<pages then B.Action(page,E.L["Later messages"],function()B.transcriptPage=B.transcriptPage+1; B.Render()end) end
+    if #rows==0 then B.Text(page,E.L["No matching recorded messages. Unobserved or restricted chat is unavailable."],14) end
 end
 function V.ChatContext(page,r)
     local c=B.Character(); local group=r.group and c.records[r.group]
-    B.Text(page,"Conversation context",22)
+    B.Text(page,E.L["Conversation context"],22)
     if r.kind~="chat" or r.character~=c.id or c.records[r.id]~=r or not group or group.id~=r.group
-        or group.kind~="group" or group.character~=c.id then B.Text(page,"The group session is unavailable. This recorded message and its notes remain accessible.",14); return end
+        or group.kind~="group" or group.character~=c.id then B.Text(page,E.L["The group session is unavailable. This recorded message and its notes remain accessible."],14); return end
     local ready,message,view=X.PrepareTranscript(c,group.id,"",r)
-    if not ready then B.Text(page,message,15);return end
+    if not ready then B.Text(page,E.L[message],15);return end
     E.CompanyLayout.SnapshotNotice(page,c,group,r,view)
     local rows,positions=X.ReadTranscript(c,group.id,"",true)
     local position=positions[r]
-    B.Text(page,group.title.." | "..A.RecordDate(group),14)
-    B.Action(page,"Open this group's transcript",function()
+    B.Text(page,E.Display.RecordTitle(group).." | "..A.RecordDate(group),14)
+    B.Action(page,E.L["Open this group's transcript"],function()
         E.CompanyLayout.OpenQuoteTranscript(c,group,r)
     end)
     if position then for i=math.max(1,position-3),math.min(#rows,position+3) do local message=rows[i]
-        B.Text(page,(message.id==r.id and "> " or "")..A.RecordDate(message).." - "..(message.author or "Unknown speaker"),12)
+        B.Text(page,(message.id==r.id and "> " or "")..A.RecordDate(message).." - "..(message.author or E.L["Unknown speaker"]),12)
         B.Text(page,message.text or "",15)
     end end
 end
@@ -208,13 +231,13 @@ B.Search=V.Render
 function V.Progress(c,job)
     local pending=V.pending
     if B.chapter~="Search" or B.Character()~=c or not pending or pending.character~=c or pending.job~=job or not job then return end
-    pending.label:SetText(job.position<job.last and ("Checking saved pages: "..job.position.." / "..job.last)
-        or (job.matches==0 and "Finishing search..." or "Ordering matches: "..#job.rows.." / "..job.matches))
+    pending.label:SetText(job.position<job.last and (E.Format("Checking saved pages: {done} / {total}",{done=job.position,total=job.last}))
+        or (job.matches==0 and E.L["Finishing search..."] or E.Format("Ordering matches: {done} / {total}",{done=#job.rows,total=job.matches})))
 end
 E.On("SEARCH_PROGRESS",V.Progress)
 local function changed(c)
     if V.freshness and V.freshness.character==c and B.chapter=="Search" and B.Character()==c then
-        V.freshness.label:SetText("History changed. Search again to refresh these results.")
+        V.freshness.label:SetText(E.L["History changed. Search again to refresh these results."])
         if V.lastResult then V.lastResult.changed=true end
     end
 end

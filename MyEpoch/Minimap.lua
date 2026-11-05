@@ -86,9 +86,9 @@ function N.Start()
         f:SetScript("OnEnter",function()
             if N.dragging or not GameTooltip then return end
             GameTooltip:SetOwner(f,"ANCHOR_LEFT");GameTooltip:SetText("My Epoch",1,.85,.55)
-            if openingBlocked()then GameTooltip:AddLine("Opening is disabled during combat by your preference.",1,.7,.45)
-            else GameTooltip:AddLine("Left-click to open or close your scrapbook.",1,1,1)end
-            GameTooltip:AddLine("Drag to move around the minimap.",.85,.80,.68)
+            if openingBlocked()then GameTooltip:AddLine(E.L["Opening is disabled during combat by your preference."],1,.7,.45)
+            else GameTooltip:AddLine(E.L["Left-click to open or close your scrapbook."],1,1,1)end
+            GameTooltip:AddLine(E.L["Drag to move around the minimap."],.85,.80,.68)
             GameTooltip:AddLine("/myepoch minimap hide",.7,.7,.7);GameTooltip:Show()
         end)
         f:SetScript("OnLeave",hideTooltip)
