@@ -123,6 +123,9 @@ local create,guid=CreateFrame,UnitGUID;local modelCount=0;local behavior={};loca
 CreateFrame=function(kind,...)
     local m=create(kind,...);if kind~='DressUpModel'then return m end
     modelCount=modelCount+1;models[#models+1]=m;m.gear={};m.alpha=0;m.ready=false;m.applied={}
+    local setScript=m.SetScript
+    function m:HasScript(name)return name~='OnModelCleared'or behavior.supportsClear==true end
+    function m:SetScript(name,fn)assert(self:HasScript(name),'Unsupported model callback: '..name);return setScript(self,name,fn)end
     function m:SetAlpha(n)self.alpha=n end
     function m:SetAutoDress(v)self.autoDress=v end
     function m:SetUseTransmogChoices(v)self.transmog=v end
@@ -151,8 +154,9 @@ CreateFrame=function(kind,...)
     return m
 end
 UnitGUID=function()return c.id end;E.current=c;B.selected=r.id;render()
-assert(page.used.milestoneModel==1 and not page.pool.milestoneModel[1].model and page.pool.milestoneModel[1].brand:IsShown(),'Native model is opt-in; central branding is always available')
-button('Show gear preview'):Click();local panel=page.pool.milestoneModel[1];local model=panel.model
+assert(page.used.milestoneModel==1 and page.pool.milestoneModel[1].model and V.state.preview,'The logged-in character preview starts automatically')
+local panel=page.pool.milestoneModel[1];local model=panel.model
+assert(model.scripts.OnModelCleared==nil and button('Hide gear preview'),'Unsupported clear callbacks do not abort the preview')
 assert(model and model.alpha==0 and #model.gear==0,'Initial current gear is stripped while hidden')
 local function tick(n,delta)for i=1,n do if model.scripts.OnUpdate then model.scripts.OnUpdate(model,delta or .3)end end end
 tick(2);assert(model.alpha==0,'Unloaded body stays hidden')
@@ -163,13 +167,14 @@ assert(model.applied[#model.applied-1][2]=='MAINHANDSLOT'and model.applied[#mode
 assert(page.pool.milestoneModel[1].status:GetText():find('current appearance',1,true),'Preview identity stays in its caption')
 local staleLoad=model.scripts.OnModelLoaded;local staleTick=model.scripts.OnUpdate
 button('Hide gear preview'):Click();assert(model.alpha==0 and #model.gear==0 and model.scripts.OnUpdate==nil and model.scripts.OnModelLoaded==nil)
+render();assert(not V.state.preview and model.scripts.OnUpdate==nil,'Manual hide survives unrelated renders')
 staleLoad();staleTick(model,.3);assert(model.alpha==0 and #model.gear==0,'Queued callbacks cannot resurrect a closed preview')
 behavior.synchronous=true;button('Show gear preview'):Click();assert(panel.model==model and modelCount==1,'Reuse a cleared model instead of growing native frames');tick(2);assert(model.alpha==1 and #model.gear==2)
 -- Any new asynchronous model/dress notification hides first and reapplies.
 model.gear={'unexpected-late-current-gear'};model.scripts.OnModelLoaded(model);assert(model.alpha==0);tick(2);assert(model.alpha==1 and model.gear[1]=='item:25:7:0:0')
 behavior.reloadInTryOn=true;model.scripts.OnModelLoaded(model);tick(2);assert(model.alpha==0,'A synchronous reload during TryOn requires a complete replay');tick(2);assert(model.alpha==1 and #model.gear==2)
 behavior.pending=true;model.scripts.OnModelLoaded(model);tick(2);assert(model.alpha==0);behavior.pending=false;tick(2);assert(model.alpha==1,'Pending item data retries without revealing current gear')
-model:ClearModel();tick(2);assert(model.alpha==0,'A cleared model cannot stay visible with stale readiness');model.ready=true;model.scripts.OnModelLoaded(model);tick(2);assert(model.alpha==1)
+model:ClearModel();tick(2);assert(model.alpha==0,'Clearing without a callback cannot leave stale readiness');model.ready=true;tick(2);assert(model.alpha==0,'A cleared model still requires a fresh load callback');model.scripts.OnModelLoaded(model);tick(2);assert(model.alpha==1)
 UnitGUID=function()return other.id end;tick(1);assert(model.alpha==0 and #model.gear==0 and model.scripts.OnUpdate==nil,'Identity changes invalidate an already visible model')
 UnitGUID=function()return c.id end
 local function restart(flags)
@@ -192,4 +197,4 @@ CreateFrame=create;UnitGUID=guid
 B.Clear(page);B.Render=before.render;B.character=before.character;B.selected=before.selected;B.chapter=before.chapter;GameTooltip=before.tooltip;issecretvalue=before.secret;E.current=before.current;V.state=nil
 for key,value in pairs(live)do if value==false then _G[key]=nil else _G[key]=value end end
 E.db.characters[c.id]=nil;E.db.characters[other.id]=nil
-print('PASS milestone snapshot view: historical gear/stats/skills, zeroes, exact/base tooltips, owner guards, pooled cleanup; opt-in model, saved-only dress, asynchronous readiness/replay, pending/timeout/failure, identity changes and native-frame reuse')
+print('PASS milestone snapshot view: historical gear/stats/skills, zeroes, exact/base tooltips, owner guards, pooled cleanup; automatic model, optional callbacks, saved-only dress, asynchronous readiness/replay, pending/timeout/failure, identity changes and native-frame reuse')

@@ -34,11 +34,14 @@ local function loggedIn(c)
     if E.current~=c or type(UnitGUID)~='function'then return false end
     local ok,id=pcall(UnitGUID,'player');return ok and text(id)==c.id
 end
+local function modelScript(m,name)
+    local ok,supported=pcall(m.HasScript,m,name);return ok and supported==true
+end
 local function stopModel(f)
     f.token=nil;f.layoutToken=nil
     f:SetScript('OnUpdate',nil)
     local m=f.model;if not m then return end
-    for _,script in ipairs({'OnUpdate','OnModelLoaded','OnModelCleared','OnDressModel'})do pcall(m.SetScript,m,script,nil)end
+    for _,script in ipairs({'OnUpdate','OnModelLoaded','OnModelCleared','OnDressModel'})do if modelScript(m,script)then pcall(m.SetScript,m,script,nil)end end
     pcall(m.SetAlpha,m,0);pcall(m.Hide,m)
     if type(m.ClearModel)=='function'then pcall(m.ClearModel,m)end
 end
@@ -81,7 +84,7 @@ local function modelPreview(page,c,r,s,state,area)
     end end
     for slot in pairs(visibleSlots)do if not seen[slot]then partial=true end end
     table.sort(items,function(a,b)return a.slot<b.slot end)
-    local token={};f.token=token;local busy=false;local bodyLoaded=false;local loadedWhileDressing=false;local dirty=true;local settle=false;local elapsed,retry=0,0
+    local token={};f.token=token;local busy=false;local bodyLoaded=false;local loadedFileID;local loadedWhileDressing=false;local dirty=true;local settle=false;local elapsed,retry=0,0
     local function current()return f.token==token and V.state==state and state.preview and state.tab=='Equipment'and B.chapter==chapter and valid(c,r,s)and loggedIn(c)end
     local function invalidate()
         if f.token~=token then return end
@@ -91,8 +94,11 @@ local function modelPreview(page,c,r,s,state,area)
     end
     m:SetAlpha(0);m:ClearAllPoints();m:SetPoint('TOPLEFT',8,-8);m:SetSize(area.width-16,area.height-76)
     local ok=pcall(function()
-        m:SetScript('OnModelLoaded',function()if f.token~=token then return end;bodyLoaded=true;if busy then loadedWhileDressing=true else invalidate()end end);m:SetScript('OnDressModel',invalidate)
-        m:SetScript('OnModelCleared',function()if f.token~=token then return end;bodyLoaded=false;invalidate()end)
+        if not modelScript(m,'OnModelLoaded')then error('Model load callback unavailable')end
+        m:SetScript('OnModelLoaded',function()if f.token~=token then return end;bodyLoaded=true;loadedFileID=nil;if busy then loadedWhileDressing=true else invalidate()end end)
+        if modelScript(m,'OnDressModel')then m:SetScript('OnDressModel',invalidate)end
+        -- Forever DressUpModel does not expose every ModelScene actor callback.
+        if modelScript(m,'OnModelCleared')then m:SetScript('OnModelCleared',function()if f.token~=token then return end;bodyLoaded=false;loadedFileID=nil;invalidate()end)end
         m:SetAutoDress(false);m:SetUseTransmogChoices(false);m:SetUseTransmogSkin(false);m:ClearModel();m:Show()
         if m:SetUnit('player',false,true)~=true then error('Player model unavailable')end
         m:Undress()
@@ -102,13 +108,15 @@ local function modelPreview(page,c,r,s,state,area)
     m:SetScript('OnUpdate',function(_,delta)
         if f.token~=token then return end
         if not current()then unavailable(E.L['Preview closed because the selected character or milestone changed.']);return end
+        local ready,id=pcall(m.GetModelFileID,m);if not ready then unavailable();return end;id=number(id)
+        -- Keep cleared/replaced models hidden even when OnModelCleared is absent.
+        if loadedFileID and id~=loadedFileID then bodyLoaded=false;loadedFileID=nil;invalidate()end
         if not dirty and not settle then return end
         elapsed=elapsed+(number(delta)or 0);retry=retry-(number(delta)or 0)
         if elapsed>15 then unavailable(E.L['Saved gear preview did not finish loading. Close and reopen the preview to retry.']);return end
         if settle then settle=false;elapsed=0;f.brand:Hide();f.brandTitle:Hide();m:SetAlpha(1);f.status:SetText(partial and E.L['Saved gear / current appearance / partial gear']or E.L['Saved gear / current appearance']);return end
         if retry>0 or not bodyLoaded then return end;retry=.25
-        local ready,id=pcall(m.GetModelFileID,m);if not ready then unavailable();return end
-        if not number(id)or id<=0 then return end
+        if not id or id<=0 then return end;loadedFileID=id
         busy=true;loadedWhileDressing=false;local pending=false;local dressed=pcall(function()
             m:SetAlpha(0);m:SetAutoDress(false);m:SetUseTransmogChoices(false);m:SetUseTransmogSkin(false);m:Undress()
             for _,item in ipairs(items)do
@@ -378,7 +386,7 @@ function V.Render(page,r)
     if not owned(c,r)then B.Text(page,E.L['No character snapshot is available for this milestone.'],14);V.state=nil;return end
     local s=r.characterSnapshot
     if type(s)~='table'or s.version~=1 or s.character~=c.id then B.Text(page,E.L['A character snapshot was not recorded for this milestone.'],14);V.state=nil;return end
-    if not V.state or V.state.owner~=c or V.state.record~=r or V.state.snapshot~=s then V.state={owner=c,record=r,snapshot=s,tab='Equipment'}end
+    if not V.state or V.state.owner~=c or V.state.record~=r or V.state.snapshot~=s then V.state={owner=c,record=r,snapshot=s,tab='Equipment',preview=true}end
     local state=V.state
     local stamp=number(s.capturedAt);local date=E.L['Capture time not recorded']
     if stamp then local ok,value=pcall(A.Date,stamp);if ok and type(value)=='string'then date=value end end

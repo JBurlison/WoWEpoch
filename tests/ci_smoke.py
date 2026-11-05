@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Keep this list deliberately small; do not auto-discover the stress suite.
 SPECS = (
     'calendar_tabs_spec.lua',
+    'milestone_snapshot_view_spec.lua',
     'finance_view_spec.lua',
     'economy_spec.lua',
     'inventory_spec.lua',
