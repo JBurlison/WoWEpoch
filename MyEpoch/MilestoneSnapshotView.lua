@@ -38,10 +38,11 @@ local function modelScript(m,name)
     local ok,supported=pcall(m.HasScript,m,name);return ok and supported==true
 end
 local function stopModel(f)
-    f.token=nil;f.layoutToken=nil
+    f.token=nil;f.layoutToken=nil;f.dragX=nil
     f:SetScript('OnUpdate',nil)
     local m=f.model;if not m then return end
-    for _,script in ipairs({'OnUpdate','OnModelLoaded','OnModelCleared','OnDressModel'})do if modelScript(m,script)then pcall(m.SetScript,m,script,nil)end end
+    for _,script in ipairs({'OnUpdate','OnModelLoaded','OnModelCleared','OnDressModel','OnMouseDown','OnMouseUp'})do if modelScript(m,script)then pcall(m.SetScript,m,script,nil)end end
+    pcall(m.EnableMouse,m,false)
     pcall(m.SetAlpha,m,0);pcall(m.Hide,m)
     if type(m.ClearModel)=='function'then pcall(m.ClearModel,m)end
 end
@@ -86,11 +87,26 @@ local function modelPreview(page,c,r,s,state,area)
     table.sort(items,function(a,b)return a.slot<b.slot end)
     local token={};f.token=token;local busy=false;local bodyLoaded=false;local loadedFileID;local loadedWhileDressing=false;local dirty=true;local settle=false;local elapsed,retry=0,0
     local function current()return f.token==token and V.state==state and state.preview and state.tab=='Equipment'and B.chapter==chapter and valid(c,r,s)and loggedIn(c)end
+    local rotatable=type(m.SetFacing)=='function'and type(m.GetFacing)=='function'and type(m.GetEffectiveScale)=='function'
+        and type(GetCursorPosition)=='function'and type(IsMouseButtonDown)=='function'
+        and modelScript(m,'OnMouseDown')and modelScript(m,'OnMouseUp')
+    local function cursorX()
+        local ok,x=pcall(GetCursorPosition);x=ok and number(x)
+        local good,scale=pcall(m.GetEffectiveScale,m);scale=good and number(scale)
+        if x and scale and scale>0 then return x/scale end
+    end
+    if rotatable then
+        m:EnableMouse(true)
+        m:SetScript('OnMouseDown',function(_,button)
+            if button=='LeftButton'and current()and not dirty and not settle then f.dragX=cursorX()end
+        end)
+        m:SetScript('OnMouseUp',function(_,button)if f.token==token and button=='LeftButton'then f.dragX=nil end end)
+    end
     local function invalidate()
         if f.token~=token then return end
         if not current()then unavailable(E.L['Preview closed because the selected character or milestone changed.']);return end
         if busy then return end
-        m:SetAlpha(0);dirty=true;settle=false;retry=0;f.brand:Show();f.brandTitle:Show();f.status:SetText(E.L['Loading saved gear...'])
+        f.dragX=nil;m:SetAlpha(0);dirty=true;settle=false;retry=0;f.brand:Show();f.brandTitle:Show();f.status:SetText(E.L['Loading saved gear...'])
     end
     m:SetAlpha(0);m:ClearAllPoints();m:SetPoint('TOPLEFT',8,-8);m:SetSize(area.width-16,area.height-76)
     local ok=pcall(function()
@@ -111,10 +127,27 @@ local function modelPreview(page,c,r,s,state,area)
         local ready,id=pcall(m.GetModelFileID,m);if not ready then unavailable();return end;id=number(id)
         -- Keep cleared/replaced models hidden even when OnModelCleared is absent.
         if loadedFileID and id~=loadedFileID then bodyLoaded=false;loadedFileID=nil;invalidate()end
-        if not dirty and not settle then return end
+        if not dirty and not settle then
+            if f.dragX then
+                local ok,down=pcall(IsMouseButtonDown,'LeftButton');local x=cursorX()
+                if not ok or not down or not x then f.dragX=nil;return end
+                local facing=((state.previewFacing or 0)+(x-f.dragX)*.01)%(2*math.pi)
+                if pcall(m.SetFacing,m,facing)then state.previewFacing=facing;f.dragX=x else f.dragX=nil end
+            end
+            return
+        end
         elapsed=elapsed+(number(delta)or 0);retry=retry-(number(delta)or 0)
         if elapsed>15 then unavailable(E.L['Saved gear preview did not finish loading. Close and reopen the preview to retry.']);return end
-        if settle then settle=false;elapsed=0;f.brand:Hide();f.brandTitle:Hide();m:SetAlpha(1);f.status:SetText(partial and E.L['Saved gear / current appearance / partial gear']or E.L['Saved gear / current appearance']);return end
+        if settle then
+            settle=false;elapsed=0;f.brand:Hide();f.brandTitle:Hide()
+            if rotatable then
+                if state.previewFacing==nil then local good,facing=pcall(m.GetFacing,m);state.previewFacing=good and number(facing)or 0 end
+                pcall(m.SetFacing,m,state.previewFacing)
+            end
+            m:SetAlpha(1)
+            local caption=partial and E.L['Saved gear / current appearance / partial gear']or E.L['Saved gear / current appearance']
+            f.status:SetText(caption..(rotatable and '\n'..E.L['Drag left or right to rotate.']or''));return
+        end
         if retry>0 or not bodyLoaded then return end;retry=.25
         if not id or id<=0 then return end;loadedFileID=id
         busy=true;loadedWhileDressing=false;local pending=false;local dressed=pcall(function()

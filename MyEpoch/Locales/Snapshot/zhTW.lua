@@ -169,4 +169,5 @@ E.Localize({
     ["seconds"]="秒",
     ["yards per second"]="碼／秒",
     ["per second"]="每秒",
+    ["Drag left or right to rotate."]="向左或向右拖曳以旋轉。",
 })

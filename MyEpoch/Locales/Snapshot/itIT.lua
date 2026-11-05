@@ -169,4 +169,5 @@ E.Localize({
     ["seconds"]="secondi",
     ["yards per second"]="iarde al secondo",
     ["per second"]="al secondo",
+    ["Drag left or right to rotate."]="Trascina a sinistra o a destra per ruotare.",
 })
