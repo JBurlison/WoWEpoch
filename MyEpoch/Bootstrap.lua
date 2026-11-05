@@ -1,0 +1,186 @@
+local name,E=...
+local frame=CreateFrame("Frame"); E.frame=frame
+local elapsed,workElapsed=0,0
+local function report(message)
+    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffd080My Epoch:|r "..message) end
+end
+local ownerLoggingOut=false
+local openFailure
+local function bindVerifiedOwner(identity)
+    local old=E.current
+    local now=E.API.Now()
+    if old then
+        -- End only what we observed as the old owner. A synthetic logout would
+        -- sample the new wallet, quests and roster into the outgoing scrapbook.
+        if not E.RecorderHandoff.Detach(old,now) then return false end
+        E.Encounters.Interrupt(old,"Character changed before the encounter ended.")
+        E.History.PauseGroup(old,now,"Character changed during group observation.")
+        E.History.CloseObservation(old,now)
+        E.QuestKills.Stop()
+        E.RecapVitals.Reset()
+        E.Store.Touch(old,'recordingOwner')
+        E.current=nil
+    end
+    local c=E.Collectors
+    c.partyGUID=nil; c.partyCategory=nil; c.lastRoster=nil; c.leftRosterAt=nil
+    c.rosterAt=nil; c.rosterSize=nil; c.rosterObserved=false; c.chatGap=nil
+    if not c.Start(identity,true) then return false end
+    E.Capture.Recover(E.current)
+    E.JournalJobs.Login(E.current,now)
+    E.Book.SyncCombat()
+    elapsed,workElapsed=0,0
+    return true
+end
+local function reconcileRecordingOwner()
+    if ownerLoggingOut or E.recordingStopped or E.recordingTransition or not E.recordingMismatch then return end
+    local guid=E.API.RecordingPlayerGUID()
+    if not guid or guid~=E.recordingCandidate then
+        E.recordingCandidate=guid
+        return
+    end
+    local identity=E.API.Identity('player')
+    if not identity or identity.id~=guid or not identity.nameKnown or guid~=E.API.RecordingPlayerGUID() then
+        E.recordingCandidate=nil
+        return
+    end
+    E.recordingTransition=true
+    local ok,bound=pcall(bindVerifiedOwner,identity)
+    E.recordingTransition=nil
+    E.recordingCandidate=nil
+    if not ok then
+        E.recordingStopped=true
+        E.failure="The new recording session could not be initialized. Reload the UI to resume."
+        report(E.failure)
+    elseif E.failure and not bound then
+        E.recordingStopped=true
+        report(E.failure)
+    elseif bound then
+        E.recordingMismatch=nil
+        report("Now recording "..identity.name.."'s scrapbook.")
+    end
+end
+BINDING_NAME_MYEPOCH_CAPTURE="Capture a moment in My Epoch"
+E.On("CAPTURE_RESULT",function(c,r)
+    report("Screenshot "..r.status.."; journal entry saved for "..(c.identity.name or "this character")..".")
+end)
+function MyEpoch_Capture()
+    if openFailure then report(openFailure);return end
+    local r,err=E.Capture.Request()
+    if err then report(err) end
+    return r
+end
+local function register(event)
+    local ok=pcall(frame.RegisterEvent,frame,event)
+    if not ok then E.API.status["event:"..event]="registration unavailable" end
+end
+register("ADDON_LOADED"); register("PLAYER_LOGIN"); register("SAVED_VARIABLES_TOO_LARGE")
+register("GROUP_JOINED"); register("GROUP_FORMED"); register("GROUP_LEFT")
+frame:SetScript("OnEvent",function(_,event,...)
+    if event=="SAVED_VARIABLES_TOO_LARGE" then
+        local addon=...
+        if not E.API.Secret(addon) and addon==name then
+            local first=not E.Archive.saveSizeWarning
+            E.Archive.saveSizeWarning="WoW reported that My Epoch's saved data exceeded its size limit."
+            E.API.status["Archive storage"]=E.Archive.saveSizeWarning
+            if first then
+                report(openFailure and E.Archive.saveSizeWarning or E.Archive.saveSizeWarning.." Open Archive to review the collection.")
+                E.Emit("ARCHIVE_SAVE_WARNING")
+            end
+        end
+        return
+    end
+    if openFailure then return end
+    if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_LOGIN" then ownerLoggingOut=false end
+    if event=="PLAYER_LOGOUT" then ownerLoggingOut=true end
+    if E.recordingGUID and not E.RecorderReady() then
+        return
+    end
+    if event=="ADDON_LOADED" then
+        if (...)~=name then
+            if E.current then E.Production.InstallHooks();E.Auctions.InstallHooks() end
+            if (...)=='QuestieDB' and E.current then E.QuestieBridge.Start() end
+            return
+        end
+        local ok,db=pcall(E.Store.Open,MyEpochDB)
+        if not ok then
+            openFailure="Your saved journal could not be opened. Recording is stopped for this session. Preserve a copy of your MyEpoch SavedVariables before attempting recovery."
+            E.failure=openFailure
+            SLASH_MYEPOCH1,SLASH_MYEPOCH2="/myepoch","/epoch"
+            SlashCmdList.MYEPOCH=function()report(openFailure)end
+            report(openFailure)
+            return
+        end
+        MyEpochDB=db
+        E.Minimap.Start()
+        for key in pairs(E.Collectors.handlers) do register(key) end
+        for _,key in ipairs(E.Collectors.chatEvents) do register(key) end
+        register("PLAYER_REGEN_DISABLED"); register("PLAYER_REGEN_ENABLED"); register("DISPLAY_SIZE_CHANGED"); register("UI_SCALE_CHANGED")
+        SLASH_MYEPOCH1,SLASH_MYEPOCH2="/myepoch","/epoch"
+        SlashCmdList.MYEPOCH=function(command)
+            if command=="status" then
+                if E.failure then report(E.failure); return end
+                if E.recordingGUID and not E.RecorderReady() then
+                    report("Waiting for a verified player identity. Recording resumes automatically when the character is ready.")
+                    return
+                end
+                local runtime=E.runtime or {}
+                report("Version "..E.version.."; Forever build "..tostring(runtime.build).."; interface "..tostring(runtime.interface))
+                for _,key in ipairs(E.SortedKeys(E.API.status)) do report(key..": "..E.API.status[key]) end
+            elseif command=="combat" then report(E.CombatMeter.Diagnose())
+            elseif command=="trades" then report(E.Trades.Diagnose())
+            elseif command=="mail" then report(E.Mail.Diagnose())
+            elseif command=="catalog" then E.QuestieBridge.Start();report(E.QuestieBridge.status)
+            elseif command=="minimap show" then E.Minimap.SetShown(true);report("Minimap button shown.")
+            elseif command=="minimap hide" then E.Minimap.SetShown(false);report("Minimap button hidden. Use /myepoch minimap show to restore it.")
+            elseif command=="minimap" then report("Use /myepoch minimap show or /myepoch minimap hide.")
+            elseif command=="close" then E.Book.Close(true)
+            elseif command=="capture" then MyEpoch_Capture()
+            else E.Book.Toggle() end
+        end
+    elseif event=="PLAYER_LOGIN" then
+        E.Minimap.Start()
+        E.Book.SyncCombat()
+        if E.db and E.Collectors.Start() then E.Capture.Recover(E.current); E.JournalJobs.Login(E.current,E.API.Now()); report("Your journal is recording. Open it with /myepoch.") elseif E.failure then report(E.failure) end
+    elseif event=="GROUP_JOINED" or event=="GROUP_FORMED" or event=="GROUP_LEFT" then E.Collectors.GroupIdentity(event,...)
+    elseif not E.current then return
+    elseif event=="PLAYER_REGEN_DISABLED" then E.Book.Combat(true)
+    elseif event=="PLAYER_REGEN_ENABLED" then E.Book.Combat(false)
+    elseif event=="DISPLAY_SIZE_CHANGED" or event=="UI_SCALE_CHANGED" then E.Book.Fit();E.Minimap.Position()
+    elseif event:match("^CHAT_MSG_") and event~="CHAT_MSG_LOOT" and event~='CHAT_MSG_SYSTEM' then E.Collectors.Chat(event,...)
+    elseif E.Collectors.handlers[event] then E.Collectors.handlers[event](...) end
+end)
+frame:SetScript("OnUpdate",function(_,delta)
+    if openFailure then return end
+    if not E.RecorderReady() then reconcileRecordingOwner(); return end
+    E.TravelMoney.Tick()
+    E.Query.ProcessPreparation(500)
+    E.ItemCache.Tick()
+    E.Search.TranscriptTick(750)
+    E.Gathering.Process()
+    E.GoldChecks.Process()
+    E.Book.PreparationTick()
+    if E.MobDropView then E.MobDropView.Tick()end
+    if E.CraftProjectionPreparation then E.CraftProjectionPreparation.Process(4000)end
+    if E.AuctionPreparationView then E.AuctionPreparationView.Process(4000)end
+    E.Capture.Tick(delta)
+    E.Production.Tick(delta)
+    E.Pulls.Tick(delta)
+    E.Auctions.Tick(delta)
+    E.Trades.Tick(delta)
+    E.Mail.Tick(delta)
+    E.Drops.Tick(delta)
+    E.QuestieBridge.Tick(delta)
+    E.Inventory.Process(delta)
+    E.Archive.Step(1000)
+    E.Archive.StepReview(1000)
+    E.Archive.StepCleanupFrame()
+    E.Archive.Tick(delta)
+    if not E.current then return end
+    E.JournalJobs.Step(E.current,E.API.Now(),500)
+    E.JournalJobs.StepWriters(E.current,E.API.Now(),500)
+    E.JournalViews.Tick(E.API.Now())
+    elapsed=elapsed+delta
+    if elapsed>=5 then elapsed=0; E.Collectors.Heartbeat() end
+    workElapsed=workElapsed+delta
+    if workElapsed>=0.1 then E.Merchant.Process(workElapsed); E.QuestAtlas.Process(workElapsed); workElapsed=0; E.Progress.Process(E.current,E.API.Now(),2); E.JournalJobs.Process(E.current,E.API.Now(),1,true); E.Search.Process(500) end
+end)

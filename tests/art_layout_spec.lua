@@ -1,0 +1,36 @@
+local B,V,R,S=E.Book,E.ArtView,E.Artwork,E.Store
+local c=S.Character('art-layout',{name='Painter'});local other=S.Character('art-layout-other',{name='Other'})
+local function find(page,text)
+ for _,kind in ipairs({'button','artControl','artTile','artLocationRow','memoryControl'})do for i=1,page.used[kind]or 0 do local f=page.pool[kind][i];if f.text:GetText()==text then return f end end end
+end
+local function click(text)local f=find(B.left,text)or find(B.right,text);if not f then return TEST_UI_CLICK(text)end;f:Click();return f end
+local function has(page,text)for i=1,page.used.label or 0 do if page.pool.label[i]:GetText():find(text,1,true)then return true end end end
+local function input(text)local f=B.left.pool.edit[1];f:SetText(text);f.scripts.OnEnterPressed(f)end
+B.ChangeCharacter(c.id);B.SetChapter('Memories');B.memoryMode='illustrations';B.Render(true)
+assert(has(B.left,"The illustrator's trunk")and has(B.right,'Choose a place to decorate'))
+assert(B.left.used.artLocationRow==6);input('[not a pattern');assert(has(B.left,'No catalog locations match'))
+input('Westfall');click('Westfall');assert(not B.artChooser and B.artLocation=='zone:westfall')
+assert(B.left.used.artTile==6 and B.left.used.artImage==6 and B.right.used.artImage==1)
+assert(B.right.pool.artImage[1].photo,'large preview has its scrapbook mount')
+local original=E.Copy(c.art);local candidate=B.left.pool.artTile[2].artID;B.left.pool.artTile[2]:Click()
+assert(V.lastPreview.id==candidate and E.Same(c.art,original),'preview does not save')
+click('Use for Westfall');assert(c.art['zone:westfall']==candidate)
+assert(find(B.left,V.lastPreview.title).status:GetText():find('SAVED',1,true))
+click('This location\'s nine');assert(#V.lastChoices==9 and find(B.right,'Use for Westfall'))
+assert(not has(B.right,'planned but has no bundled texture'));click('Next page');assert(B.artPage==2 and B.left.used.artTile==3)
+local dedicated=B.left.pool.artTile[3].artID;B.left.pool.artTile[3]:Click();click('Use for Westfall');assert(c.art['zone:westfall']==dedicated)
+click('Anywhere collection');assert(#V.lastChoices==27 and B.artPage==1)
+local saved=c.art['zone:westfall'];click('Next page');click('Next page');click('Next page');click('Next page')
+assert(B.artPage==5 and B.left.used.artImage==3 and B.left.used.artTile==3 and c.art['zone:westfall']==saved)
+click('Decorating: Westfall');assert(B.artChooser and(B.left.used.artTile or 0)==0)
+click('Raid');assert(has(B.left,'No catalog locations match'));input('');assert(#V.lastLocations>0)
+click('Zone');input('Elwynn');click('Elwynn Forest');assert(B.artLocation=='zone:elwynn-forest' and not B.artChooser)
+assert(not c.art[B.artLocation] and c.art['zone:westfall']==saved)
+click('Use for Elwynn Forest');assert(c.art['zone:elwynn-forest'])
+click('This location\'s nine');assert(#V.lastChoices==9 and find(B.right,'Use for Elwynn Forest'))
+assert(not has(B.right,'planned but has no bundled texture'))
+click('Next page');assert(B.left.used.artTile==3);B.left.pool.artTile[3]:Click();click('Use for Elwynn Forest')
+assert(c.art['zone:elwynn-forest']=='elwynn-forest-09' and R.ForRecord(c,{zone='Elwynn Forest'}).id=='elwynn-forest-09')
+B.ChangeCharacter(other.id);B.SetChapter('Memories');B.memoryMode='illustrations';B.Render(true);assert(not B.artLocation and not B.artChooser)
+B.ChangeCharacter(c.id);assert(B.artLocation=='zone:elwynn-forest');click("Clear this location's choice");assert(not c.art['zone:elwynn-forest']and c.art['zone:westfall']==saved)
+print('PASS illustration layout: location search/types, six clickable tiles, framed preview, local/anywhere pagination, preview/apply/clear separation and character isolation')

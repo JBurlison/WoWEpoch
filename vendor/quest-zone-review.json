@@ -1,0 +1,309 @@
+{
+  "sources": {
+    "dondata-37a53f6/ATT_Quests.lua": "823018309cbc5714a29edd71177ce022eb6f7ff480666578a5ab5471de348988",
+    "att-6174f27-quest-ranks/Zones.lua": "6a134bead0f1fc17630abb77e67b992965fc3112245cddec8f298ed3a32cf97b",
+    "att-6174f27-quest-ranks/Holidays.lua": "0169c445c082951406b4c172a59dd0b6a71a8031a3e81c5b9d9e1be60c0b9f75",
+    "att-6174f27-quest-ranks/Instances.lua": "f1dffb59c9b16a7066aae952b516a8a422d98099a0f8d590cf70369295719bb9"
+  },
+  "externalChecks": {
+    "factionMergeSemantic": "https://github.com/ATTWoWAddon/AllTheThings/blob/6174f27d042f8e4ff2624b5d9a099a707e4852a9/src/base.lua#L49-L87",
+    "factionMergeSHA256": "3f1df3e2b63ff2f498c3c518fb2aa9babd4e4bb60018a402724299bbcb2c87b9",
+    "comparisonOnlyExtraSHA256": "62afb51c63b2afe9805877769be0431448b2317572c61e528f813632ef03535f"
+  },
+  "quests": {
+    "249": {
+      "maps": [
+        1433
+      ],
+      "role": "objective area",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4385,
+            4388
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4501,
+            4501
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Zones.lua",
+          "lines": [
+            16523,
+            16527
+          ]
+        }
+      ]
+    },
+    "373": {
+      "maps": [
+        291
+      ],
+      "role": "associated dungeon interior",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            378,
+            378
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            8299,
+            8300
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            8301,
+            8301
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Instances.lua",
+          "lines": [
+            3476,
+            3476
+          ]
+        }
+      ]
+    },
+    "735": {
+      "maps": [
+        1416,
+        1434,
+        1445
+      ],
+      "role": "objective area",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4385,
+            4388
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4739,
+            4739
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Zones.lua",
+          "lines": [
+            13114,
+            13121
+          ]
+        }
+      ]
+    },
+    "736": {
+      "maps": [
+        1416,
+        1434,
+        1445
+      ],
+      "role": "objective area",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4385,
+            4388
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4740,
+            4740
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Zones.lua",
+          "lines": [
+            13122,
+            13129
+          ]
+        }
+      ]
+    },
+    "1142": {
+      "maps": [
+        301
+      ],
+      "role": "associated dungeon interior",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            1102,
+            1102
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            8299,
+            8300
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            8311,
+            8311
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Instances.lua",
+          "lines": [
+            2468,
+            2468
+          ]
+        }
+      ]
+    },
+    "1198": {
+      "maps": [
+        221
+      ],
+      "role": "associated dungeon interior",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            1149,
+            1149
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            8299,
+            8300
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            8304,
+            8304
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Instances.lua",
+          "lines": [
+            570,
+            570
+          ]
+        }
+      ]
+    },
+    "3741": {
+      "maps": [
+        1433
+      ],
+      "role": "objective area",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4385,
+            4388
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            5248,
+            5248
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Zones.lua",
+          "lines": [
+            16494,
+            16497
+          ]
+        }
+      ]
+    },
+    "6324": {
+      "maps": [
+        1421
+      ],
+      "role": "explicit general map",
+      "sources": [
+        {
+          "path": "att-6174f27-quest-ranks/Zones.lua",
+          "lines": [
+            12002,
+            12004
+          ]
+        }
+      ]
+    },
+    "8644": {
+      "maps": [
+        250
+      ],
+      "role": "dungeon map shared by both faction branches",
+      "sources": [
+        {
+          "path": "att-6174f27-quest-ranks/Holidays.lua",
+          "lines": [
+            1019,
+            1021
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            8306,
+            8306
+          ]
+        }
+      ]
+    },
+    "98423": {
+      "maps": [
+        1455
+      ],
+      "role": "objective area",
+      "sources": [
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            4385,
+            4388
+          ]
+        },
+        {
+          "path": "dondata-37a53f6/ATT_Quests.lua",
+          "lines": [
+            6019,
+            6019
+          ]
+        },
+        {
+          "path": "att-6174f27-quest-ranks/Instances.lua",
+          "lines": [
+            2168,
+            2170
+          ]
+        }
+      ]
+    }
+  }
+}

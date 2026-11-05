@@ -1,0 +1,54 @@
+{
+  "repository": "ATTWoWAddon/AllTheThings",
+  "commit": "6174f27d042f8e4ff2624b5d9a099a707e4852a9",
+  "license": "MIT",
+  "quests": {
+    "687": {
+      "path": ".contrib/.db/forever/zones/eastern kingdoms/arathi highlands.lua",
+      "gitBlob": "e94f59393e43402bd3326edc8bf1ee307dded52b",
+      "lines": [
+        925,
+        938
+      ],
+      "givers": {
+        "Alliance": {
+          "npcID": 2786,
+          "name": "Gerrig Bonegrip",
+          "mapID": 1455,
+          "area": "Ironforge"
+        },
+        "Horde": {
+          "npcID": 2787,
+          "name": "Zaruk",
+          "mapID": 1417,
+          "area": "Arathi Highlands"
+        }
+      },
+      "generalMapIDs": [
+        1418
+      ]
+    },
+    "737": {
+      "path": ".contrib/.db/forever/zones/eastern kingdoms/badlands.lua",
+      "gitBlob": "2afe60abe18c9b5cf97bdc7f51f2bb9fbbab1df2",
+      "lines": [
+        274,
+        291
+      ],
+      "givers": {
+        "Alliance": {
+          "npcID": 2786,
+          "name": "Gerrig Bonegrip",
+          "mapID": 1455,
+          "area": "Ironforge"
+        },
+        "Horde": {
+          "npcID": 2934,
+          "name": "Keeper Bel'dugur",
+          "mapID": 1458,
+          "area": "Undercity"
+        }
+      }
+    }
+  }
+}

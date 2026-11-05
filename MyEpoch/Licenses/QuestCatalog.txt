@@ -1,0 +1,90 @@
+Data/ATT_Quests.lua is generated from the quest data of All The Things (https://github.com/ATTWoWAddon/AllTheThings), used under the following license:
+
+MIT License
+
+Copyright (c) 2026 AllTheThings WoW Addon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+DonData source and conversion provenance: https://github.com/WoW-Forever-Addons/dondata/blob/37a53f62cab34e6daa2421a0cd4749bf977fffd2/Data/ATT_Quests.lua
+
+MIT License
+
+Copyright (c) 2026 DonCoohd
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Additional direct quest field evidence: https://github.com/ATTWoWAddon/AllTheThings/tree/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories
+Pinned source hashes and per-quest field evidence: vendor/bundled-quest-source.json in the source distribution.
+
+MIT License
+
+Copyright (c) 2026 AllTheThings WoW Addon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Breadcrumb navigation uses direct isBreadcrumb and nextQuests declarations from those pinned Camelot categories. Individual paths and lines are recorded in the source manifest.
+
+Dated beta destination facts: Milenkas, WoW Forever Talents beta observer. Preserved roles distinguish reported hand-ins, outdoor objectives and physical dungeon objectives. A cache series does not identify an individual observation date. Dungeon Map identities: https://wago.tools/db2/Map/csv?build=1.60.1.70755
+https://wowforevertalents.com/quests/bloodied-insignia-95195/
+https://wowforevertalents.com/quests/fallen-in-the-fen-95795/
+https://wowforevertalents.com/quests/heartwoven-95809/
+https://wowforevertalents.com/quests/abominable-creatures-95250/
+https://wowforevertalents.com/quests/opportunistic-education-96987/
+
+Quest start semantics and faction overrides: https://github.com/WoW-Forever-Addons/dondata/blob/37a53f62cab34e6daa2421a0cd4749bf977fffd2/Engine/QuestData.lua (DonData MIT license above).
+
+Crafting-writ starter items and requested quantities are drawn from the Forever ExpansionFeatures.lua file at the same ATT revision.
+
+Faction-specific quest giver areas for quests 687 and 737 come from the corresponding Forever authoring blocks and compiled Zones.lua at the ATT revision above. No exact start coordinates are asserted. Source locations: vendor/quest-faction-giver-areas.json.
+
+Possible faction-specific quest start areas come from matched Forever authoring blocks and compiled Camelot Zones.lua in the same MIT-licensed ATT revision. Sources: vendor/quest-start-areas/source-pins.json.

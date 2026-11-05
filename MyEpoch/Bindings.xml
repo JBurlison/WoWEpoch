@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="MYEPOCH_CAPTURE" category="My Epoch">
+        MyEpoch_Capture();
+    </Binding>
+</Bindings>

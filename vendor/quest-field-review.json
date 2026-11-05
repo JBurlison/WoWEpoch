@@ -1,0 +1,573 @@
+{
+  "baseSHA256": "823018309cbc5714a29edd71177ce022eb6f7ff480666578a5ab5471de348988",
+  "comparisonSHA256": "62afb51c63b2afe9805877769be0431448b2317572c61e528f813632ef03535f",
+  "upstream": "https://github.com/WoW-Forever-Addons/dondata/blob/37a53f62cab34e6daa2421a0cd4749bf977fffd2/Data/Extra_Quests.lua",
+  "decisions": {
+    "109": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "215": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "249": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "311": {
+      "fields": [
+        "repeatable"
+      ]
+    },
+    "373": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "377": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "378": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "579": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "687": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "735": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "736": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "737": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "769": {
+      "fields": [
+        "minLevel",
+        "profession"
+      ]
+    },
+    "786": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "1141": {
+      "fields": [
+        "profession"
+      ]
+    },
+    "1142": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "1168": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "1198": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "1418": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "1424": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "1429": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "1442": {
+      "fields": [
+        "repeatable"
+      ]
+    },
+    "1445": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "1472": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1476": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1478": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1490": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "1507": {
+      "fields": [
+        "mapIDs",
+        "raceIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "1508": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1509": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1510": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1511": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1512": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1515": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1649": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "1652": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "1655": {
+      "fields": [
+        "repeatable"
+      ]
+    },
+    "1698": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "1793": {
+      "fields": [
+        "repeatable"
+      ]
+    },
+    "1794": {
+      "fields": [
+        "repeatable"
+      ]
+    },
+    "1859": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "1951": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "2202": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "2945": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "2951": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "2952": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "2953": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "2968": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "2996": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "3001": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "3090": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "3091": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "3093": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "3633": {
+      "fields": [
+        "faction",
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "3638": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "3639": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "3644": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "3741": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "3765": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "4082": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "4494": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "4601": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "4602": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "4603": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "4604": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "4605": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "4606": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "5050": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "5481": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "6031": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "6069": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "6163": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "6324": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "6608": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "6622": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "6981": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "7201": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "7562": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "7667": {
+      "fields": [
+        "raceIDs"
+      ]
+    },
+    "8151": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "8233": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "8250": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "8254": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "8315": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "8331": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "8332": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "8352": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "8409": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "8417": {
+      "fields": [
+        "mapIDs"
+      ],
+      "retainBaseMaps": []
+    },
+    "8419": {
+      "fields": [
+        "faction",
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "8732": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "9368": {
+      "fields": [
+        "faction",
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "91772": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "92479": {
+      "fields": [
+        "classIDs",
+        "raceIDs"
+      ]
+    },
+    "92819": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "93791": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "94493": {
+      "fields": [
+        "mapIDs",
+        "offer",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "96391": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    },
+    "96408": {
+      "fields": [
+        "minLevel"
+      ]
+    },
+    "97286": {
+      "fields": [
+        "offer"
+      ]
+    },
+    "97583": {
+      "fields": [
+        "starts"
+      ]
+    },
+    "98247": {
+      "fields": [
+        "mapIDs",
+        "starts"
+      ],
+      "retainBaseMaps": []
+    }
+  }
+}

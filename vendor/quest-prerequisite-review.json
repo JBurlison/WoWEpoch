@@ -1,0 +1,520 @@
+{
+  "baseSHA256": "823018309cbc5714a29edd71177ce022eb6f7ff480666578a5ab5471de348988",
+  "upstream": "https://github.com/WoW-Forever-Addons/dondata/blob/37a53f62cab34e6daa2421a0cd4749bf977fffd2/Data/Extra_Quests.lua",
+  "comparisonSHA256": "62afb51c63b2afe9805877769be0431448b2317572c61e528f813632ef03535f",
+  "decisions": {
+    "5": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "11": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "63": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "95": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "148": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "176": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "276": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "297": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "353": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "364": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "413": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        315
+      ]
+    },
+    "429": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "455": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "466": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "518": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "526": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "639": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "691": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "729": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "788": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "844": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "870": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "871": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "926": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "982": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1011": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1057": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1080": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        1074,
+        1077
+      ]
+    },
+    "1085": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1122": {
+      "issue": "cardinality",
+      "retainBaseIDs": [
+        1120,
+        1121
+      ]
+    },
+    "1275": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1302": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1338": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1384": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1420": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1473": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1476": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        1472
+      ]
+    },
+    "1501": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1508": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        1507
+      ]
+    },
+    "1524": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1530": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1639": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        1638
+      ]
+    },
+    "1678": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        1679
+      ]
+    },
+    "1683": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        1684
+      ]
+    },
+    "1688": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1699": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1705": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1708": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1710": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1716": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1796": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1799": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1824": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1842": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1844": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1846": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1882": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1884": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1920": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1938": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1944": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "1960": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2038": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2040": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2206": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2238": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2242": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2260": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2281": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2298": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2300": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2379": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        2378
+      ]
+    },
+    "2460": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        2380
+      ]
+    },
+    "2922": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2924": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2930": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "2975": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "3116": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "3117": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "3118": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "3119": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "3120": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "3761": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "4024": {
+      "issue": "cardinality",
+      "retainBaseIDs": [
+        4022,
+        4023
+      ]
+    },
+    "4112": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "4134": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "4505": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "4768": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "5096": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "6383": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "6622": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "7489": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "8114": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "8121": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "8414": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "79536": {
+      "issue": "cardinality",
+      "retainBaseIDs": [
+        78124,
+        78127,
+        78142,
+        78143,
+        78145,
+        78146,
+        78147,
+        78148,
+        78149,
+        79091,
+        79092,
+        79093,
+        79094,
+        79095,
+        79096,
+        79097,
+        79535,
+        79947,
+        79948,
+        79949,
+        79950,
+        79951,
+        79952,
+        81947,
+        81949,
+        81952,
+        81953,
+        81954,
+        81955,
+        81956,
+        84395,
+        84396,
+        84397,
+        84398,
+        84399,
+        84400,
+        84401,
+        84402
+      ]
+    },
+    "82208": {
+      "issue": "cardinality",
+      "retainBaseIDs": [
+        78124,
+        78127,
+        78142,
+        78143,
+        78145,
+        78146,
+        78147,
+        78148,
+        78149,
+        79091,
+        79092,
+        79093,
+        79094,
+        79095,
+        79096,
+        79097,
+        79535,
+        79947,
+        79948,
+        79949,
+        79950,
+        79951,
+        79952,
+        81947,
+        81949,
+        81952,
+        81953,
+        81954,
+        81955,
+        81956,
+        84395,
+        84396,
+        84397,
+        84398,
+        84399,
+        84400,
+        84401,
+        84402
+      ]
+    },
+    "91738": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "92860": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "94472": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "96135": {
+      "issue": "membership",
+      "retainBaseIDs": []
+    },
+    "96628": {
+      "issue": "membership",
+      "retainBaseIDs": [
+        218
+      ]
+    }
+  }
+}

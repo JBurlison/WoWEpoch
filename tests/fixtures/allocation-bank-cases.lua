@@ -1,0 +1,12 @@
+local a=char('allocation-bank-donor',10,16);baseline(a);local deposited,deposit=move(a,'deposit',5)
+local b=char('allocation-bank-recipient',0);baseline(b);local incoming=move(b,'withdrawal',5)
+local sale=F.Move(b,now(),{itemID=2770,quantity=5,evidence=incoming.id,reason='Auction outflow'},'auction-out')
+capture('real bank transfer',b,{sale})
+local original=E.Query.Kind(a,'cost_lot')[1]
+F.Lot(a,1,{itemID=2770,quantity=5,cost=999,evidence='late historical receipt'},'late-donor-lot')
+capture('donor movement excludes late lot',a,{deposited});capture('recipient excludes late donor lot',b,{sale})
+original.cost=32;S.Changed(a,original);capture('donor cost correction',b,{sale})
+original.kind='chat';S.Changed(a,original);capture('donor source kind correction',b,{sale})
+original.kind='cost_lot';S.Changed(a,original);capture('donor source restored',b,{sale})
+deposit.counts[2770]=6;S.Changed(a,deposit);capture('conflicting custody',b,{sale})
+deposit.counts[2770]=5;S.Changed(a,deposit);capture('custody restored',b,{sale})

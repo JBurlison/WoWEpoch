@@ -1,0 +1,57 @@
+{
+  "repository": "ATTWoWAddon/AllTheThings",
+  "commit": "6174f27d042f8e4ff2624b5d9a099a707e4852a9",
+  "compiled": "db/Camelot/Categories/Zones.lua",
+  "compiledSHA256": "6a134bead0f1fc17630abb77e67b992965fc3112245cddec8f298ed3a32cf97b",
+  "quests": {
+    "5050": {
+      "path": ".contrib/.db/forever/zones/eastern kingdoms/western plaguelands.lua",
+      "file": "western-plaguelands.lua",
+      "gitBlob": "5ae99ec0d86762ad6c95361cb553cd30f9ad007b",
+      "first": 444,
+      "last": 462
+    },
+    "7562": {
+      "path": ".contrib/.db/forever/zones/eastern kingdoms/burning steppes.lua",
+      "file": "burning-steppes.lua",
+      "gitBlob": "df17dfdd8f41ecc5ce80f5b66017ffd7fbd5a7af",
+      "first": 271,
+      "last": 295
+    },
+    "8151": {
+      "path": ".contrib/.db/forever/zones/kalimdor/azshara.lua",
+      "file": "azshara.lua",
+      "gitBlob": "cbefc56bc2260bb83841ccff5ee6b1d3a63fbf9a",
+      "first": 459,
+      "last": 484
+    },
+    "8233": {
+      "path": ".contrib/.db/forever/zones/eastern kingdoms/alterac mountains.lua",
+      "file": "alterac-mountains.lua",
+      "gitBlob": "7b2f32477dc4cfe0a04e50a82b0c7bef9427c0bd",
+      "first": 83,
+      "last": 109
+    },
+    "8250": {
+      "path": ".contrib/.db/forever/zones/kalimdor/azshara.lua",
+      "file": "azshara.lua",
+      "gitBlob": "cbefc56bc2260bb83841ccff5ee6b1d3a63fbf9a",
+      "first": 334,
+      "last": 360
+    },
+    "8254": {
+      "path": ".contrib/.db/forever/zones/kalimdor/azshara.lua",
+      "file": "azshara.lua",
+      "gitBlob": "cbefc56bc2260bb83841ccff5ee6b1d3a63fbf9a",
+      "first": 175,
+      "last": 186
+    },
+    "8417": {
+      "path": ".contrib/.db/forever/zones/eastern kingdoms/swamp of sorrows.lua",
+      "file": "swamp-of-sorrows.lua",
+      "gitBlob": "6e816eb366c9a3d0033a02a340a5e9d3adfbd798",
+      "first": 79,
+      "last": 107
+    }
+  }
+}

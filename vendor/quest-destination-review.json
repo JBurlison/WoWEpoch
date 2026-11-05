@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "reviewed": "2026-11-04",
+  "note": "Reviewed objective destinations and hand-ins. Physical dungeon Map IDs and outdoor UiMap IDs are separate. No start pins, eligibility or personal observations are imported.",
+  "mapIdentity": {
+    "url": "https://raw.githubusercontent.com/Questie/QuestieDB/c5de61ab7c629132a772cccddf7f604ac48cecf9/data/Forever/conversion.json",
+    "sha256": "0229566017126c2577e77d2bcc7c9f995648fb27ed32a7918fa44ace0664fb22",
+    "targetBuild": "1.60.1.69893",
+    "role": "Only the three target-name to UI-map-ID identities; no source quest rows or geometry imported."
+  },
+  "quests": {
+    "95195": {
+      "url": "https://wowforevertalents.com/quests/bloodied-insignia-95195/",
+      "evidenceFragmentSHA256": "44e1960980481308a7069d51adcfbfca9b811d66e724da18f3819402f3337f14",
+      "mapName": "Stormwind City",
+      "pageFaction": "Alliance",
+      "factionScope": "Already recorded named Alliance-only quest in the bundled Forever catalog. The hand-in itself does not establish character faction.",
+      "report": {
+        "mapID": 1453,
+        "kind": "objectiveDestination",
+        "source": "WFT beta quest cache",
+        "date": "2026-10-13",
+        "faction": "Alliance",
+        "build": 70338
+      }
+    },
+    "95795": {
+      "url": "https://wowforevertalents.com/quests/fallen-in-the-fen-95795/",
+      "evidenceFragmentSHA256": "d1c6f2ad22546a4b6d9125382eab1b0406fb6a3abbce3591d03f4ca9abdd62a5",
+      "mapName": "Redridge Mountains",
+      "pageFaction": null,
+      "factionScope": "Already recorded named Alliance-only quest in the bundled Forever catalog. The hand-in itself does not establish character faction.",
+      "report": {
+        "mapID": 1433,
+        "kind": "handIn",
+        "source": "WFT Beta Log",
+        "date": "2026-10-23",
+        "faction": "Alliance"
+      }
+    },
+    "95809": {
+      "url": "https://wowforevertalents.com/quests/heartwoven-95809/",
+      "evidenceFragmentSHA256": "70896f576e8780ddf447b4b0af8293a8a592cd0991041034f3751400d57c8b44",
+      "mapName": "Wetlands",
+      "pageFaction": "Alliance",
+      "factionScope": "Already recorded named Alliance-only quest in the bundled Forever catalog. The hand-in itself does not establish character faction.",
+      "report": {
+        "mapID": 1437,
+        "kind": "handIn",
+        "source": "WFT Beta Log",
+        "date": "2026-10-23",
+        "faction": "Alliance"
+      }
+    },
+    "95250": {
+      "url": "https://wowforevertalents.com/quests/abominable-creatures-95250/",
+      "evidenceFragmentSHA256": "8f6b57d9c1c755f1930c9e2ff02011b8b8edfab5981c8e9eb7b227b69de1cd16",
+      "physicalSource": "https://wago.tools/db2/Map/csv?build=1.60.1.70755",
+      "dateScope": "Quest-specific cache credit.",
+      "report": {
+        "kind": "dungeonObjective",
+        "instanceMapID": 2999,
+        "instanceName": "Ruins of Lordaeron",
+        "item": "Head of the Baron",
+        "faction": "Alliance",
+        "date": "2026-10-13",
+        "source": "Milenkas / WoW Forever Talents quest cache",
+        "build": 70338
+      }
+    },
+    "96987": {
+      "url": "https://wowforevertalents.com/quests/opportunistic-education-96987/",
+      "evidenceFragmentSHA256": "d5dd0977fcd757f44c1aa809662aea3f8819b00d5be106521bfbaee5fe8b1a98",
+      "physicalSource": "https://wago.tools/db2/Map/csv?build=1.60.1.70755",
+      "dateScope": "Page lists four dated quest caches; individual row date and build not specified.",
+      "report": {
+        "kind": "dungeonObjective",
+        "instanceMapID": 2959,
+        "instanceName": "City of Dalaran",
+        "item": "The Founding of Dalaran",
+        "faction": "Horde",
+        "date": "2026-10-06",
+        "source": "Milenkas / WoW Forever Talents quest cache",
+        "dateThrough": "2026-10-23"
+      }
+    }
+  }
+}

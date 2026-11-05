@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "repository": "ATTWoWAddon/AllTheThings",
+  "commit": "6174f27d042f8e4ff2624b5d9a099a707e4852a9",
+  "purpose": "Direct quest-level requireSkill/learnedAt facts for the 202 profession requirements in pinned DonData; candidate historical/source data, not released-client verification.",
+  "files": [
+    {
+      "path": "Zones.lua",
+      "upstreamPath": "db/Camelot/Categories/Zones.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/Zones.lua",
+      "sha256": "6a134bead0f1fc17630abb77e67b992965fc3112245cddec8f298ed3a32cf97b",
+      "bytes": 1011570
+    },
+    {
+      "path": "Professions.lua",
+      "upstreamPath": "db/Camelot/Categories/Professions.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/Professions.lua",
+      "sha256": "a2a6abb6021f90e6f6d366321c7251d72a7d932215ed40f686afd79282c7e3e5",
+      "bytes": 4503
+    },
+    {
+      "path": "ExpansionFeatures.lua",
+      "upstreamPath": "db/Camelot/Categories/ExpansionFeatures.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/ExpansionFeatures.lua",
+      "sha256": "c820d713f645b82bb2521db6de87c6bf3799d9b7fb559b15a4a0de5073e8fc34",
+      "bytes": 23661
+    },
+    {
+      "path": "Holidays.lua",
+      "upstreamPath": "db/Camelot/Categories/Holidays.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/Holidays.lua",
+      "sha256": "0169c445c082951406b4c172a59dd0b6a71a8031a3e81c5b9d9e1be60c0b9f75",
+      "bytes": 59080
+    },
+    {
+      "path": "Instances.lua",
+      "upstreamPath": "db/Camelot/Categories/Instances.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/Instances.lua",
+      "sha256": "f1dffb59c9b16a7066aae952b516a8a422d98099a0f8d590cf70369295719bb9",
+      "bytes": 214262
+    },
+    {
+      "path": "Character.lua",
+      "upstreamPath": "db/Camelot/Categories/Character.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/Character.lua",
+      "sha256": "c1ad3c19fac3688ec7f0d1e00c52f0255bb9e0c690f0211e845b70ffdf0c024d",
+      "bytes": 16393
+    },
+    {
+      "path": "Craftables.lua",
+      "upstreamPath": "db/Camelot/Categories/Craftables.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/Craftables.lua",
+      "sha256": "21c3e25d522460774da870bd19d41e84cba9f4764ac650c7653fc93ca785138c",
+      "bytes": 105414
+    },
+    {
+      "path": "HiddenQuestTriggers.lua",
+      "upstreamPath": "db/Camelot/Categories/HiddenQuestTriggers.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/HiddenQuestTriggers.lua",
+      "sha256": "dc2d9ecdacc2ebe241565620e50aa0f784b9770d3c3aa082bab8267c4feb8b28",
+      "bytes": 570
+    },
+    {
+      "path": "NeverImplemented.lua",
+      "upstreamPath": "db/Camelot/Categories/NeverImplemented.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/NeverImplemented.lua",
+      "sha256": "891d0361a7ec4f2379f2a311e16f8cf92a7433cfdf0eca726f9c32fa2a2943b5",
+      "bytes": 4472
+    },
+    {
+      "path": "PVP.lua",
+      "upstreamPath": "db/Camelot/Categories/PVP.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/PVP.lua",
+      "sha256": "69e39c35ba19531b8355ccaeac01e66462f832caffe7368014e52eaa17eee177",
+      "bytes": 67188
+    },
+    {
+      "path": "Promotions.lua",
+      "upstreamPath": "db/Camelot/Categories/Promotions.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/Promotions.lua",
+      "sha256": "b09cc770081a3e24761d3896b03e0d4206318812e37581b9b5661100ac3e812a",
+      "bytes": 1760
+    },
+    {
+      "path": "WorldDrops.lua",
+      "upstreamPath": "db/Camelot/Categories/WorldDrops.lua",
+      "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/db/Camelot/Categories/WorldDrops.lua",
+      "sha256": "b2b8436b695c73517a4e6f86460133a180c3f25831cab9cf3cefcf7ecbb25e2b",
+      "bytes": 139495
+    }
+  ],
+  "license": {
+    "path": "LICENSE",
+    "upstreamPath": "LICENSE",
+    "url": "https://raw.githubusercontent.com/ATTWoWAddon/AllTheThings/6174f27d042f8e4ff2624b5d9a099a707e4852a9/LICENSE",
+    "sha256": "955281b9174e0f66b08c8e83d31e0f38b2fcaa247ca3af92d1723d81a13cddfb",
+    "bytes": 1079
+  }
+}
