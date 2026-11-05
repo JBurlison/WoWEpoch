@@ -6,9 +6,11 @@ local kinds={{"group","group","groups","Group","Groups"},{"quest","quest","quest
     {"milestone","milestone","milestones","Milestone","Milestones"},{"crafted","crafted","crafted","Item crafted","Items crafted"},{"gathered","gathered","gathered","Item gathered","Items gathered"},{"recap","recap","recaps","Recap","Recaps"}}
 local filters={{"all","All",48},{"group","Groups",76},{"quest","Quests",74},{"quest_reward","Quest rewards",102},{"loot","Loot",60},{"encounter_loot","Encounter loot notices",140},{"crafted","Crafted",80},{"gathered","Gathered",88},{"milestone","Milestones",108}}
 filters[#filters+1]={"recap","Recaps",76}
-local internal={kill_observation=true,mail_scan=true,mail_request=true,mail_notice=true,trade_offer=true,trade_notice=true,play=true,objective=true,diary=true,wallet_window=true,money_evidence=true,cost_lot=true,stock_reset=true,stock_move=true}
+kinds[#kinds+1]={"kill","mob defeated","mobs defeated","Mob defeated","Mobs defeated"}
+filters[#filters+1]={"kill","Mobs defeated",112}
+local internal={travel=true,kill_observation=true,mail_scan=true,mail_request=true,mail_notice=true,trade_offer=true,trade_notice=true,play=true,objective=true,diary=true,wallet_window=true,money_evidence=true,cost_lot=true,stock_reset=true,stock_move=true}
 local names={group="Group adventure",quest="Quest completed",quest_reward="Quest reward event",encounter_loot="Encounter loot notice",quest_attempt="Quest attempt",auction="Auction observation",trade="Player trade",mail="Envelope observed",mail_collection="Mailbox collection",loot="Loot receipt",crafted="Crafted",gathered="Gathered",gather_action="Gathering action",
-    milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Captured moment",gold="Gold",chat="Group chat",pull="Meter observation",encounter="Boss encounter",gap="Recording coverage"}
+    kill="Mob defeated",xp="Experience gained",milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Captured moment",gold="Gold",chat="Group chat",pull="Meter observation",encounter="Boss encounter",gap="Recording coverage"}
 local function font(parent,size,w,lines)
     local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont("Fonts\\FRIZQT__.TTF",size,"")
     f:SetTextColor(0.29,0.19,0.11); f:SetWidth(w); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP")
@@ -36,12 +38,6 @@ B.widgetFactories.calendarStat=function(parent)
     local f=CreateFrame("Frame",nil,parent); f.value=font(f,24,120,1); f.value:SetPoint("TOPLEFT",0,-3)
     f.caption=font(f,9,120,2); f.caption:SetPoint("TOPLEFT",0,-36); f.caption:SetTextColor(0.51,0.36,0.19); return f
 end
-B.widgetFactories.calendarDiary=function(parent)
-    local f=CreateFrame("Button",nil,parent); f.face=T.Texture(f,"diary-v1"); f.face:SetAllPoints()
-    f.text=font(f,23,670,1); f.text:SetPoint("TOPLEFT",20,-16); f.text:SetText("The day, in words")
-    f.caption=font(f,11,670,1); f.caption:SetPoint("TOPLEFT",20,-48); f.caption:SetText("Generated diary & your notes")
-    f.symbol=font(f,22,30,1); f.symbol:SetPoint("TOPRIGHT",-16,-26); hover(f); return f
-end
 B.widgetFactories.calendarEvent=function(parent)
     local f=CreateFrame("Button",nil,parent)
     f.clock=font(f,11,68,2); f.clock:SetPoint("TOPLEFT",4,-14); f.clock:SetTextColor(0.54,0.40,0.23)
@@ -63,7 +59,8 @@ end
 local function rule(page,y)local width=B.Width(page);local f=B.Acquire(page,"calendarRule"); place(f,page,0,y,width,1)end
 local function paragraph(page,text,size)
     local width=B.Width(page)
-    local y=page.y; local f=B.Text(page,text,size); f:SetWidth(width-40); f:SetSpacing(4); f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",32,-y)
+    local y=page.y; local f=B.Text(page,text,size); f:SetWidth(width-40); f:SetSpacing(4); f:SetMaxLines(0); f:SetHeight(0)
+    f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",32,-y)
     local height=math.max(size,f:GetStringHeight()); f:SetHeight(height); page.y=y+height+14; return f
 end
 function V.IndexKind(kind)return not internal[kind] end
@@ -81,6 +78,7 @@ function V.IsMilestone(c,r)
 end
 function V.Visible(c,r)
     if internal[r.kind] then return false end
+    if r.kind=="kill" then return r.character==c.id and c.records[r.id]==r and type(r.npcID)=="number" and r.npcID>0 end
     if r.kind=="recap" then return r.character==c.id and c.records[r.id]==r and V.IndexStamp(r)~=nil and D.Visible(c,r) end
     if r.kind=="encounter_loot" then return E.EncounterLoot.Valid(c,r) end
     if r.kind=="quest_reward" then return E.QuestRewards.Valid(c,r) end
@@ -96,7 +94,7 @@ local function countEvent(c,report,r)
     end
     if r.kind=="crafted" or r.kind=="gathered" then
         if r.quantity and r.quantity>0 then report.counts[r.kind]=(report.counts[r.kind] or 0)+r.quantity end
-    elseif r.kind=="group" or r.kind=="quest" or r.kind=="loot" or r.kind=="encounter_loot" or r.kind=="recap" then report.counts[r.kind]=(report.counts[r.kind] or 0)+1 end
+    elseif r.kind=="group" or r.kind=="quest" or r.kind=="loot" or r.kind=="encounter_loot" or r.kind=="recap" or r.kind=="kill" then report.counts[r.kind]=(report.counts[r.kind] or 0)+1 end
 end
 function V.Report(c,day,work,cut)
     local report={records={},counts={},continuedGroups={}}; local through=A.ShiftDay(day,1)
@@ -145,8 +143,8 @@ function V.Report(c,day,work,cut)
     if cut then report.firstEvent=firstEvent end
     report.highlight=report.highlight or firstEvent or report.records[1]; return report
 end
-function V.SelectDay(day)
-    B.day=A.DayStart(day); B.selected=nil; B.calendarPage=1; B.calendarError=nil; B.Render(true)
+function V.SelectDay(day,view)
+    B.day=A.DayStart(day); B.calendarDiaryOpen=view~="Events"; B.selected=nil; B.calendarPage=1; B.calendarError=nil; B.Render(true)
 end
 function V.Jump(value)
     local day,err=A.ParseDay(value); if day then V.SelectDay(day)else B.calendarError=err; B.Render()end
@@ -269,6 +267,11 @@ function V.Daily(right,c,report,prepared)
     local width=B.Width(right)
     B.Text(right,string.upper(c.identity.name or "Your character").."'S DAILY PAGE  -  LOCAL TIME",11):SetTextColor(0.54,0.40,0.23)
     B.Text(right,date("%A, %B %d, %Y",B.day),29)
+    local diaryOpen=B.calendarDiaryOpen~=false
+    B.Tabs(right,{"Diary","Events"},diaryOpen and "Diary" or "Events",function(tab)
+        if B.Character()~=c or B.chapter~="Calendar" then return end
+        B.calendarDiaryOpen=tab=="Diary";B.selected=nil;B.Render(true)
+    end)
     local stats={}; for _,entry in ipairs(kinds)do local n=report.counts[entry[1]]; if n and n>0 then stats[#stats+1]={value=n,label=entry[n==1 and 4 or 5]}end end
     local active
     if prepared then active=prepared.playDay==B.day and prepared.activeSeconds
@@ -282,11 +285,10 @@ function V.Daily(right,c,report,prepared)
     if prepared and (prepared.playJob or prepared.playDirty or prepared.playError)then
         B.Text(right,prepared.playError or "Updating active play time for this day...",12)
     end
-    local top=right.y; local toggle=place(B.Acquire(right,"calendarDiary"),right,0,top,width,78); toggle.text:SetWidth(width-60);toggle.caption:SetWidth(width-60);toggle.symbol:SetText(B.calendarDiaryOpen and "-" or "+")
-    toggle:SetScript("OnClick",function()B.calendarDiaryOpen=not B.calendarDiaryOpen; B.Render(true)end); right.y=top+90
     local job={kind='daily',from=B.day,through=A.ShiftDay(B.day,1)}
-    local diary,writing,writeError=E.JournalViews.Watch(c,job,A.Now())
-    if B.calendarDiaryOpen then
+    if diaryOpen then
+        B.Text(right,"The day, in words",26)
+        local diary,writing,writeError=E.JournalViews.Watch(c,job,A.Now())
         local missing=writing=='expired'and"This day's generated diary expired under your retention policy. Your personal notes remain separate."
             or writing=='error'and"This day's writing is unavailable. Your notes remain available below."or"Preparing this day's diary from recorded history..."
         paragraph(right,diary and diary.text or missing,16)
@@ -300,24 +302,31 @@ function V.Daily(right,c,report,prepared)
             control(right,busy and "Writing another telling..."or"Try another telling",16,right.y,210,function()if not busy then E.JournalJobs.RequestRetell(c,diary);B.Render()end end); right.y=right.y+42
             local err=E.JournalJobs.RetellError(c,diary);if err then paragraph(right,err,12)end
         end
-        paragraph(right,"Your own words",20)
+        local notes=B.Section(right,"Your own words")
         local key="day:"..A.Day(B.day); local note=place(B.Acquire(right,"edit"),right,20,right.y,width-40,120)
         note:SetMultiLine(true); note:SetScript("OnEnterPressed",nil); note:SetScript("OnTextChanged",nil); note:SetText(c.notes[key] and c.notes[key].text or "")
         note:SetScript("OnTextChanged",function(self,user)if user then E.Store.Note(c,key,self:GetText(),A.Now())end end)
         right.y=right.y+134; paragraph(right,"Notes save as you type and stay separate from generated writing.",12)
-        local panel=B.Acquire(right,"calendarPanel"); place(panel,right,0,top+78,width,right.y-top-78)
-        right.y=right.y+12
+        B.EndSection(right,notes)
+        return
     end
     B.Text(right,"Follow the day's stories",26)
+    if not report.filters then indexEvents(c,report)end
     B.Navigation.Controls(function(nav)
-        B.Text(nav,"DAY'S EVENTS",11);local choices={}
-        for _,entry in ipairs(filters)do local kind=entry[1]
-            choices[#choices+1]={entry[2],function()B.calendarFilter=kind;B.calendarPage=1;B.selected=nil;B.Render()end,(B.calendarFilter or"all")==kind}
+        B.Text(nav,"EVENT TYPE",11);local choices,known={},{}
+        local function add(kind,label,always)
+            known[kind]=true
+            if always or #(report.filters[kind] or {})>0 or B.calendarFilter==kind then
+                choices[#choices+1]={label,function()B.calendarFilter=kind;B.calendarPage=1;B.selected=nil;B.Render(true)end,(B.calendarFilter or"all")==kind}
+            end
         end
+        for _,entry in ipairs(filters)do local kind=entry[1]
+            add(kind,entry[2],true)
+        end
+        for _,kind in ipairs(E.SortedKeys(report.filters))do if not known[kind] then add(kind,names[kind] or kind:gsub("_"," "))end end
         B.Navigation.Grid(nav,choices)
     end)
     local y
-    if not report.filters then indexEvents(c,report)end
     local rows=(not B.calendarFilter or B.calendarFilter=="all") and report.records or report.filters[B.calendarFilter] or {}
     local groupCounts=report.groupCounts
     if report.pending then
@@ -345,7 +354,7 @@ function V.Daily(right,c,report,prepared)
         f:SetHeight(height)
         local id,kind,day,filter,page=r.id,r.kind,B.day,B.calendarFilter,B.calendarPage
         f:SetScript("OnClick",function()
-            if B.chapter~="Calendar" or B.Character()~=c or E.db.characters[c.id]~=c or B.selected
+            if B.chapter~="Calendar" or B.calendarDiaryOpen~=false or B.Character()~=c or E.db.characters[c.id]~=c or B.selected
                 or B.day~=day or B.calendarFilter~=filter or B.calendarPage~=page then return end
             if prepared and (prepared.records~=c.records or not prepared.days or prepared.days[day]~=report or V.lastReport~=report) then return end
             if c.records[id]~=r or r.id~=id or r.character~=c.id or r.kind~=kind or not V.Visible(c,r) then return end

@@ -146,6 +146,7 @@ lua.execute((ROOT / 'tests/fixtures/uiforever-chronicle.lua').read_text(encoding
 settled_ui('chronicle_view_spec.lua')
 lua.execute((ROOT / 'tests/fixtures/uiforever-calendar.lua').read_text(encoding='utf-8'))
 settled_ui('calendar_view_spec.lua')
+runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('calendar_tabs_spec.lua',))
 settled_ui('calendar_overnight_spec.lua')
 settled_ui('calendar_roster_days_spec.lua')
 runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('calendar_preparation_spec.lua',))

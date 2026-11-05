@@ -45,7 +45,7 @@ local late=S.Add(c,"chat",day+8000,{group=group.id,title="Late first"})
 local later=S.Add(c,"chat",day+8000,{group=group.id,title="Late second"})
 assert(V.lastReport==first and first.records[#first.records]==later and first.records[#first.records-1]==late)
 assert(first.groupCounts[group.id].chat==4852)
-B.calendarFilter="encounter_loot";B.calendarPage=1;B.Render()
+B.calendarDiaryOpen=false;B.calendarFilter="encounter_loot";B.calendarPage=1;B.Render()
 assert(B.right.used.calendarEvent==1 and B.right.pool.calendarEvent[1].text:GetText()=="Reported cloth")
 local oldClick=B.right.pool.calendarEvent[1].scripts.OnClick
 local replacement=E.Copy(notice);replacement.title="Corrected notice";c.records[notice.id]=replacement;S.Changed(c,replacement)
