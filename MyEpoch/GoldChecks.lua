@@ -9,7 +9,7 @@ local appended=setmetatable({},{__mode='k'})
 local priorKinds=setmetatable({},{__mode='k'})
 local relevant={gold=true,money_evidence=true,wallet_window=true,trade=true,trade_offer=true,trade_notice=true,
  mail=true,mail_scan=true,mail_collection=true,mail_request=true,mail_notice=true,mail_draft=true,inventory=true,inventory_gap=true,
- bank=true,bank_gap=true,merchant=true}
+ bank=true,bank_gap=true,merchant=true,spell=true}
 local function enqueue(state)tail=tail+1;queue[tail]=state end
 function K.Pending(c)return pending[c]~=nil end
 function K.Status(c)
@@ -214,7 +214,7 @@ E.On('RECORD_CHANGED',function(c,r,_,receipt)
  local old=Q.PreviousKind(c,r.id)
  if prior and prior.owner==c and prior.record==r then old=prior.kind end
  local correction=not old or r.kind=='gold'or r.kind=='money_evidence'or r.kind=='wallet_window'
-  or old=='gold'or old=='money_evidence'or old=='wallet_window'
+  or old=='gold'or old=='money_evidence'or old=='wallet_window'or old=='spell'or r.kind=='spell'
  if state and state.targets and correction then
   K.Request(c,true);return
  end

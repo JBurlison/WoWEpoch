@@ -5,7 +5,7 @@ local R={};E.AuctionWalletReads=R
 R.Expected={
  ["Store.lua"]="23406af9303e21c27c4b444da97d65abc110778e1d11e2d8dfe12c7c97409293",
  ["Query.lua"]="bb9a995e6562b7867228e2c5ea42610d8642973017e3eb1b01b6282281858046",
- ["Economy.lua"]="2a292c3a8c6a0440e3f3a1bab343f7a63c0b46bf478be495eddb9938714cdd7f",
+ ["Economy.lua"]="8ab6288bca92335779e116a1dd42bb8f0b6d89a15dd9be4082558167bda6b68c",
  ["Trades.lua"]="e69aa92b2e8900406ef0234a54b065ad0dd17d720374907670d2681781c4c63d",
  ["Mail.lua"]="cea7f719ffa567b69eaf046d3bc5a5937fa4eed8a3e7db919a196ab96cf08024",
  ["Buyback.lua"]="cf90d6bc8f2390ae67b497e3847c0fbc45c90cfe4c81b7bcda72c004b8135cff",

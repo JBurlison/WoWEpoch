@@ -20,6 +20,7 @@ SPECS = (
     'experience_sources_spec.lua',
     'source_filters_spec.lua',
     'finance_view_spec.lua',
+    'trainer_learning_spec.lua',
     'economy_spec.lua',
     'inventory_spec.lua',
     'production_spec.lua',

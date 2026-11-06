@@ -153,11 +153,24 @@ function V.Graph(page,report,range,mode)
     graphLabel(plot,E.Format('{measure} (coin value)',{measure=heading}),left,255,chartWidth,"LEFT",12)
     graphLabel(plot,E.L["Date / local time"],left,7,chartWidth,"CENTER",11)
     -- Leave room for axes in the bounded texture pool, even with dense history.
-    local bins,minValue,maxValue={},nil,nil; local count=120; local span=math.max(1,range.through-range.from)
+    local bins,minValue,maxValue={},nil,nil; local count=120
+    local chartFrom,chartThrough=range.from,range.through
+    if mode=="balance" then
+        local first,last
+        for _,p in ipairs(report.wallet.points)do if p.observed and p.ts>=range.from and p.ts<=range.through then
+            first=math.min(first or p.ts,p.ts);last=math.max(last or p.ts,p.ts)
+        end end
+        if first then
+            local pad=math.max(60,(last-first)*.03)
+            chartFrom=math.max(range.from,first-pad);chartThrough=math.min(range.through,last+pad)
+        end
+    end
+    local span=math.max(1,chartThrough-chartFrom)
+    plot.chartFrom,plot.chartThrough=chartFrom,chartThrough
     local ticks=math.max(2,math.min(5,math.floor(chartWidth/105)))
     local previousDate
     for n=0,ticks-1 do
-        local fraction=n/(ticks-1);local ts=range.from+math.floor((span-1)*fraction)
+        local fraction=n/(ticks-1);local ts=chartFrom+math.floor((span-1)*fraction)
         local label=date(span<=86400 and "%H:%M" or span>365*86400 and (E.locale=='enUS' and "%b %Y" or "%Y-%m") or (E.locale=='enUS' and "%d %b" or "%m-%d"),ts)
         if label~=previousDate then
             graphLabel(plot,label,left+fraction*chartWidth-42,31,84)
@@ -165,11 +178,18 @@ function V.Graph(page,report,range,mode)
         end
     end
     if mode=="balance" then
-        for _,p in ipairs(report.wallet.points) do if p.observed and p.ts>=range.from and p.ts<=range.through then
-            local i=math.min(count,math.floor((p.ts-range.from)/span*count)+1)
+        local run,previous=0,nil
+        for sequence,p in ipairs(report.wallet.points) do if p.observed and p.ts>=range.from and p.ts<=range.through then
+            if not previous or p.breakBefore or not p.window or previous.window~=p.window then run=run+1 end
+            local sample={ts=p.ts,balance=p.balance,run=run,sequence=sequence,window=p.window}
+            previous=p
+            local i=math.min(count,math.floor((p.ts-chartFrom)/span*count)+1)
             local bin=bins[i] or {min=p.balance,max=p.balance,window=p.window}
             if bin.window~=p.window then bin.mixed=true end
             bin.min=math.min(bin.min,p.balance); bin.max=math.max(bin.max,p.balance); bin.last=p.balance;bin.firstTS=bin.firstTS or p.ts;bin.lastTS=p.ts; bins[i]=bin
+            bin.firstPoint=bin.firstPoint or sample;bin.lastPoint=sample
+            if not bin.minPoint or p.balance<bin.minPoint.balance then bin.minPoint=sample end
+            if not bin.maxPoint or p.balance>bin.maxPoint.balance then bin.maxPoint=sample end
             minValue=math.min(minValue or p.balance,p.balance); maxValue=math.max(maxValue or p.balance,p.balance)
         end end
     else
@@ -186,11 +206,16 @@ function V.Graph(page,report,range,mode)
     if minValue~=nil then
         local low,high=minValue,maxValue
         if low==high then low=math.min(0,low);high=math.max(1,high) end
+        local raw=math.max(1,(high-low)/4)
+        local magnitude=10^math.floor(math.log(raw)/math.log(10))
+        local step=magnitude
+        for _,factor in ipairs({1,2,5,10})do if factor*magnitude>=raw then step=factor*magnitude;break end end
+        low=math.floor(low/step)*step;high=math.ceil(high/step)*step
         local extent=high-low
         local function y(value)return bottom+(value-low)/extent*(top-bottom) end
         local lastTick
-        for n=0,4 do
-            local value=math.floor(low+extent*n/4+.5)
+        for n=0,math.floor(extent/step+.5) do
+            local value=math.floor(low+step*n+.5)
             if value~=lastTick then
                 local yy=y(value);graphLabel(plot,money(value),4,yy-8,left-12,"RIGHT")
                 rect(plot,left,yy,chartWidth,1,.45,.32,.17,.16);lastTick=value
@@ -211,7 +236,7 @@ function V.Graph(page,report,range,mode)
             obstacles[#obstacles+1]={x=x1,y=y1,x2=x2,y2=y2}
         end
         local function annotate(i,bin,value)
-            local x=left+(i-1)/count*chartWidth
+            local x=mode=="balance" and left+(bin.maxPoint.ts-chartFrom)/span*chartWidth or left+(i-1)/count*chartWidth
             local text=money(value);local labelWidth=math.max(48,#text*7)
             candidates[#candidates+1]={text=text,value=value,i=i,w=labelWidth,h=16,
                 x=math.max(left,math.min(width-labelWidth-8,x-labelWidth/2)),
@@ -233,14 +258,20 @@ function V.Graph(page,report,range,mode)
         end
         if mode=="balance" then
             local previous
+            plot.samples={}
             for i=1,count do local bin=bins[i]; if bin then
-                local x=left+(i-1)/count*chartWidth
-                if previous and previous.window and previous.window==bin.window and not previous.mixed and not bin.mixed then
-                    dataLine(previous.x,y(previous.last),x,y(bin.last))
+                local points,seen={},{}
+                for _,point in ipairs({bin.firstPoint,bin.minPoint,bin.maxPoint,bin.lastPoint})do
+                    if not seen[point.sequence]then points[#points+1]=point;seen[point.sequence]=true end
                 end
-                if not bin.mixed then dataRect(x,y(bin.min),2,math.max(2,y(bin.max)-y(bin.min)),0.34,0.28,0.12) end
-                dataRect(x-2,y(bin.last)-2,5,5,0.53,0.34,0.10); bin.x=x; previous=bin
-                annotate(i,bin,bin.last)
+                table.sort(points,function(a,b)return a.sequence<b.sequence end)
+                for _,point in ipairs(points)do
+                    local x=left+(point.ts-chartFrom)/span*chartWidth
+                    if previous and previous.run==point.run then dataLine(previous.x,y(previous.balance),x,y(point.balance))end
+                    dataRect(x-2,y(point.balance)-2,4,4,.53,.34,.10)
+                    point.x=x;previous=point;plot.samples[#plot.samples+1]=point
+                end
+                annotate(i,bin,bin.max)
             end end
         else
             rect(plot,left,y(0),chartWidth,1,0.35,0.27,0.16,0.45)
@@ -262,6 +293,7 @@ function V.Graph(page,report,range,mode)
                 -- treating its entire bounding rectangle as solid ink.
                 local x1,x2=math.max(a.x-5,b.x),math.min(a.x+a.w+5,b.x2)
                 if x1>x2 then return false end
+                if b.x2==b.x then return math.min(b.y,b.y2)<a.y+a.h+5 and math.max(b.y,b.y2)>a.y-5 end
                 local slope=(b.y2-b.y)/(b.x2-b.x)
                 local y1,y2=b.y+(x1-b.x)*slope,b.y+(x2-b.x)*slope
                 return math.min(y1,y2)<a.y+a.h+5 and math.max(y1,y2)>a.y-5
@@ -272,14 +304,14 @@ function V.Graph(page,report,range,mode)
             local clear=true
             for _,obstacle in ipairs(obstacles) do if overlaps(label,obstacle) then clear=false;break end end
             if clear then for _,other in ipairs(placed) do if overlaps(label,other) then clear=false;break end end end
-            if clear then
+            if clear and #placed<8 then
                 graphLabel(plot,label.text,label.x,label.y,label.w,"CENTER")
                 placed[#placed+1]=label
             end
         end
     end
     page.y=page.y+292
-    if minValue~=nil then B.Text(page,E.Format('{low} to {high} | {from} through {through}',{low=money(minValue),high=money(maxValue),from=range.first,through=range.last}),12) end
+    if minValue~=nil then B.Text(page,E.Format('{low} to {high} | {from} through {through}',{low=money(minValue),high=money(maxValue),from=mode=='balance'and A.Day(chartFrom)or range.first,through=mode=='balance'and A.Day(chartThrough)or range.last}),12) end
     B.Text(page,mode=="balance" and E.L["Recorded balances only. Gaps remain blank; dense observations share a column."] or E.L["Recorded wallet changes per chart column. Empty space is not evidence of zero activity."],12)
 end
 function V.Render(left,right)

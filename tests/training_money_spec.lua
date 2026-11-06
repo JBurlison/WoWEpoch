@@ -4,7 +4,7 @@ local names={'Enum','C_Trainer','UnitGUID','GetMoney','GetNumTrainerServices','G
 for _,name in ipairs(names)do saved[name]=_G[name]end
 Enum={TrainerType={General=0,Tradeskills=2,Pet=3,TalentsObsolete=1}}
 local now=1793720000;A.Now=function()return now end
-local hooks={};hooksecurefunc=function(name,fn)hooks[name]=fn end;BuyTrainerService=function()end;T.hooked=nil
+local hooks={};hooksecurefunc=function(name,fn)local old=hooks[name];hooks[name]=function(...)if old then old(...)end;fn(...)end end;BuyTrainerService=function()end;T.hooked=nil
 local trainerKind,guid,cash,rows,readable=0,'Creature-Trainer-A',10000,{},true
 local filters={};GetTrainerServiceTypeFilter=function(key)return filters[key]end
 C_Trainer={GetTrainerType=function()return trainerKind end};UnitGUID=function(unit)if unit=='player' then return E.recordingGUID end;assert(unit=='npc');return guid end

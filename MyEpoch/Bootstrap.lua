@@ -155,6 +155,7 @@ frame:SetScript("OnUpdate",function(_,delta)
     if openFailure then return end
     if not E.RecorderReady() then reconcileRecordingOwner(); return end
     E.TravelMoney.Tick()
+    E.TrainerLearning.Tick()
     E.Query.ProcessPreparation(500)
     E.ItemCache.Tick()
     E.Search.TranscriptTick(750)
