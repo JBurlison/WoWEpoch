@@ -18,11 +18,12 @@ local function prepare(c,s)
     if s.revision==revision(c) or K.Pending(c,'comparison-choices')then return end
     K.Queue(c,'comparison-choices',function(work)return X.Choices(c,work)end,function(rows)
         s.choices=rows;s.revision=revision(c);s.choiceIDs={};for _,r in ipairs(rows)do s.choiceIDs[r.id]=true end
-        if not X.Snapshot(c,c.records[s.after])then s.after=rows[#rows]and rows[#rows].id end
-        if not X.Snapshot(c,c.records[s.before])then
+        if not X.Eligible(c,c.records[s.after])then s.after=rows[#rows]and rows[#rows].id end
+        if not X.Eligible(c,c.records[s.before])then
             local previous
             for _,r in ipairs(rows)do if r.id==s.after then break end;previous=r end
             s.before=previous and previous.id or rows[1]and rows[1].id
+            s.fresh=nil;s.currentUnavailable=s.useCurrent or nil
         end
         redraw(c,s)
     end,function()return revision(c)end)
@@ -30,7 +31,7 @@ end
 function V.Open(c,selectedID)
     if not K.Owned(c)or B.Character()~=c then return false end
     local s=state(c)
-    if selectedID and X.Snapshot(c,c.records[selectedID])then s.after=selectedID;s.before=nil;s.revision=nil;s.fresh=nil;s.useCurrent=false end
+    if selectedID and X.Eligible(c,c.records[selectedID])then s.after=selectedID;s.before=nil;s.revision=nil;s.fresh=nil;s.useCurrent=false end
     B.chronicleMode='compare';B.chapter='Chronicle';B.selected=nil;prepare(c,s);B.Render(true);return true
 end
 local function number(n)
@@ -47,23 +48,81 @@ local function title(r)return r and E.Display.RecordTitle(r)or E.L['Choose a mil
 local function fresh(c,s)
     s.fresh=X.Current(c,s.before);s.useCurrent=true;s.currentUnavailable=s.fresh==nil;s.freshRevision=c.revision
 end
+function V.CloseMenu()
+    V.menuContext=nil
+    if V.menu then V.menu:Hide()end
+end
+local function menuValid(context)
+    return context and V.menuContext==context and current(context.c,context.s)and context.revision==revision(context.c)
+end
+local function menuButton(parent,label,fn)
+    local f=CreateFrame('Button',nil,parent);f:SetHeight(32);E.BookTheme.Button(f)
+    f.text=f:CreateFontString(nil,'OVERLAY');f.text:SetFont(E.Font(),13,'');f.text:SetPoint('LEFT',10,0)
+    f.text:SetJustifyH('LEFT');f.text:SetMaxLines(1);f.text:SetText(label or'');E.BookTheme.ButtonStyle(f)
+    f:SetScript('OnClick',fn);return f
+end
+function V.UpdateMenu()
+    local ctx=V.menuContext;if not menuValid(ctx)then V.CloseMenu();return end
+    local c,s,side=ctx.c,ctx.s,ctx.side;local rows=s.choices or{};local count=#rows
+    local visible=math.min(8,count);ctx.offset=math.max(0,math.min(ctx.offset,math.max(0,count-8)))
+    local live=side=='after'and E.current==c
+    V.menuPanel:SetHeight(24+math.max(1,visible)*34+(live and 36 or 0)+36)
+    for i,f in ipairs(V.menuButtons)do
+        local r=i<=visible and rows[count-ctx.offset-i+1]
+        if r then
+            f:Show();f:SetWidth(ctx.width-24);f.text:SetWidth(ctx.width-44)
+            f.text:SetText(E.API.RecordDate(r)..' / '..title(r))
+            E.BookTheme.ButtonStyle(f,s[side]==r.id and not(side=='after'and s.useCurrent)and'filter'or nil)
+            f:SetScript('OnClick',function()
+                if not menuValid(ctx)or not X.Eligible(c,r)then V.CloseMenu();return end
+                s[side]=r.id
+                if side=='after'then s.useCurrent=false;s.fresh=nil elseif s.useCurrent then fresh(c,s)end
+                V.CloseMenu();redraw(c,s)
+            end)
+        else f:Hide();f:SetScript('OnClick',nil)end
+    end
+    if live then V.menuLive:Show()else V.menuLive:Hide()end
+    V.menuLive:SetWidth(ctx.width-24);V.menuLive.text:SetWidth(ctx.width-44)
+    V.menuLive:ClearAllPoints();V.menuLive:SetPoint('TOPLEFT',12,-12-math.max(1,visible)*34)
+    V.menuLive:SetScript('OnClick',function()
+        if not menuValid(ctx)or E.current~=c then V.CloseMenu();return end
+        fresh(c,s);V.CloseMenu();redraw(c,s)
+    end)
+    V.menuCount:SetText(count==0 and E.L['Choose a milestone']or E.Format('{first}–{last} of {count}',{first=ctx.offset+1,last=math.min(count,ctx.offset+8),count=count}))
+    V.menuUp:EnableMouse(ctx.offset>0);V.menuUp:SetAlpha(ctx.offset>0 and 1 or .4)
+    V.menuDown:EnableMouse(ctx.offset+8<count);V.menuDown:SetAlpha(ctx.offset+8<count and 1 or .4)
+end
+local function buildMenu()
+    if V.menu then return end
+    local menu=CreateFrame('Frame','MyEpochMilestoneDropdown',B.frame);V.menu=menu
+    menu:SetAllPoints();menu:SetFrameStrata('FULLSCREEN_DIALOG');menu:SetFrameLevel(B.frame:GetFrameLevel()+100)
+    local dismiss=CreateFrame('Button',nil,menu);V.menuDismiss=dismiss;dismiss:SetAllPoints();dismiss:SetScript('OnClick',V.CloseMenu)
+    local panel=CreateFrame('Frame',nil,menu);V.menuPanel=panel;panel:SetFrameLevel(menu:GetFrameLevel()+2)
+    panel:EnableMouse(true);panel:EnableMouseWheel(true);E.BookTheme.DialogPaper(panel)
+    V.menuButtons={}
+    for i=1,8 do local f=menuButton(panel);V.menuButtons[i]=f;f:SetPoint('TOPLEFT',12,-12-(i-1)*34)end
+    V.menuLive=menuButton(panel,E.L['Compare with current character'])
+    V.menuCount=panel:CreateFontString(nil,'OVERLAY');V.menuCount:SetFont(E.Font(),12,'');V.menuCount:SetTextColor(.26,.15,.08)
+    V.menuCount:SetPoint('BOTTOMLEFT',14,12);V.menuCount:SetJustifyH('LEFT')
+    local function scroll(amount)if V.menuContext then V.menuContext.offset=V.menuContext.offset+amount;V.UpdateMenu()end end
+    V.menuUp=menuButton(panel,E.L['Up'],function()scroll(-8)end);V.menuUp:SetWidth(66);V.menuUp:SetPoint('BOTTOMRIGHT',-82,6)
+    V.menuDown=menuButton(panel,E.L['Down'],function()scroll(8)end);V.menuDown:SetWidth(66);V.menuDown:SetPoint('BOTTOMRIGHT',-12,6)
+    panel:SetScript('OnMouseWheel',function(_,d)scroll(-d*3)end)
+    menu:SetScript('OnHide',function()V.menuContext=nil end)
+    menu:SetScript('OnUpdate',function()if V.menuContext and not menuValid(V.menuContext)then V.CloseMenu()end end);menu:Hide()
+    UISpecialFrames=UISpecialFrames or{};UISpecialFrames[#UISpecialFrames+1]='MyEpochMilestoneDropdown'
+end
+local function openMenu(anchor,page,c,s,side)
+    if not current(c,s)then return end
+    if V.menuContext and V.menuContext.side==side then V.CloseMenu();return end
+    buildMenu();V.menuContext={c=c,s=s,side=side,offset=0,revision=revision(c),width=B.Width(page)}
+    V.menuPanel:ClearAllPoints();V.menuPanel:SetPoint('TOPLEFT',anchor,'BOTTOMLEFT',0,-4);V.menuPanel:SetWidth(B.Width(page))
+    V.menu:Show();V.UpdateMenu()
+end
 local function selector(page,c,s,side)
     local r=c.records[s[side]];local label=side=='after'and s.useCurrent and E.L['Current character — fresh reading']or title(r)
-    B.Action(page,label..'  '..(s.open==side and'v'or'>'),function()if current(c,s)then s.open=s.open~=side and side or nil;redraw(c,s)end end)
-    if s.open==side then
-        local rows=s.choices or{};local count=#rows;local pageNo=math.max(1,math.min(s.pages[side],math.max(1,math.ceil(count/6))));s.pages[side]=pageNo
-        for i=(pageNo-1)*6+1,math.min(pageNo*6,count)do local choice=rows[count-i+1]
-            B.Action(page,E.API.RecordDate(choice)..' / '..title(choice),function()
-                if not current(c,s)or not X.Snapshot(c,choice)then return end
-                s[side]=choice.id;s.open=nil
-                if side=='after'then s.useCurrent=false;s.fresh=nil elseif s.useCurrent then fresh(c,s)end
-                redraw(c,s)
-            end)
-        end
-        if pageNo>1 then B.Action(page,E.L['Newer milestones'],function()if current(c,s)then s.pages[side]=pageNo-1;redraw(c,s)end end)end
-        if pageNo*6<count then B.Action(page,E.L['Older milestones'],function()if current(c,s)then s.pages[side]=pageNo+1;redraw(c,s)end end)end
-        if side=='after'and E.current==c then B.Action(page,E.L['Compare with current character'],function()if current(c,s)then fresh(c,s);s.open=nil;redraw(c,s)end end)end
-    end
+    local f
+    f=B.Action(page,label..'  v',function()openMenu(f,page,c,s,side)end)
     if side=='after'and s.useCurrent then B.Action(page,E.L['Refresh current reading'],function()if current(c,s)then fresh(c,s);redraw(c,s)end end)end
 end
 local slots={'Head','Neck','Shoulders','Shirt','Chest','Waist','Legs','Feet','Wrists','Hands','Finger 1','Finger 2','Trinket 1','Trinket 2','Cloak','Main hand','Off hand','Ranged','Tabard'}
@@ -131,10 +190,11 @@ local function skills(page,comparison,side)
     if #comparison.skills==0 then B.Text(page,E.L['Skills were not recorded.'],14)end
 end
 function V.Render(left,right,c)
+    V.CloseMenu()
     c=c or B.Character();if not K.Owned(c)then return end
     B.selected=nil;local s=state(c);prepare(c,s)
     if s.useCurrent and E.current~=c then s.fresh=nil;s.currentUnavailable=true end
-    local comparison=s.useCurrent and s.fresh or X.Saved(c,s.before,s.after)
+    local comparison=X.Eligible(c,c.records[s.before])and(s.useCurrent and s.fresh or X.Eligible(c,c.records[s.after])and X.Saved(c,s.before,s.after))or nil
     for _,pair in ipairs({{left,'before'},{right,'after'}})do
         local page,side=pair[1],pair[2]
         B.Text(page,E.L[side=='before'and'THEN & NOW · BEFORE'or'AFTER'],11)

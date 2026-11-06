@@ -92,7 +92,7 @@ E.Localize({
     ["Days in this chapter"]="Les jours de ce chapitre",
     ["Discoveries"]="Découvertes",
     ["Edit selection"]="Modifier la sélection",
-    ["Eight seconds per toast. Hover to pause; close to dismiss."]="Huit secondes par notification. Survolez-la pour faire une pause ; fermez-la pour la masquer.",
+    ["Six seconds per toast. Hover to pause; close to dismiss."]="Six secondes par notification. Survolez-la pour faire une pause ; fermez-la pour la masquer.",
     ["Equipment variant changed"]="Variante d'équipement modifiée",
     ["Event types"]="Types d'événements",
     ["Every adventure has a thread"]="Chaque aventure a son fil conducteur",

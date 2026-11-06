@@ -16,12 +16,12 @@ local function milestone(kind,owner,data)
 end
 local level=milestone('level');local skill=milestone('skill');assert(N.Pending(c)==2)
 N.Tick(3);local shown=assert(N.Current());assert(#shown.entries==2 and sounds==1)
-N.Hover(true);N.Tick(20);assert(N.Current()==shown and shown.remaining==8,'Hover pauses dismissal')
-N.Hover(false);N.Tick(3);assert(shown.remaining==5)
+N.Hover(true);N.Tick(20);assert(N.Current()==shown and shown.remaining==6,'Hover pauses dismissal')
+N.Hover(false);N.Tick(3);assert(shown.remaining==3)
 UnitAffectingCombat=function()return true end;N.Tick(1);assert(N.Current()==shown and shown.suspended)
-N.Tick(30);assert(shown.remaining==5)
-UnitAffectingCombat=function()return false end;N.Tick(1);assert(shown.remaining==4 and sounds==1,'Combat resume does not replay sound')
-N.Tick(5);assert(not N.Current())
+N.Tick(30);assert(shown.remaining==3)
+UnitAffectingCombat=function()return false end;N.Tick(1);assert(shown.remaining==2 and sounds==1,'Combat resume does not replay sound')
+N.Tick(2);assert(not N.Current(),'A toast expires after six unpaused seconds')
 N.Start(c);N.Milestone(c,level);N.Milestone(c,skill);N.Tick(3);assert(not N.Current()and sounds==1,'Reload dedup')
 UnitAffectingCombat=function()return true end
 local achievement=milestone('achievement');assert(N.Pending(c)==1)
@@ -70,9 +70,12 @@ B.Clear(B.left);B.Clear(B.right);V.Render(B.left,B.right,c);oldCallback();assert
 local render=B.Render;B.Render=function()end
 B.left.pool.notificationToggle[1]:Click();assert(calls==1,'The current settings action still works')
 B.Render=render;N.Configure=configured
-N.Preview(c);assert(E.NotificationView.toast:IsShown());N.Close();assert(not E.NotificationView.toast:IsShown())
+N.Preview(c);assert(E.NotificationView.toast:IsShown()and N.Current().remaining==6)
+assert(E.NotificationView.toast:GetWidth()==370 and E.NotificationView.toast:GetHeight()>=106)
+assert(E.NotificationView.toast.open:GetWidth()==185 and E.NotificationView.toast.open:GetHeight()==26)
+N.Close();assert(not E.NotificationView.toast:IsShown())
 N.Stop();assert(N.Preview(c));N.Tick(1)
-assert(N.Current() and N.Current().remaining==7,'Settings preview survives paused recording')
+assert(N.Current() and N.Current().remaining==5,'Settings preview survives paused recording')
 E.current=other;N.Tick(1);assert(not N.Current(),'Preview cannot follow a different character')
 E.current=oldCurrent;UnitAffectingCombat=oldCombat
 print('PASS notifications readiness, combat batches, switches, corrections, delivery dedup and UI')

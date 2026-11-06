@@ -92,7 +92,7 @@ E.Localize({
     ["Days in this chapter"]="這一章裡的日子",
     ["Discoveries"]="發現",
     ["Edit selection"]="編輯所選內容",
-    ["Eight seconds per toast. Hover to pause; close to dismiss."]="每則彈出通知顯示 8 秒。滑鼠移上去可暫停，關閉可收起。",
+    ["Six seconds per toast. Hover to pause; close to dismiss."]="每則彈出通知顯示 6 秒。滑鼠移上去可暫停，關閉可收起。",
     ["Equipment variant changed"]="裝備變體已變更",
     ["Event types"]="事件類型",
     ["Every adventure has a thread"]="每場冒險，都有一條故事線",

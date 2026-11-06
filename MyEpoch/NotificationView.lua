@@ -6,7 +6,7 @@ local function font(parent,size)
     f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
 end
 local function button(parent,text,w,callback)
-    local f=CreateFrame('Button',nil,parent);T.Button(f);f:SetSize(w,28)
+    local f=CreateFrame('Button',nil,parent);T.Button(f);f:SetSize(w,26)
     f.text=font(f,13);f.text:SetPoint('CENTER');f.text:SetWidth(w-14);f.text:SetJustifyH('CENTER');f.text:SetText(text)
     f:SetScript('OnClick',callback);f:SetScript('OnEnter',function()N.Hover(true)end);f:SetScript('OnLeave',function()N.Hover(false)end)
     return f
@@ -14,11 +14,11 @@ end
 function V.BuildToast()
     if V.toast then return V.toast end
     local f=CreateFrame('Frame',nil,UIParent);V.toast=f
-    f:SetSize(440,126);f:SetFrameStrata('FULLSCREEN_DIALOG');f:SetFrameLevel(200);f:SetClampedToScreen(true);f:EnableMouse(true);T.DialogPaper(f)
-    f.icon=f:CreateTexture(nil,'ARTWORK');f.icon:SetTexture(root..'emblem-small-v1.tga');f.icon:SetSize(42,42);f.icon:SetPoint('TOPLEFT',14,-17)
-    f.heading=font(f,12);f.heading:SetTextColor(.58,.29,.14);f.heading:SetPoint('TOPLEFT',66,-14);f.heading:SetWidth(330)
-    f.title=font(f,18);f.title:SetPoint('TOPLEFT',66,-34);f.title:SetWidth(330)
-    f.open=button(f,E.L['Open in scrapbook'],205,N.Open);f.open:SetPoint('BOTTOMRIGHT',-15,12)
+    f:SetSize(370,106);f:SetFrameStrata('FULLSCREEN_DIALOG');f:SetFrameLevel(200);f:SetClampedToScreen(true);f:EnableMouse(true);T.DialogPaper(f)
+    f.icon=f:CreateTexture(nil,'ARTWORK');f.icon:SetTexture(root..'emblem-small-v1.tga');f.icon:SetSize(36,36);f.icon:SetPoint('TOPLEFT',12,-16)
+    f.heading=font(f,12);f.heading:SetTextColor(.58,.29,.14);f.heading:SetPoint('TOPLEFT',58,-12);f.heading:SetWidth(268)
+    f.title=font(f,17);f.title:SetPoint('TOPLEFT',58,-32);f.title:SetWidth(298)
+    f.open=button(f,E.L['Open in scrapbook'],185,N.Open);f.open:SetPoint('BOTTOMRIGHT',-12,10)
     f.close=button(f,'×',24,N.Close);f.close:SetPoint('TOPRIGHT',-6,-6)
     f:SetScript('OnEnter',function()N.Hover(true)end);f:SetScript('OnLeave',function()N.Hover(false)end)
     f:Hide();return f
@@ -32,8 +32,8 @@ function V.Toast(batch)
     f.heading:SetText(E.Text(N.Heading(batch)));f.title:SetText(E.Text(N.Caption(batch)))
     local entry=batch.entries[1];local record=entry and batch.owner.records[entry.id]
     f.icon:SetTexture(record and record.icon or root..'emblem-small-v1.tga')
-    local titleHeight=math.max(22,f.title:GetStringHeight());f.title:SetHeight(titleHeight)
-    f:SetHeight(math.max(126,34+titleHeight+50));f:Show()
+    local titleHeight=math.max(20,f.title:GetStringHeight());f.title:SetHeight(titleHeight)
+    f:SetHeight(math.max(106,32+titleHeight+42));f:Show()
 end
 N.renderer=V.Toast
 -- Forever 1.60.1.70790, eac30af597e5aaa43a60f6675ef5fdcea100375f:
@@ -111,7 +111,7 @@ function V.Render(left,right,c)
         B.EndSection(right,panel)
     end
     local preview=B.Section(right,E.L['Try a notification'])
-    B.Text(right,E.L['Eight seconds per toast. Hover to pause; close to dismiss.'],15)
+    B.Text(right,E.L['Six seconds per toast. Hover to pause; close to dismiss.'],15)
     if c==E.current then B.Action(right,E.L['Preview notification'],guard(function()N.Preview(c,scope)end))
     else B.Text(right,E.L['Log in to this character to preview its notifications.'],14)end
     B.EndSection(right,preview)

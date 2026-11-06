@@ -92,7 +92,7 @@ E.Localize({
     ["Days in this chapter"]="Tage in diesem Kapitel",
     ["Discoveries"]="Entdeckungen",
     ["Edit selection"]="Auswahl bearbeiten",
-    ["Eight seconds per toast. Hover to pause; close to dismiss."]="Jede Einblendung bleibt acht Sekunden. Mit der Maus darüber pausieren; zum Ausblenden schließen.",
+    ["Six seconds per toast. Hover to pause; close to dismiss."]="Jede Einblendung bleibt sechs Sekunden. Mit der Maus darüber pausieren; zum Ausblenden schließen.",
     ["Equipment variant changed"]="Ausrüstungsvariante geändert",
     ["Event types"]="Ereignisarten",
     ["Every adventure has a thread"]="Jedes Abenteuer hat seinen roten Faden",

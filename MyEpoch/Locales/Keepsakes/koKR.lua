@@ -92,7 +92,7 @@ E.Localize({
     ["Days in this chapter"]="이 장에 담긴 날들",
     ["Discoveries"]="발견",
     ["Edit selection"]="선택 편집",
-    ["Eight seconds per toast. Hover to pause; close to dismiss."]="알림은 8초 동안 떠요. 마우스를 올리면 멈추고, 닫으면 사라져요.",
+    ["Six seconds per toast. Hover to pause; close to dismiss."]="알림은 6초 동안 떠요. 마우스를 올리면 멈추고, 닫으면 사라져요.",
     ["Equipment variant changed"]="장비 세부 유형 변경",
     ["Event types"]="기록 종류",
     ["Every adventure has a thread"]="모든 모험은 하나의 이야기로 이어져요",

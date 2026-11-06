@@ -27,7 +27,16 @@ local function seed()
     E.Wishes.Recover(c);E.Chapters.Ensure(c)
     MyEpoch_RicherReview=function(page)
         E.Book.Open();E.Book.ChangeCharacter(c.id)
-        if page=='toast'then
+        if page=='calendar'then
+            local day=E.API.DayStart(c.records[c.state.reviewSecond].ts)
+            if not c.state.calendarReview then
+                c.state.calendarReview=true
+                for i=1,180 do S.Add(c,'play',day+i*20,{ended=day+i*20+10,status='active',title='Observed active time'})end
+                S.Add(c,'play',day,{ended=day+12600,status='active',title='Observed active time'})
+                E.Diary.SaveDaily(c,day,E.API.ShiftDay(day,1),E.API.Now())
+            end
+            E.Book.SetChapter('Calendar');E.CalendarView.SelectDay(day);E.Book.Render(true)
+        elseif page=='toast'then
             E.Book.ChangeCharacter(E.current.id);E.Book.chapter='Archive';E.Book.archiveTab='notifications';E.Book.selected=nil;E.Book.Render(true);E.Notifications.Preview(E.current,'account')
         elseif page=='chapters'then E.ChapterView.Open(c,c.state.reviewChapter)
         elseif page=='wishes'then E.WishView.Open(c.state.reviewWish)

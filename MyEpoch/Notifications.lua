@@ -178,7 +178,7 @@ end
 function N.Preview(c,scope)
     if c~=E.current or not K.Owned(c)then return false end
     if A.Call('notificationCombat',UnitAffectingCombat,'player')~=false then return false end
-    clearActive();active={owner=c,preview=true,previewScope=scope,entries={},remaining=8}
+    clearActive();active={owner=c,preview=true,previewScope=scope,entries={},remaining=6}
     if N.renderer then N.renderer(active)end
     if N.sound and N.Preferences(c,scope).sound then N.sound()end
     return true
@@ -217,7 +217,7 @@ function N.Tick(elapsed)
         if entry.family==first.family then chosen[#chosen+1]=entry;st.seen[entry.key]='delivered'else remaining[#remaining+1]=entry end
     end
     st.pending=remaining
-    active={owner=c,family=first.family,entries=chosen,remaining=8}
+    active={owner=c,family=first.family,entries=chosen,remaining=6}
     -- Mark delivered before rendering/sound. A reload never repeats a shown toast.
     if N.renderer then N.renderer(active)end
     if N.sound and N.Preferences(c).sound then N.sound()end

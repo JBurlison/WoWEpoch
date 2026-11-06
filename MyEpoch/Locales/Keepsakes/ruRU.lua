@@ -93,7 +93,7 @@ E.Localize({
     ["Days in this chapter"]="Дни этой главы",
     ["Discoveries"]="Открытия",
     ["Edit selection"]="Изменить выбор",
-    ["Eight seconds per toast. Hover to pause; close to dismiss."]="Каждое уведомление видно восемь секунд. Наведите курсор, чтобы задержать его, или закройте.",
+    ["Six seconds per toast. Hover to pause; close to dismiss."]="Каждое уведомление видно шесть секунд. Наведите курсор, чтобы задержать его, или закройте.",
     ["Equipment variant changed"]="Изменился вариант экипировки",
     ["Event types"]="Виды событий",
     ["Every adventure has a thread"]="У каждого приключения своя нить",

@@ -447,6 +447,7 @@ local function restoreInputDrafts()
     if #kept>0 then context.drafts=kept;context.applied=true;B.pendingInputDrafts=context end
 end
 function B.Render(reset)
+    if E.ComparisonView then E.ComparisonView.CloseMenu()end
     if E.CompanyLayout then E.CompanyLayout.CheckQuoteJump()end
     if E.ArtDialog and E.ArtDialog.IsOpen()then E.ArtDialog.refreshBook=true;return end
     if B.pendingInputDrafts and not draftContextValid(B.pendingInputDrafts)then B.pendingInputDrafts=nil end
@@ -635,7 +636,7 @@ function B.Build()
     end); B.memoryButton=memory; memory:SetPoint("TOPLEFT",808,-73)
     local illustrations=button(frame,E.L["Illustrations"],120,30,function()E.ArtDialog.OpenForPage()end); illustrations:SetPoint("TOPLEFT",680,-73);B.illustrations=illustrations
     frame:SetScript("OnShow",function()if E.ArtDialog then E.ArtDialog.RestoreCapture()end end)
-    frame:SetScript("OnHide",function() A.Call("bookStopMoving",frame.StopMovingOrSizing,frame);B.pendingInputDrafts=nil; if E.ArtDialog and not B.captureHiding then E.ArtDialog.Hide(true)end; if E.CharacterView then E.CharacterView.Hide()end; if not B.combatHiding and not B.captureHiding then B.reopen=false; if E.Capture then E.Capture.CancelRestore() end end end)
+    frame:SetScript("OnHide",function() A.Call("bookStopMoving",frame.StopMovingOrSizing,frame);B.pendingInputDrafts=nil; if E.ComparisonView then E.ComparisonView.CloseMenu()end; if E.ArtDialog and not B.captureHiding then E.ArtDialog.Hide(true)end; if E.CharacterView then E.CharacterView.Hide()end; if not B.combatHiding and not B.captureHiding then B.reopen=false; if E.Capture then E.Capture.CancelRestore() end end end)
     if UISpecialFrames then table.insert(UISpecialFrames,"MyEpochBook") end
     B.Fit(); frame:Hide()
 end

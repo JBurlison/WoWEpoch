@@ -5,16 +5,19 @@ function X.Snapshot(c,r)
     local snap=r.characterSnapshot
     if type(snap)=='table'and snap.version==1 and snap.character==c.id then return snap end
 end
+function X.Eligible(c,r)
+    return r and r.major==true and X.Snapshot(c,r)or nil
+end
 function X.Choices(c,work)
     local out={};if not K.Owned(c)then return out end
     for _,id in ipairs(c.order)do
         if work then work()end
-        local r=c.records[id];if X.Snapshot(c,r)then out[#out+1]=r end
+        local r=c.records[id];if X.Eligible(c,r)then out[#out+1]=r end
     end
     E.RetentionWork.Sort(out,S.Before,work);return out
 end
 function X.Previous(c,selected,work)
-    if not X.Snapshot(c,selected)then return end
+    if not X.Eligible(c,selected)then return end
     local previous
     for _,r in ipairs(X.Choices(c,work))do
         if r==selected then return previous end;previous=r

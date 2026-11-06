@@ -44,10 +44,43 @@ function V.RefreshMap(frame)
         if A.Call("journeyTextureReady",frame.tiles[i].IsObjectLoaded,frame.tiles[i])~=true then ready=false; break end
     end end
     frame.ready=ready
+    local explored=not frame.overlayRejected
+    if explored then for _,texture in ipairs(frame.overlayTextures or{})do
+        if A.Call('journeyExplorationReady',texture.IsObjectLoaded,texture)~=true then explored=false;break end
+    end end
+    frame.explorationReady=explored
     for i,texture in ipairs(frame.tiles) do if ready and i<=#frame.art.tiles then texture:Show() else texture:Hide() end end
+    for _,texture in ipairs(frame.overlayTextures or{})do if ready and explored then texture:Show()else texture:Hide()end end
     for i,pin in ipairs(frame.pins) do if ready and i<=frame.clusterCount then pin:Show() else pin:Hide() end end
-    if ready then frame.message:Hide(); frame:SetScript("OnUpdate",nil)
+    if ready then frame.message:Hide();if explored or frame.overlayRejected then frame:SetScript("OnUpdate",nil)end
     else frame.message:SetText(frame.art and E.L["Map artwork is loading or unavailable. Open Map details to retry."] or E.L["No map artwork is available for these records."]); frame.message:Show() end
+end
+local function exploredTextures(frame,art)
+    for _,texture in ipairs(frame.overlayTextures or{})do texture:Hide()end
+    frame.overlayPools=frame.overlayPools or{{},{}};frame.overlayTextures={};frame.overlayRejected=false
+    if not art or not frame.geometry then return end
+    local used={0,0};local scale=frame.geometry.width/art.width
+    for _,tile in ipairs(art.overlays or{})do
+        local layer=tile.layer;used[layer]=used[layer]+1;local pool=frame.overlayPools[layer]
+        local texture=pool[used[layer]]
+        if not texture then texture=frame:CreateTexture(nil,'ARTWORK',nil,layer);pool[used[layer]]=texture end
+        frame.overlayTextures[#frame.overlayTextures+1]=texture
+        texture:ClearAllPoints();texture:SetPoint('TOPLEFT',frame,'TOPLEFT',16+tile.x*scale,-16-tile.y*scale)
+        texture:SetSize(tile.width*scale,tile.height*scale)
+        if A.Call('journeyExplorationTexture',texture.SetTexture,texture,tile.file,nil,nil,'TRILINEAR')~=true then frame.overlayRejected=true end
+        texture:SetTexCoord(tile.u0 or 0,tile.u,tile.v0 or 0,tile.v)
+        texture:Hide()
+    end
+end
+local function pollMap(frame)
+    frame.loadingElapsed=0;frame.loadingPoll=0;V.RefreshMap(frame)
+    if frame.art and not frame.rejected and(not frame.ready or not frame.explorationReady and not frame.overlayRejected)then
+        frame:SetScript('OnUpdate',function(self,delta)
+            self.loadingElapsed=self.loadingElapsed+delta;self.loadingPoll=self.loadingPoll+delta
+            if self.loadingPoll>=.2 then self.loadingPoll=0;V.RefreshMap(self)end
+            if self.loadingElapsed>=10 then self:SetScript('OnUpdate',nil)end
+        end)
+    else frame:SetScript('OnUpdate',nil)end
 end
 function V.Draw(page,art,clusters,options)
     local frame=B.Acquire(page,"journeyMap");if not frame.photo then T.Photo(frame)end
@@ -107,14 +140,29 @@ function V.Draw(page,art,clusters,options)
             pin:Show()
         end
     else frame.geometry=nil end
-    V.RefreshMap(frame)
-    if art and not frame.ready and not frame.rejected then frame:SetScript("OnUpdate",function(self,delta)
-        self.loadingElapsed=self.loadingElapsed+delta; self.loadingPoll=self.loadingPoll+delta
-        if self.loadingPoll>=0.2 then self.loadingPoll=0; V.RefreshMap(self) end
-        if self.loadingElapsed>=10 then self:SetScript("OnUpdate",nil) end
-    end) else frame:SetScript("OnUpdate",nil) end
+    exploredTextures(frame,art);pollMap(frame)
     page.y=page.y+frame:GetHeight()+6; return frame
 end
+-- Refresh only artwork on the existing map widgets: an exploration update
+-- must not rebuild a notes editor or change its cursor/scroll position.
+function V.RefreshExploration()
+    if not B.frame or not B.frame:IsShown()then return end
+    for _,page in ipairs({B.left,B.right})do
+        for i=1,page.used.journeyMap or 0 do local frame=page.pool.journeyMap[i]
+            if frame and frame.art and frame:IsShown()then
+                local art=J.Art(frame.art.mapID)
+                if art and art.artID==frame.art.artID and art.width==frame.art.width and art.height==frame.art.height then
+                    frame.art=art;exploredTextures(frame,art);pollMap(frame)
+                else
+                    frame.art=nil;exploredTextures(frame);V.RefreshMap(frame)
+                end
+            end
+        end
+    end
+end
+local explorationEvents=CreateFrame('Frame');V.explorationEvents=explorationEvents
+pcall(explorationEvents.RegisterEvent,explorationEvents,'MAP_EXPLORATION_UPDATED')
+explorationEvents:SetScript('OnEvent',V.RefreshExploration)
 function V.Render(left,right)
     V.lastLocation=nil;V.lastClusters=nil;V.lastRecords=nil
     local c=B.Character();local deaths=c.state.journeyShowDeaths==true

@@ -291,8 +291,11 @@ function V.Daily(right,c,report,prepared)
         for i,entry in ipairs(stats)do local f=place(B.Acquire(right,"calendarStat"),right,((i-1)%columns)*(width/columns),y+math.floor((i-1)/columns)*66,width/columns-6,60);f.value:SetWidth(width/columns-8);f.caption:SetWidth(width/columns-8); f.value:SetText(entry.value); f.caption:SetText(E.locale=='enUS' and string.upper(entry.label) or entry.label)end
         right.y=y+math.ceil(#stats/columns)*66; rule(right,right.y); right.y=right.y+18
     end
-    if prepared and (prepared.playJob or prepared.playDirty or prepared.playError)then
-        B.Text(right,E.L[prepared.playError or "Updating active play time for this day..."],12)
+    if prepared then
+        prepared.playPendingShown=active==nil and (prepared.playJob or prepared.playDirty)~=nil
+        if prepared.playPendingShown or prepared.playError then
+            B.Text(right,E.L[prepared.playError or "Updating active play time for this day..."],12)
+        end
     end
     local job={kind='daily',from=B.day,through=A.ShiftDay(B.day,1)}
     if diaryOpen then
@@ -391,10 +394,24 @@ local function current(state)
         and B.frame and B.frame:IsShown() and B.chapter=="Calendar" and B.Character()==state.owner
         and B.day and B.day>=state.start and B.day<state.finish and Q.IsWarm(state.owner)
 end
-local function dailyProjection(owner,day,cut,work)
+local function sameDuration(a,b)
+    if a==nil or b==nil then return a==b end
+    return (a>0)==(b>0) and E.LocaleDuration(a)==E.LocaleDuration(b)
+end
+local function samePresentation(a,b,work)
+    if not a or a.highlight~=b.highlight or #a.records~=#b.records or not sameDuration(a.activeSeconds,b.activeSeconds)then return false end
+    for i,r in ipairs(a.records)do work();if b.records[i]~=r then return false end end
+    for kind,n in pairs(a.counts)do work();if b.counts[kind]~=n then return false end end
+    for kind,n in pairs(b.counts)do work();if a.counts[kind]~=n then return false end end
+    for id,r in pairs(a.continuedGroups)do work();if not b.continuedGroups[id]or b.continuedGroups[id].ts~=r.ts then return false end end
+    for id,r in pairs(b.continuedGroups)do work();if not a.continuedGroups[id]or a.continuedGroups[id].ts~=r.ts then return false end end
+    return true
+end
+local function dailyProjection(owner,day,cut,work,prior)
     local report=V.Report(owner,day,work,cut)
     report.activeSeconds=Q.TimeStats(owner,day,A.ShiftDay(day,1),nil,false,work,Q.CalendarPlayCut(owner)).activeSeconds
     indexEvents(owner,report,work)
+    report.samePresentation=samePresentation(prior,report,work)
     return report
 end
 local function step(state,budget)
@@ -412,7 +429,8 @@ local function step(state,budget)
             state.todo[day]=nil;state.jobDay=day
             local cut=Q.CalendarCut(state.owner,day,A.ShiftDay(day,1))
             if not cut then return changed end
-            state.job=E.RetentionWork.Start(function(work)return dailyProjection(state.owner,day,cut,work)end)
+            local prior=state.days[day]
+            state.job=E.RetentionWork.Start(function(work)return dailyProjection(state.owner,day,cut,work,prior)end)
             if not state.job then state.error=E.L["Calendar preparation is unavailable on this client."];return true end
         end
         local before=state.job.operations
@@ -420,7 +438,12 @@ local function step(state,budget)
         budget=budget-math.max(1,state.job.operations-before)
         if status=="failed" then state.error=E.L["Calendar preparation stopped. Reopen the month to retry."];state.job=nil;state.jobDay=nil;return true end
         if not status then break end
-        state.days[day]=report;state.job=nil;state.jobDay=nil;changed=true
+        if report.samePresentation and state.days[day]then
+            -- Preserve visible row callbacks and avoid rebuilding the notes
+            -- editor on each heartbeat when no displayed value changed.
+            state.days[day].activeSeconds=report.activeSeconds
+        else state.days[day]=report;changed=true end
+        state.job=nil;state.jobDay=nil
     end
     return changed
 end
@@ -440,9 +463,11 @@ local function playStep(state,budget)
     if state.playJob then
         local status,value=E.RetentionWork.Step(state.playJob,budget)
         if status then
-            if status=="done" then state.activeSeconds=value;state.playError=nil
-            else state.activeSeconds=nil;state.playError=E.L["Active play time could not be prepared for this day."] end
-            state.playJob=nil;changed=true
+            if status=="done" then
+                changed=not sameDuration(state.activeSeconds,value) or state.playError~=nil or state.playPendingShown==true
+                state.activeSeconds=value;state.playError=nil
+            else state.activeSeconds=nil;state.playError=E.L["Active play time could not be prepared for this day."];changed=true end
+            state.playJob=nil
         end
     end
     return changed
@@ -498,7 +523,10 @@ local function discard(owner)
 end
 local function refreshPlayDays(state,r,all)
     for _,day in ipairs(state.dates)do
-        if all or type(r.ts)=='number'and type(r.ended)=='number'and r.ts<state.ends[day]and r.ended>day then state.todo[day]=true end
+        if all or type(r.ts)=='number'and type(r.ended)=='number'and r.ts<state.ends[day]and r.ended>day then
+            state.todo[day]=true
+            if state.playDay==day then state.playDirty=true end
+        end
     end
 end
 E.On("RECORDS_REMOVED",discard)
@@ -534,7 +562,7 @@ E.On("RECORD_ADDED",function(owner,r)
     local change=Q.CalendarChange(owner,r)
     -- A legacy sequence collision can replace a different row via Store.Add.
     if not change or change.prior then discard(owner);return end
-    if r.kind=="play" then state.playDirty=true;refreshPlayDays(state,r);return end
+    if r.kind=="play" then refreshPlayDays(state,r);return end
     if r.kind=="group" then discard(owner);return end
     local stamp=V.IndexStamp(r)
     if not internal[r.kind] and stamp and stamp>=state.start and stamp<state.finish then
@@ -551,7 +579,6 @@ E.On("RECORD_CHANGED",function(owner,r,_,receipt)
     if not change then discard(owner);return end
     local prior=change.prior
     if r.kind=="play" or prior=="play" then
-        state.playDirty=true
         refreshPlayDays(state,r,not change.playExtension)
         if not change.playExtension then state.activeSeconds=nil;state.playJob=nil;state.redraw=true end
     end

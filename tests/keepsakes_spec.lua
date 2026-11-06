@@ -7,9 +7,9 @@ local a={version=1,character=c.id,equipment={{slot=16,status='equipped',itemID=2
 local b={version=1,character=c.id,equipment={{slot=16,status='equipped',itemID=25,link='item:25:2'},{slot=1,status='equipped',itemID=100}},
     stats={{key='crit',value=4.8,unit='%'},{key='health'},{key='power',value=100}},powerType=0,
     skills={{id=43,rank=100,maxRank=150},{id=164,rank=1,maxRank=75}}}
-local first=S.Add(c,'milestone',1800000000,{subject=c.id,characterSnapshot=a})
+local first=S.Add(c,'milestone',1800000000,{subject=c.id,major=true,characterSnapshot=a})
 local missing=S.Add(c,'milestone',1800000001,{subject=c.id})
-local second=S.Add(c,'milestone',1800000002,{subject=c.id,characterSnapshot=b})
+local second=S.Add(c,'milestone',1800000002,{subject=c.id,major=true,characterSnapshot=b})
 assert(X.Previous(c,second)==first and #X.Choices(c)==2)
 assert(X.Saved(other,first.id,second.id)==nil and X.Saved(c,missing.id,second.id)==nil)
 local diff=assert(X.Saved(c,first.id,second.id));assert(#diff.equipment==19)
