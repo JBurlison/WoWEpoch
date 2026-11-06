@@ -42,4 +42,17 @@ TEST_UI_CLICK('Events');TEST_UI_CLICK('Mobs defeated')
 assert(B.right.used.calendarEvent==2 and B.right.pool.calendarEvent[1].category:GetText()=='MOB DEFEATED')
 B.right.pool.calendarEvent[1]:Click();assert(B.selected==mob.id)
 TEST_UI_CLICK('Back to this day');assert(B.calendarDiaryOpen==false and B.calendarFilter=='kill')
+-- Every populated day starts with observed active time, including days without
+-- other events. Overnight intervals are clipped and overlapping AFK is excluded.
+local overnight=S.Add(c,'play',A.ShiftDay(day,1)-600,{ended=A.ShiftDay(day,1)+900,status='active',title='Observed active time'})
+S.Add(c,'play',A.ShiftDay(day,1)-300,{ended=A.ShiftDay(day,1)+300,status='afk',title='Observed afk time'})
+V.SelectDay(day);TEST_PREPARE_BOOK()
+local function dayText(stamp)
+ for i=1,B.left.used.calendarDay or 0 do local f=B.left.pool.calendarDay[i];if f.day==stamp then return f.text:GetText()end end
+ error('Missing calendar day')
+end
+assert(dayText(day):match('^[^\n]+')==E.Format('{duration} played',{duration=E.LocaleDuration(300)}))
+assert(dayText(A.ShiftDay(day,1)):match('^[^\n]+')==E.Format('{duration} played',{duration=E.LocaleDuration(600)}),'Play-only days still show time first')
+overnight.ended=overnight.ended+300;S.Changed(c,overnight);TEST_PREPARE_BOOK()
+assert(dayText(A.ShiftDay(day,1)):match('^[^\n]+')==E.Format('{duration} played',{duration=E.LocaleDuration(900)}),'Corrections refresh the month cells')
 print('PASS Calendar tabs: full diary, separate notes, event filters, movement omission without deletion, stale actions and day default')

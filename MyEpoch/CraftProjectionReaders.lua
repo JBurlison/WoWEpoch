@@ -440,7 +440,7 @@ local function _auctionSame(a,b)if E.PreparationWork then return E.RetentionWork
 local V,S={},E.Store;E.ProjectionRecaps=V
 local eligible={level=true,skill=true,profession=true}
 function V.Allowed(c,r)
-    return r.kind=="play" or r.kind=="milestone" and r.subject==c.id and eligible[r.milestoneType]
+    return r.kind=="milestone" and r.subject==c.id and eligible[r.milestoneType]
         or (r.kind=="crafted" or r.kind=="gathered") and r.recipient==c.id
         or (r.kind=='death'or r.kind=='damage'or r.kind=='health')and r.subject==c.id
         or r.kind=='gold'
@@ -480,4 +480,4 @@ end
 end
 E.CraftProjectionReaderFactories[#E.CraftProjectionReaderFactories+1]={name="ProjectionRecaps",create=create}
 end
-E.CraftProjectionReaderSources["ProjectionRecaps"]="3f968dfc92574967bfb4ea12c59004fe36c10eeb62498d35c80b799491d3eee4"
+E.CraftProjectionReaderSources["ProjectionRecaps"]="f0c4717103b1342f21898b6b09fca689bca24903cf7ea7a67d99b1b57b5c5db7"

@@ -28,25 +28,33 @@ now=220;X.Message('Wolf dies, you gain 20 experience.');now=230;local stale=xp(2
 now=240;X.Message('Wolf dies, you gain 80 experience.');C.session='new-session';local fresh=xp(80);settle();assert(not fresh.xpCause)
 assert(#E.Query.Kind(c,'xp')==9,'Attribution must not create additional XP receipts')
 local travel=S.Add(c,'travel',now,{subject=c.id,amount=7,title='Distance traveled'})
-local recap={refs={travel.id,gain.id,quest.id,explored.id}}
+local play=S.Add(c,'play',now-60,{status='active',ended=now,session=C.session,title='Observed active time'})
+local recap={refs={travel.id,play.id,gain.id,quest.id,explored.id}}
 local sources=V.Sources(c,recap)
 assert(#sources==3 and c.records[travel.id]==travel,'Hide travel without deleting Journey history')
 local shown,kinds,counts=V.FilterSources(sources,{quest=true});assert(#shown==2 and counts.xp==2 and #kinds==2)
 assert(#V.FilterSources(sources,{quest=true,xp=true})==0)
 assert(#V.FilterSources(sources,{})==3)
+assert(c.records[play.id]==play and E.Diary.Facts(c,now-60,now+1).activeSeconds==60,'Hidden play sources must still contribute to active-time totals')
 -- Exercise the production prepared source list and multi-select controls.
 local B=E.Book
 local milestone=S.Add(c,'milestone',now,{subject=c.id,major=true,milestoneType='level',before=2,after=3,title='Level 3'})
 local savedRecap=S.Add(c,'recap',now,{periodKind='milestone',key='milestone:'..milestone.id,from=90,through=now,refs=recap.refs,facts={},text='A little adventure.'})
-B.ChangeCharacter(c.id);B.recapKind='milestone';B.recapFocus=savedRecap.id;B.recapSourcesOpen=true;B.recapFiltersOpen=true;B.recapSourceExcluded={}
+B.ChangeCharacter(c.id);B.recapKind='milestone';B.recapFocus=savedRecap.id;B.recapSourcesOpen=true;E.SourceFilters.State('recap').open=true;E.SourceFilters.State('recap').excluded={}
 B.SetChapter('Recaps');TEST_PREPARE_BOOK()
 local projection=assert(E.CraftProjectionPreparation.Recap(c,savedRecap));assert(#projection.sources==3)
+assert(not TEST_UI_FIND('Play time (1)'),'Hidden play sources must not appear among filter choices')
+local actions,original={},B.Action
+B.Action=function(page,text,fn)actions[#actions+1]=text;return original(page,text,fn)end
+B.SourceLinks(B.right,c,{kind='diary',refs={play.id,quest.id}})
+B.Action=original
+for _,text in ipairs(actions)do assert(not text:find('Observed active time',1,true),'Generic source links must hide play observations too')end
 assert(TEST_UI_FIND('Follow the source records (3)') or TEST_UI_FIND('- Follow the source records (3)'))
 local toggle=assert(TEST_UI_FIND('Quest (1)'));toggle.scripts.OnClick();TEST_PREPARE_BOOK()
-assert(B.recapSourceExcluded.quest and #V.FilterSources(projection.sources,B.recapSourceExcluded)==2)
+assert(E.SourceFilters.State('recap').excluded.quest and #V.FilterSources(projection.sources,E.SourceFilters.State('recap').excluded)==2)
 local xpToggle=assert(TEST_UI_FIND('Experience gained (2)'));xpToggle.scripts.OnClick();TEST_PREPARE_BOOK()
-assert(B.recapSourceExcluded.xp and B.recapSourceExcluded.quest)
-local reset=assert(TEST_UI_FIND('All events'));reset.scripts.OnClick();TEST_PREPARE_BOOK();assert(not next(B.recapSourceExcluded))
+assert(E.SourceFilters.State('recap').excluded.xp and E.SourceFilters.State('recap').excluded.quest)
+local reset=assert(TEST_UI_FIND('All events'));reset.scripts.OnClick();TEST_PREPARE_BOOK();assert(not next(E.SourceFilters.State('recap').excluded))
 for _,key in ipairs(formats)do _G[key]=saved[key]end
 E.current=owner;C.session=session;A.Now=clock;X.live=nil
 print('PASS XP sources: localized reports, quest refs, event order, ambiguous/expired/session guards, reversal, unchanged totals, filtered recap sources')

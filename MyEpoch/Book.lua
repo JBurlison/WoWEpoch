@@ -358,11 +358,15 @@ function B.Record(page,r)
     B.SourceLinks(page,c,r)
 end
 function B.SourceLinks(page,c,r,heading)
-    local refs={};local attached=E.Memories.ScreenshotTarget(c,r)
+    local rows={};local attached=E.Memories.ScreenshotTarget(c,r)
     for _,id in ipairs(r.refs or {})do local source=c.records[id]
-        if not(attached and source and source.kind=="screenshot"and source.character==c.id)then refs[#refs+1]=id end
+        if not(source and source.kind=="play")and not(attached and source and source.kind=="screenshot"and source.character==c.id)then
+            rows[#rows+1]=source or {id=id,kind='unknown'}
+        end
     end
-    if heading and #refs>0 then B.Text(page,heading,22)end
+    if heading and #rows>0 then B.Text(page,heading,22)end
+    rows=E.SourceFilters.Controls(page,rows,'linked:'..(B.chapter or ''),'sourcePage')
+    local refs={};for _,source in ipairs(rows)do refs[#refs+1]=source.id end
     B.sourcePage=math.max(1,math.min(B.sourcePage or 1,math.max(1,math.ceil(#refs/12))))
     for i=(B.sourcePage-1)*12+1,math.min(#refs,B.sourcePage*12) do local id=refs[i]; local source=c.records[id]
         if source then B.Action(page,E.Format("Open: {title}",{title=E.Display.RecordTitle(source) or E.Display.Kind(source.kind)}),function() B.selected=source.id; B.Render(true) end) end

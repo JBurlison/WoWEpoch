@@ -140,6 +140,11 @@ function V.Render(left,right)
         if not B.selected then heading(right,E.L["UNCHARTED PAGES"],E.L["Your journeys"]);B.Text(right,E.L["Your recorded moments will appear here as you adventure. Death locations stay hidden until you choose to show them; the records remain saved."],17)end
         return
     end
+    local candidates=chosen.rows
+    local filtered=E.SourceFilters.Filter(candidates,'journey')
+    local visible={key=chosen.key,name=chosen.name,mapID=chosen.mapID,rows=filtered,discoveries=0}
+    for _,r in ipairs(filtered)do if J.Category(c,r)=='discoveries'then visible.discoveries=visible.discoveries+1 end end
+    chosen=visible
     local art,reason=J.Art(chosen.mapID);local grouped=J.Clusters(chosen.rows,art and art.artID)
     V.lastLocation=chosen;V.lastClusters=grouped
     V.Draw(left,art,grouped)
@@ -157,6 +162,7 @@ function V.Render(left,right)
     local lists={{E.L["All location records"],function()B.journeyBucket=nil;B.journeyRecordsPage=1;B.Render()end,not B.journeyBucket}}
     if #grouped.unplaced>0 then lists[#lists+1]={E.L["Without a usable pin"],function()B.journeyBucket="unplaced";B.journeyRecordsPage=1;B.Render()end,B.journeyBucket=="unplaced"}end
     actions(right,lists,2)
+    E.SourceFilters.Controls(right,candidates,'journey','journeyRecordsPage')
     local cluster=grouped.byKey[B.journeyBucket]
     local records=cluster and cluster.records or B.journeyBucket=="unplaced"and grouped.unplaced or not B.journeyBucket and chosen.rows or{}
     V.lastRecords=records
