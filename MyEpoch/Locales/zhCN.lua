@@ -169,3 +169,13 @@ E.Localize({
     ["chat message"]={"条聊天"},
     ["unread recap"]={"篇未读回顾"},
 })
+
+E.Localize({
+    ["Receipt details"]="获取详情",
+    ["Your location"]="你的位置",
+    ["Exact location not recorded"]="未记录确切位置",
+    ["Open group"]="查看队伍",
+    ["Last recorded balance each day. Days without records stay blank."]="每天最后记录的余额。没有记录的日期留空。",
+    ["Daily totals from recorded wallet changes. Days without records stay blank."]="已记录的每日收支合计。没有记录的日期留空。",
+    ["Showing a selection of days. Choose a shorter date range for every day."]="当前仅显示部分日期。缩短日期范围即可查看每一天。",
+})

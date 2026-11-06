@@ -1,10 +1,8 @@
 local _,E=...
 local V,B,L,A,F={},E.Book,E.Items,E.API,E.Economy; E.LootView=V
 local function receiptKind(value)return E.L[({loot="Loot",crafted="Crafted",gathered="Gathered"})[value] or value]end
-function V.Record(page,r)
+local function evidence(page,r)
     if r.kind~="loot" and r.kind~="crafted" and r.kind~="gathered" then return end
-    if r.itemID then E.LedgerStyle.Item(page,r.itemID,E.LedgerStyle.Name(r.itemID,r.title),r.quantity,E.L['Recorded item receipt'],r.itemLink)end
-    B.Text(page,E.Format("Acquisition: {kind} | {observation}",{kind=receiptKind(r.kind),observation=E.L[r.observationType or "observation type unknown"]}),14)
     if r.kind=="crafted" then
         local c=B.Character();local detail=E.CraftProjectionPreparation.Detail(c,r)
         if not detail then B.Text(page,E.L['Preparing recipe association...'],14);return end
@@ -32,8 +30,6 @@ function V.Record(page,r)
         B.Text(page,E.Format("Original receipt type: {kind}. The item quantity is counted once; no node count or gold income is inferred.",{kind=receiptKind(r.gatheringOriginal.kind)}),12)
         B.Action(page,r.gatheringRejected and E.L["Re-evaluate gathering match"]or E.L["Reject gathering attribution"],function()E.Gathering.Reject(B.Character(),r.id,not r.gatheringRejected);B.Render()end)
     end
-    local _,mob=L.Dimension(B.Character(),r,"mob"); B.Text(page,mob,14)
-    local _,group=L.Dimension(B.Character(),r,"group"); B.Text(page,group,14)
     if r.vendorUnitValue~=nil then
         if r.vendorUnitValue>0 then B.Text(page,E.Format("Vendor estimate: {total} ({unit} per unit)",{total=E.Money(r.vendorUnitValue*r.quantity),unit=E.Money(r.vendorUnitValue)}),15) end
         local valuation=r.vendorValuation
@@ -44,4 +40,39 @@ function V.Record(page,r)
         B.Text(page,E.Format("Market estimate: {value} | {source} | {date}",{value=E.Money(market.unit*r.quantity),source=market.source,date=A.Date(market.observedAt)}),13)
     end
     B.Text(page,E.L["Item estimates do not establish acquisition cost or realized profit."],12)
+end
+
+function V.Record(page,r)
+    if r.kind~="loot" and r.kind~="crafted" and r.kind~="gathered" then return end
+    local c=B.Character()
+    local recipient=r.recipient==c.id and c.identity.name or r.recipientName
+    local subtitle=receiptKind(r.kind).." / "..A.RecordDate(r)
+    if recipient then subtitle=subtitle.." / "..recipient end
+    E.LedgerStyle.Item(page,r.itemID,E.LedgerStyle.Name(r.itemID,r.title),r.quantity,subtitle,r.itemLink)
+    if r.npcID then local _,mob=L.Dimension(c,r,"mob");B.Text(page,mob,16)end
+    if r.vendorUnitValue and r.vendorUnitValue>0 then
+        E.LedgerStyle.Amount(page,E.L["Vendor estimate"],r.vendorUnitValue*(r.quantity or 1))
+    end
+    if r.gathering and E.Gathering.Inferred(r)then B.Text(page,E.L["Inferred gathered"],13)end
+    if r.profession or r.recipeName then B.Text(page,table.concat({r.profession or "",r.recipeName or ""}," "),14)end
+    if r.group and c.records[r.group]then
+        B.Action(page,E.L["Open group"],function()E.SearchView.Open({character=c.id,record=r.group})end)
+    end
+    V.Location(page,r)
+    B.Action(page,E.L["Receipt details"]..(B.itemDetailsOpen and " -"or" +"),function()B.itemDetailsOpen=not B.itemDetailsOpen;B.Render()end)
+    if B.itemDetailsOpen then
+        local section=B.Section(page)
+        evidence(page,r)
+        B.EndSection(page,section)
+    end
+end
+function V.Location(page,r)
+    if not r.mapID and not r.zone then return end
+    local art=E.Journey.Art(r.mapID)
+    local grouped=E.Journey.Clusters({r},art and art.artID)
+    local location=E.Display.Zone(r)or E.L["Location not recorded"]
+    if r.subzone and r.subzone~=""and r.subzone~=location then location=r.subzone.." / "..location end
+    local caption=location.." — "..E.L[grouped.positioned>0 and "Your location"or"Exact location not recorded"]
+    if art then E.JourneyView.Draw(page,art,grouped,{height=250,caption=caption,captionAtTop=grouped.clusters[1]and grouped.clusters[1].y>.5})
+    else B.Text(page,caption,14)end
 end

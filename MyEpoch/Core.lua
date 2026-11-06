@@ -1,5 +1,5 @@
 local addonName, E = ...
-E.name, E.version, E.schema = addonName, "0.1.7", 1
+E.name, E.version, E.schema = addonName, "0.1.8", 1
 E.target = {client = "forever", version = "1.60.1", build = 70790, interface = 16001,
     source = "eac30af597e5aaa43a60f6675ef5fdcea100375f"}
 E.listeners = {}

@@ -170,3 +170,13 @@ E.Localize({
     ["unread recap"]={"непрочитанный итог","непрочитанных итога","непрочитанных итогов"},
 })
 E.localeDateMonths={"января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"}
+
+E.Localize({
+    ["Receipt details"]="Подробности получения",
+    ["Your location"]="Ваше местоположение",
+    ["Exact location not recorded"]="Точное место не записано",
+    ["Open group"]="Открыть группу",
+    ["Last recorded balance each day. Days without records stay blank."]="Последний записанный баланс за каждый день. Дни без записей остаются пустыми.",
+    ["Daily totals from recorded wallet changes. Days without records stay blank."]="Итоги записанных денежных операций за день. Дни без записей остаются пустыми.",
+    ["Showing a selection of days. Choose a shorter date range for every day."]="Показаны отдельные дни. Выберите более короткий период, чтобы увидеть каждый день.",
+})

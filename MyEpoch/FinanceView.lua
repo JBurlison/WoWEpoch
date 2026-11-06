@@ -152,55 +152,55 @@ function V.Graph(page,report,range,mode)
     local heading=({balance=E.L["Balance"],income=E.L["Income"],spending=E.L["Spending"],net=E.L["Net change"]})[mode] or E.L["Coin value"]
     graphLabel(plot,E.Format('{measure} (coin value)',{measure=heading}),left,255,chartWidth,"LEFT",12)
     graphLabel(plot,E.L["Date / local time"],left,7,chartWidth,"CENTER",11)
-    -- Leave room for axes in the bounded texture pool, even with dense history.
-    local bins,minValue,maxValue={},nil,nil; local count=120
-    local chartFrom,chartThrough=range.from,range.through
-    if mode=="balance" then
-        local first,last
-        for _,p in ipairs(report.wallet.points)do if p.observed and p.ts>=range.from and p.ts<=range.through then
-            first=math.min(first or p.ts,p.ts);last=math.max(last or p.ts,p.ts)
-        end end
-        if first then
-            local pad=math.max(60,(last-first)*.03)
-            chartFrom=math.max(range.from,first-pad);chartThrough=math.min(range.through,last+pad)
-        end
+    -- Summarize local calendar days before any display sampling. A closing
+    -- balance is the last observation, never the day's peak or an invented zero.
+    local days,ordered={},{}
+    local function day(ts)
+        local key=A.Day(ts);local row=days[key]
+        if not row then row={day=key,ts=A.DayStart(ts),value=0};days[key]=row;ordered[#ordered+1]=row end
+        return row
     end
+    if mode=="balance" then
+        for _,p in ipairs(report.wallet.points)do if p.observed and p.ts>=range.from and p.ts<range.through then
+            local row=day(p.ts)
+            if not row.lastTS or p.ts>=row.lastTS then row.balance=p.balance;row.lastTS=p.ts end
+        end end
+    else
+        for _,r in ipairs(report.transactions)do if r.ts>=range.from and r.ts<range.through then
+            local row=day(r.ts)
+            row.value=row.value+(mode=="income"and math.max(0,r.amount)or mode=="spending"and math.max(0,-r.amount)or r.amount)
+            row.firstTS=math.min(row.firstTS or r.ts,r.ts);row.lastTS=math.max(row.lastTS or r.ts,r.ts)
+        end end
+    end
+    table.sort(ordered,function(a,b)return a.ts<b.ts end)
+    local bins,minValue,maxValue={},nil,nil
+    local run=0
+    for i,row in ipairs(ordered)do
+        if i==1 or A.Day(A.ShiftDay(ordered[i-1].ts,1))~=row.day then run=run+1 end
+        row.run=run;row.sequence=i;row.firstTS=row.firstTS or row.lastTS
+        row.min,row.max=row.balance,row.balance
+        row.firstPoint,row.lastPoint,row.minPoint,row.maxPoint=row,row,row,row
+        local value=mode=="balance"and row.balance or row.value
+        minValue=math.min(minValue or 0,value);maxValue=math.max(maxValue or 0,value)
+    end
+    -- Very long ranges display representative DAYS, not sums of unrelated days.
+    -- Every normal monthly/yearly view retains one point or bar per recorded day.
+    local count=math.min(480,#ordered)
+    for i=1,count do bins[i]=ordered[count==1 and 1 or math.floor((i-1)*(#ordered-1)/(count-1))+1]end
+    plot.dailyCount=#ordered
+    local chartFrom=ordered[1]and ordered[1].ts or range.from
+    local chartThrough=ordered[#ordered]and A.ShiftDay(ordered[#ordered].ts,1)or range.through
     local span=math.max(1,chartThrough-chartFrom)
     plot.chartFrom,plot.chartThrough=chartFrom,chartThrough
     local ticks=math.max(2,math.min(5,math.floor(chartWidth/105)))
     local previousDate
     for n=0,ticks-1 do
         local fraction=n/(ticks-1);local ts=chartFrom+math.floor((span-1)*fraction)
-        local label=date(span<=86400 and "%H:%M" or span>365*86400 and (E.locale=='enUS' and "%b %Y" or "%Y-%m") or (E.locale=='enUS' and "%d %b" or "%m-%d"),ts)
+        local label=date(span>365*86400 and (E.locale=='enUS' and "%b %Y" or "%Y-%m") or (E.locale=='enUS' and "%d %b" or "%m-%d"),ts)
         if label~=previousDate then
             graphLabel(plot,label,left+fraction*chartWidth-42,31,84)
             rect(plot,left+fraction*chartWidth,bottom-4,1,4,.45,.32,.17,.6);previousDate=label
         end
-    end
-    if mode=="balance" then
-        local run,previous=0,nil
-        for sequence,p in ipairs(report.wallet.points) do if p.observed and p.ts>=range.from and p.ts<=range.through then
-            if not previous or p.breakBefore or not p.window or previous.window~=p.window then run=run+1 end
-            local sample={ts=p.ts,balance=p.balance,run=run,sequence=sequence,window=p.window}
-            previous=p
-            local i=math.min(count,math.floor((p.ts-chartFrom)/span*count)+1)
-            local bin=bins[i] or {min=p.balance,max=p.balance,window=p.window}
-            if bin.window~=p.window then bin.mixed=true end
-            bin.min=math.min(bin.min,p.balance); bin.max=math.max(bin.max,p.balance); bin.last=p.balance;bin.firstTS=bin.firstTS or p.ts;bin.lastTS=p.ts; bins[i]=bin
-            bin.firstPoint=bin.firstPoint or sample;bin.lastPoint=sample
-            if not bin.minPoint or p.balance<bin.minPoint.balance then bin.minPoint=sample end
-            if not bin.maxPoint or p.balance>bin.maxPoint.balance then bin.maxPoint=sample end
-            minValue=math.min(minValue or p.balance,p.balance); maxValue=math.max(maxValue or p.balance,p.balance)
-        end end
-    else
-        minValue,maxValue=0,0
-        for _,r in ipairs(report.transactions) do if r.ts>=range.from and r.ts<=range.through then
-            local value=mode=="income" and math.max(0,r.amount) or mode=="spending" and math.max(0,-r.amount) or mode=="net" and r.amount or 0
-            local i=math.min(count,math.floor((r.ts-range.from)/span*count)+1)
-            bins[i]=bins[i] or {value=0,firstTS=r.ts,lastTS=r.ts}; bins[i].value=bins[i].value+value
-            bins[i].firstTS=math.min(bins[i].firstTS,r.ts);bins[i].lastTS=math.max(bins[i].lastTS,r.ts)
-        end end
-        for _,bin in pairs(bins) do minValue=math.min(minValue,bin.value); maxValue=math.max(maxValue,bin.value) end
     end
     plot.bins=bins; plot.mode=mode
     if minValue~=nil then
@@ -236,7 +236,7 @@ function V.Graph(page,report,range,mode)
             obstacles[#obstacles+1]={x=x1,y=y1,x2=x2,y2=y2}
         end
         local function annotate(i,bin,value)
-            local x=mode=="balance" and left+(bin.maxPoint.ts-chartFrom)/span*chartWidth or left+(i-1)/count*chartWidth
+            local x=left+(bin.ts-chartFrom+ (A.ShiftDay(bin.ts,1)-bin.ts)/2)/span*chartWidth
             local text=money(value);local labelWidth=math.max(48,#text*7)
             candidates[#candidates+1]={text=text,value=value,i=i,w=labelWidth,h=16,
                 x=math.max(left,math.min(width-labelWidth-8,x-labelWidth/2)),
@@ -248,8 +248,8 @@ function V.Graph(page,report,range,mode)
             hit:SetScript("OnEnter",function(self)
                 if not GameTooltip then return end
                 GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(heading..": "..money(value))
-                GameTooltip:AddLine(A.Date(bin.firstTS),1,.85,.55)
-                if bin.lastTS~=bin.firstTS then GameTooltip:AddLine(E.Format('Through {date}',{date=A.Date(bin.lastTS)}),1,.85,.55) end
+                GameTooltip:AddLine(mode=="balance"and A.Date(bin.lastTS)or bin.day,1,.85,.55)
+                if mode=="balance" and bin.lastTS~=bin.firstTS then GameTooltip:AddLine(E.Format('Through {date}',{date=A.Date(bin.lastTS)}),1,.85,.55) end
                 if mode=="balance" and bin.min~=bin.max then GameTooltip:AddLine(E.Format('Observed range: {low} to {high}',{low=money(bin.min),high=money(bin.max)}),1,.85,.55) end
                 GameTooltip:Show()
             end)
@@ -266,7 +266,7 @@ function V.Graph(page,report,range,mode)
                 end
                 table.sort(points,function(a,b)return a.sequence<b.sequence end)
                 for _,point in ipairs(points)do
-                    local x=left+(point.ts-chartFrom)/span*chartWidth
+                    local x=left+(point.ts-chartFrom+(A.ShiftDay(point.ts,1)-point.ts)/2)/span*chartWidth
                     if previous and previous.run==point.run then dataLine(previous.x,y(previous.balance),x,y(point.balance))end
                     dataRect(x-2,y(point.balance)-2,4,4,.53,.34,.10)
                     point.x=x;previous=point;plot.samples[#plot.samples+1]=point
@@ -276,7 +276,7 @@ function V.Graph(page,report,range,mode)
         else
             rect(plot,left,y(0),chartWidth,1,0.35,0.27,0.16,0.45)
             for i=1,count do local bin=bins[i];if bin and bin.value~=0 then
-                dataRect(left+(i-1)/count*chartWidth,math.min(y(0),y(bin.value)),4,math.abs(y(bin.value)-y(0)),bin.value<0 and 0.55 or 0.25,0.35,0.15)
+                dataRect(left+(bin.ts-chartFrom+(A.ShiftDay(bin.ts,1)-bin.ts)/2)/span*chartWidth-3,math.min(y(0),y(bin.value)),6,math.abs(y(bin.value)-y(0)),bin.value<0 and 0.55 or 0.25,0.35,0.15)
                 annotate(i,bin,bin.value)
             end end
         end
@@ -311,8 +311,9 @@ function V.Graph(page,report,range,mode)
         end
     end
     page.y=page.y+292
-    if minValue~=nil then B.Text(page,E.Format('{low} to {high} | {from} through {through}',{low=money(minValue),high=money(maxValue),from=mode=='balance'and A.Day(chartFrom)or range.first,through=mode=='balance'and A.Day(chartThrough)or range.last}),12) end
-    B.Text(page,mode=="balance" and E.L["Recorded balances only. Gaps remain blank; dense observations share a column."] or E.L["Recorded wallet changes per chart column. Empty space is not evidence of zero activity."],12)
+    if minValue~=nil then B.Text(page,E.Format('{low} to {high} | {from} through {through}',{low=money(minValue),high=money(maxValue),from=A.Day(chartFrom),through=A.Day(chartThrough-1)}),12) end
+    if #ordered>480 then B.Text(page,E.L["Showing a selection of days. Choose a shorter date range for every day."],12)end
+    B.Text(page,mode=="balance" and E.L["Last recorded balance each day. Days without records stay blank."] or E.L["Daily totals from recorded wallet changes. Days without records stay blank."],12)
 end
 function V.Render(left,right)
     local c=B.Character(); B.goldPreset=B.goldPreset or "last30"; B.goldGraph=B.goldGraph or "balance"

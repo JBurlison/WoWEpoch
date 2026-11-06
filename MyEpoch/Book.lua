@@ -257,6 +257,8 @@ function B.Record(page,r)
     if r.kind=="auction" then E.AuctionView.Record(page,c,r); return end
     if r.kind=='mail'or r.kind=='mail_scan'or r.kind=='mail_collection'or r.kind=='mail_request'or r.kind=='mail_notice'or r.kind=='mail_draft'then E.MailView.Record(page,c,r);return end
     if r.kind=="trade" or r.kind=="trade_offer" or r.kind=="trade_notice" then E.TradeView.Record(page,c,r); return end
+    local itemReceipt=r.kind=="loot" or r.kind=="crafted" or r.kind=="gathered"
+    if B.lastDetail~=r.id then B.itemDetailsOpen=nil end
     if B.lastDetail~=r.id then B.productionResourcePage=1; B.productionRelatedPage=1; B.productionCostPage=1; B.dropRelatedPage=1; B.dropRollPage=1; B.dropSnapshotPage=1 end
     if B.lastDetail~=r.id then B.lastDetail=r.id; B.sourcePage=1; B.detailPage=1; B.costPage=1; B.memberPage=1; B.groupGapPage=1; B.notificationPage=1; B.merchantDetailPage=1; B.merchantItemsPage=1; B.deathMembersPage=1; B.questFlagPage=1 end
     if r.kind=="memory" or r.kind=="screenshot" then E.MemoryView.Page(page,r); return end
@@ -270,8 +272,8 @@ function B.Record(page,r)
         if E.LedgerStyle and E.LedgerStyle.financial[r.kind]then
             E.LedgerStyle.Heading(page,E.Display.RecordTitle(r) or label,"MY EPOCH / "..label,E.L[r.status or r.quality or "Observed"],A.RecordDate(r).." / "..E.L["Local time"])
             if r.itemID then E.LedgerStyle.Item(page,r.itemID,E.LedgerStyle.Name(r.itemID,r.title),r.quantity,nil,r.itemLink)end
-        else B.Text(page,E.Display.RecordTitle(r) or label,28); B.Text(page,A.RecordDate(r).." | "..label,13)end
-        if r.zone then B.Text(page,E.Display.Zone(r),16) end
+        elseif not itemReceipt then B.Text(page,E.Display.RecordTitle(r) or label,28); B.Text(page,A.RecordDate(r).." | "..label,13)end
+        if r.zone and not itemReceipt then B.Text(page,E.Display.Zone(r),16) end
     end
     if r.weaponReading and E.MilestoneSnapshotView then E.MilestoneSnapshotView.WeaponReading(page,c,r) end
     if E.ArtView then E.ArtView.Record(page,c,r) end
@@ -280,8 +282,8 @@ function B.Record(page,r)
         B.Text(page,E.Format("{count} recorded turn-ins · {location}",{count=#r.seriesSteps,location=E.Display.Zone(r) or E.L["Final turn-in location unknown"]}),16)
         B.Action(page,E.L["Open the series in Quests"],function()E.QuestView.BrowseSeries(r.questID)end)
     end
-    if r.text and r.kind~="memory" then B.Text(page,r.text,17) end
-    if r.quantity and not(E.LedgerStyle and E.LedgerStyle.financial[r.kind]) then B.Text(page,E.Format("Quantity: {quantity} | Recipient: {recipient}",{quantity=r.quantity,recipient=r.recipient==c.id and c.identity.name or r.recipientName or E.L["Unknown"]})) end
+    if r.text and r.kind~="memory" and not itemReceipt then B.Text(page,r.text,17) end
+    if r.quantity and not itemReceipt and not(E.LedgerStyle and E.LedgerStyle.financial[r.kind]) then B.Text(page,E.Format("Quantity: {quantity} | Recipient: {recipient}",{quantity=r.quantity,recipient=r.recipient==c.id and c.identity.name or r.recipientName or E.L["Unknown"]})) end
     if r.kind=='xp'then
         if r.xpCause then
             B.Action(page,E.L['Remove XP source link'],function()E.ExperienceSources.Dismiss(c,r);B.Render()end)
@@ -322,16 +324,16 @@ function B.Record(page,r)
     if E.InventoryView then E.InventoryView.Record(page,r) end
     if E.EncounterView then E.EncounterView.Record(page,r) end
     E.CompanyLayout.HighlightRecord(page,r)
-    if E.JourneyView then E.JourneyView.Record(page,r) end
+    if E.JourneyView and not itemReceipt then E.JourneyView.Record(page,r) end
     if E.QuestView then E.QuestView.Record(page,r) end
     if E.LootView then E.LootView.Record(page,r) end
     if E.ProductionView then E.ProductionView.Record(page,r) end
     if E.DropView then E.DropView.Record(page,r) end
     if contextSection then B.EndSection(page,contextSection)end
-    if E.MemoryView then E.MemoryView.Record(page,r) end
+    if E.MemoryView and not itemReceipt then E.MemoryView.Record(page,r) end
     if r.partialBoundary then B.Text(page,E.L["The previous milestone was not observed. This recap covers available history only."]) end
     local starLabel=r.starred and E.L["Unstar this memory"] or r.kind=="chat" and E.L["Save and protect this quote"] or E.L["Star and protect this memory"]
-    local keepsakeSection=r.kind=='milestone'and B.Section(page,E.L['Keep this moment'])
+    local keepsakeSection=(r.kind=='milestone'or itemReceipt)and B.Section(page,E.L['Keep this moment'])
     local actionY=page.y
     local starButton=B.Action(page,starLabel,function() if not canEdit or canEdit() then r.starred=not r.starred; S.Changed(c,r); B.Render() end end)
     if keepsakeSection then

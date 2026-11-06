@@ -49,11 +49,11 @@ function V.RefreshMap(frame)
     if ready then frame.message:Hide(); frame:SetScript("OnUpdate",nil)
     else frame.message:SetText(frame.art and E.L["Map artwork is loading or unavailable. Open Map details to retry."] or E.L["No map artwork is available for these records."]); frame.message:Show() end
 end
-function V.Draw(page,art,clusters)
+function V.Draw(page,art,clusters,options)
     local frame=B.Acquire(page,"journeyMap");if not frame.photo then T.Photo(frame)end
     -- Size the photograph to the map itself, using the remaining page height.
     -- Expanded filters/chooser can scroll, but the normal map view fits the page.
-    local available=math.max(180,page.scroll:GetHeight()-page.y-58)
+    local available=options and options.height or math.max(180,page.scroll:GetHeight()-page.y-58)
     local scale=art and math.min((B.Width(page)-32)/art.width,available/art.height)
     local w,h=art and art.width*scale or B.Width(page)-32,art and art.height*scale or math.min(348,available)
     frame:SetSize(w+32,h+32);frame:ClearAllPoints();frame:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+(B.Width(page)-32-w)/2,-page.y)
@@ -63,6 +63,15 @@ function V.Draw(page,art,clusters)
     frame.art=art; frame.clusterCount=#clusters.clusters; frame.rejected=false; frame.loadingElapsed=0; frame.loadingPoll=0
     if not frame.message then frame.message=frame:CreateFontString(nil,"OVERLAY"); frame.message:SetFont(E.Font(),15,""); frame.message:SetPoint("CENTER"); frame.message:SetTextColor(0.3,0.15,0.07) end
     frame.message:SetWidth(math.max(40,w-28))
+    if frame.caption then frame.caption:Hide();frame.captionShade:Hide()end
+    if options and options.caption then
+        if not frame.caption then
+            frame.captionShade=frame:CreateTexture(nil,"OVERLAY");frame.captionShade:SetColorTexture(.12,.08,.04,.85)
+            frame.caption=frame:CreateFontString(nil,"OVERLAY");frame.caption:SetFont(E.Font(),12,"");frame.caption:SetTextColor(1,.92,.73)
+        end
+        frame.captionShade:ClearAllPoints();frame.captionShade:SetPoint("BOTTOMLEFT",frame,"BOTTOMLEFT",16,options.captionAtTop and h-24 or 16);frame.captionShade:SetSize(w,40);frame.captionShade:Show()
+        frame.caption:ClearAllPoints();frame.caption:SetPoint("BOTTOMLEFT",frame,"BOTTOMLEFT",24,options.captionAtTop and h-20 or 20);frame.caption:SetSize(w-16,32);frame.caption:SetText(E.Text(options.caption));frame.caption:Show()
+    end
     if art then
         local left,top=16,16; frame.geometry={left=left,top=top,width=w,height=h}
         for i,tile in ipairs(art.tiles) do
@@ -86,7 +95,14 @@ function V.Draw(page,art,clusters)
             pin:ClearAllPoints(); pin:SetPoint("CENTER",frame,"TOPLEFT",left+cluster.x*w,-top-cluster.y*h)
             pin.fill:SetColorTexture(selected and 0.65 or 0.25,0.10,0.04,many and 0.65 or 0.9)
             pin.text:SetText(tostring(#cluster.records)); pin.key=cluster.key; pin.recordCount=#cluster.records
-            pin:SetScript("OnClick",function()B.journeyBucket=cluster.key; B.journeyRecordsPage=1; B.selected=nil; B.Render()end); pin:Show()
+            pin:EnableMouse(not options)
+            if options then
+                pin.fill:SetColorTexture(.24,.09,.03,1);pin.text:SetText("●");pin.text:SetTextColor(1,.82,.22);pin:SetSize(18,18)
+            else
+                pin.text:SetTextColor(1,.95,.75)
+                pin:SetScript("OnClick",function()B.journeyBucket=cluster.key; B.journeyRecordsPage=1; B.selected=nil; B.Render()end)
+            end
+            pin:Show()
         end
     else frame.geometry=nil end
     V.RefreshMap(frame)

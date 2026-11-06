@@ -169,3 +169,13 @@ E.Localize({
     ["chat message"]={"대화 {count}건"},
     ["unread recap"]={"읽지 않은 모아보기 {count}개"},
 })
+
+E.Localize({
+    ["Receipt details"]="획득 세부 정보",
+    ["Your location"]="내 위치",
+    ["Exact location not recorded"]="정확한 위치가 기록되지 않았습니다",
+    ["Open group"]="파티 보기",
+    ["Last recorded balance each day. Days without records stay blank."]="날짜별 마지막 기록 잔액입니다. 기록이 없는 날은 비워 둡니다.",
+    ["Daily totals from recorded wallet changes. Days without records stay blank."]="기록된 소지금 변동의 일별 합계입니다. 기록이 없는 날은 비워 둡니다.",
+    ["Showing a selection of days. Choose a shorter date range for every day."]="일부 날짜만 표시됩니다. 모든 날짜를 보려면 기간을 줄여 주세요.",
+})
