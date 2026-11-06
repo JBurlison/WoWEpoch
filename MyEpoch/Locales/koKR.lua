@@ -179,3 +179,12 @@ E.Localize({
     ["Daily totals from recorded wallet changes. Days without records stay blank."]="기록된 소지금 변동의 일별 합계입니다. 기록이 없는 날은 비워 둡니다.",
     ["Showing a selection of days. Choose a shorter date range for every day."]="일부 날짜만 표시됩니다. 모든 날짜를 보려면 기간을 줄여 주세요.",
 })
+
+E.Localize({
+    ["Recipe"]="제조법",
+    ["The recipe was not recorded for this item."]="이 아이템의 제조법이 기록되지 않았습니다.",
+    ["Recipe {id}"]="제조법 {id}",
+    ["Recipe link inferred"]="제조법 연결 추정",
+    ["Ingredients per craft"]="제작 1회당 재료",
+    ["Recipe requirement"]="제조법에 필요한 재료",
+})

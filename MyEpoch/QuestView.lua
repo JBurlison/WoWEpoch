@@ -626,6 +626,7 @@ local function completedDetail(page,row,report)
         end
     end
     table.sort(completions,function(a,b)return S.Before(b,a)end)
+    if completions[1]then E.JourneyView.Location(page,completions[1])end
     section(page,E.L["Completed occurrences"],function()
         if #completions>0 then
             V.Records(page,completions,"questHistoryPage")

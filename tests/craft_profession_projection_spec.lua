@@ -117,6 +117,8 @@ local function click(label)
     for i=1,B.right.used.button or 0 do local button=B.right.pool.button[i];if button.text:GetText()==label then button:Click();flushProjection();return end end
     return TEST_UI_CLICK(label)
 end
+assert(B.right.used.ledgerItem>1,'associated receipt shows saved recipe ingredients')
+click('Receipt details +')
 click('Open inferred recipe evidence');assert(B.selected==request.id)
 click('Reject inferred recipe association');unknown();assert(E.CraftCosts.Info(c,request).cost==cost,'metadata rejection must not reject material costs')
 assert(V.Crafting(c,recap)[1].profession=='Profession unknown')

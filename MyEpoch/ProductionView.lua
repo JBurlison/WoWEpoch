@@ -1,5 +1,34 @@
 local _,E=...
 local V,B,P,A,F={},E.Book,E.Production,E.API,E.Economy; E.ProductionView=V
+function V.Recipe(page,r,association)
+    local c=B.Character()
+    local request=association and c.records[association.request]
+    if request and (request.kind~="craft_request"or request.character~=c.id)then request=nil end
+    local source=request or r
+    local id=association and association.recipeID or source.recipeID
+    local name=association and association.recipeName or source.recipeName
+    local section=B.Section(page,E.L["Recipe"])
+    if not id and not name then
+        B.Text(page,E.L["The recipe was not recorded for this item."],14)
+    else
+        B.Text(page,name or E.Format("Recipe {id}",{id=id}),20)
+        local profession=association and association.profession or source.profession
+        if profession then B.Text(page,profession,14)end
+        if association then B.Text(page,E.L["Recipe link inferred"],12)end
+        local spec=source.materialSpec
+        local items=type(spec)=="table"and spec.recipeID==id and spec.items
+        if type(items)=="table"and #items>0 then
+            B.Text(page,E.L["Ingredients per craft"],16)
+            local pages=math.max(1,math.ceil(#items/6));B.productionRecipePage=math.min(math.max(1,B.productionRecipePage or 1),pages)
+            for i=(B.productionRecipePage-1)*6+1,math.min(#items,B.productionRecipePage*6)do local item=items[i]
+                E.LedgerStyle.Item(page,item.itemID,E.LedgerStyle.Name(item.itemID),item.quantity,E.L["Recipe requirement"])
+            end
+            if B.productionRecipePage>1 then B.Action(page,E.L["Previous selected inputs"],function()B.productionRecipePage=B.productionRecipePage-1;B.Render()end)end
+            if B.productionRecipePage<pages then B.Action(page,E.L["More selected inputs"],function()B.productionRecipePage=B.productionRecipePage+1;B.Render()end)end
+        else B.Text(page,E.L["Recipe material requirements were not recorded."],13)end
+    end
+    B.EndSection(page,section)
+end
 function V.Associations(page,r)
     local c=B.Character();local detail=E.CraftProjectionPreparation.Detail(c,r)
     if not detail then B.Text(page,E.L['Preparing crafted receipt association...'],14);return end
@@ -17,6 +46,7 @@ function V.Associations(page,r)
     end
 end
 function V.Request(page,r)
+    V.Recipe(page,r)
     V.Associations(page,r)
     if r.materialSpec then V.Costs(page,r);E.LedgerStyle.Section(page,E.L['Original request evidence'])end
     B.Text(page,E.Format("Requested recipe: {id}",{id=r.recipeID}),18)
@@ -95,6 +125,7 @@ function V.Record(page,r)
     if r.kind=="craft_request" then
         V.Request(page,r)
     elseif r.kind=="craft_begin" then
+        V.Recipe(page,r)
         B.Text(page,E.Format("Recipe ID: {id}",{id=r.recipeID}),16)
         if r.profession then B.Text(page,r.profession,16)end
         B.Text(page,E.L["Starting a recipe does not establish a completed craft or consumed materials. This notification has no operation ID to match a result."],14)

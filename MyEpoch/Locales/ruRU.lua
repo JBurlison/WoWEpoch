@@ -180,3 +180,12 @@ E.Localize({
     ["Daily totals from recorded wallet changes. Days without records stay blank."]="Итоги записанных денежных операций за день. Дни без записей остаются пустыми.",
     ["Showing a selection of days. Choose a shorter date range for every day."]="Показаны отдельные дни. Выберите более короткий период, чтобы увидеть каждый день.",
 })
+
+E.Localize({
+    ["Recipe"]="Рецепт",
+    ["The recipe was not recorded for this item."]="Рецепт этого предмета не был записан.",
+    ["Recipe {id}"]="Рецепт {id}",
+    ["Recipe link inferred"]="Связь с рецептом определена косвенно",
+    ["Ingredients per craft"]="Материалы на одно изготовление",
+    ["Recipe requirement"]="Требуется по рецепту",
+})
