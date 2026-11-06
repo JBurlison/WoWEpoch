@@ -1925,6 +1925,32 @@ function F.ValidTravelMoneyProof(c,p)
     return count==1 and chosen.character==c.id and chosen.ts>=p.fareQuotedAt and S.Sequence(chosen)>p.uiQuoteSequence
         and window.ended>=chosen.ts and type(chosen.before)=='number' and type(chosen.after)=='number' and chosen.after-chosen.before==p.amount
 end
+function F.ValidTrainingLearningProof(c,p)
+    if p.kind~='money_evidence'or c.records[p.id]~=p or p.character~=c.id or p.source~='training'
+        or p.trainingLearningVersion~=1 or type(p.session)~='string'or p.session==''or not integer(p.requestSequence)or p.withdrawnReason or(p.trainerType~='General'and p.trainerType~='Tradeskills')
+        or type(p.trainerGUID)~='string'or p.trainerGUID==''or type(p.service)~='table'
+        or type(p.service.name)~='string'or not integer(p.service.cost)or p.amount~=-p.service.cost
+        or not integer(p.quoteAt,true)or not integer(p.requestedAt,true)or p.ts~=p.requestedAt
+        or p.requestedAt<p.quoteAt or p.requestedAt-p.quoteAt>300 then return false end
+    local w,l,window=c.records[p.walletID],c.records[p.learnedID],c.records[p.walletWindow]
+    if type(w)~='table'or type(l)~='table'or type(window)~='table'or type(l.notifications)~='table'
+        or not integer(window.ts,true)or not integer(window.ended,true)then return false end
+    local wallets,learnings=0,0
+    for _,r in ipairs(Q.RangeKinds(c,p.ts-2,p.ts+3,{gold=true,spell=true}))do _auctionTick();
+        if r.kind=='gold'and r.session==p.session and r.window==p.walletWindow and r.amount==p.amount and r.ts>=p.quoteAt then wallets=wallets+1 end
+        if r.kind=='spell'and r.subject==c.id and r.observedEvent=='LEARNED_SPELL_IN_SKILL_LINE'and r.spellName==p.service.name and r.isGuildPerk~=true and r.ts>=p.quoteAt then learnings=learnings+1 end
+    end
+    if wallets~=1 or learnings~=1 then return false end
+    local sessionKnown=false
+    for _,n in ipairs(l.notifications)do _auctionTick(); if type(n)=='table'and n.session==p.session and n.ts==l.ts then sessionKnown=true end end
+    return sessionKnown and w and l and window and w.kind=='gold'and w.character==c.id and w.session==p.session and w.window==p.walletWindow
+        and w.amount==p.amount and type(w.before)=='number'and type(w.after)=='number'and w.after-w.before==p.amount
+        and type(w.ts)=='number'and math.abs(w.ts-p.ts)<=2 and w.ts>=p.quoteAt
+        and l.kind=='spell'and l.character==c.id and l.subject==c.id and l.observedEvent=='LEARNED_SPELL_IN_SKILL_LINE'
+        and l.isGuildPerk~=true and l.spellName==p.service.name and type(l.ts)=='number'and math.abs(l.ts-p.ts)<=2 and l.ts>=p.quoteAt
+        and window.kind=='wallet_window'and window.character==c.id and window.session==p.session
+        and window.ts<=p.quoteAt and window.ended>=w.ts
+end
 function F.ValidTrainingMoneyProof(c,p)
     if p.kind~='money_evidence'or c.records[p.id]~=p or p.character~=c.id or p.source~='training'
         or p.trainingMoneyVersion~=1 or p.observationType~='trainer_service'or p.withdrawnReason
@@ -1962,6 +1988,7 @@ local function usableProof(c,p)
     if (p.lootMoneyVersion~=nil or p.observationType=='loot_money_slot') and not F.ValidLootMoneyProof(c,p)then return false end
     if (p.travelMoneyVersion~=nil or p.observationType=='flight_fare') and not F.ValidTravelMoneyProof(c,p)then return false end
     if (p.source=='auctionDeposit' or p.auctionDepositVersion~=nil or p.observationType=='auction_posting_deposit') and (not E.AuctionDeposits or not E.AuctionDeposits.ValidProof(c,p))then return false end
+    if p.trainingLearningVersion~=nil and not F.ValidTrainingLearningProof(c,p)then return false end
     if (p.trainingMoneyVersion~=nil or p.observationType=='trainer_service') and not F.ValidTrainingMoneyProof(c,p)then return false end
     return true
 end
@@ -2243,7 +2270,7 @@ end
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Economy",create=create}
-E.AuctionReaderSources["Economy.lua"]="2a292c3a8c6a0440e3f3a1bab343f7a63c0b46bf478be495eddb9938714cdd7f"
+E.AuctionReaderSources["Economy.lua"]="8ab6288bca92335779e116a1dd42bb8f0b6d89a15dd9be4082558167bda6b68c"
 end
 
 -- Trades.lua

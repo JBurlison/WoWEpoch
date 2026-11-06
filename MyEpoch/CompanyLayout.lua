@@ -62,6 +62,7 @@ function L.Stats(page,metrics)
     if shown>0 then page.y=y+math.ceil(shown/4)*76; rule(page)end
 end
 function L.Records(page,rows,key,sourceGroup)
+    rows=E.SourceFilters.Controls(page,rows,'company:'..key..':'..(B.groupTab or 'events'),key)
     local chapter,tab,day,filter=B.chapter,B.groupTab,B.day,B.calendarFilter
     local groupID=sourceGroup and sourceGroup.id
     clamp(key,#rows,8)

@@ -169,3 +169,13 @@ E.Localize({
     ["chat message"]={"messaggio","messaggi"},
     ["unread recap"]={"riepilogo da leggere","riepiloghi da leggere"},
 })
+
+E.Localize({
+    ["Receipt details"]="Dettagli della ricevuta",
+    ["Your location"]="La tua posizione",
+    ["Exact location not recorded"]="Posizione esatta non registrata",
+    ["Open group"]="Apri il gruppo",
+    ["Last recorded balance each day. Days without records stay blank."]="Ultimo saldo registrato ogni giorno. I giorni senza dati restano vuoti.",
+    ["Daily totals from recorded wallet changes. Days without records stay blank."]="Totali giornalieri dei movimenti registrati. I giorni senza dati restano vuoti.",
+    ["Showing a selection of days. Choose a shorter date range for every day."]="È mostrata una selezione di giorni. Scegli un periodo più breve per vederli tutti.",
+})

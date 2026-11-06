@@ -215,10 +215,15 @@ function V.Month(left,c,prepared)
             T.Skin(f.face,day==B.day and "calendar-day-selected-v1" or "calendar-day-v1"); f.number:SetText(tonumber(date("%d",day)))
             if A.Day(day)==today then f.today:Show()else f.today:Hide()end
             local lines=metricLines(report.counts); local note=c.notes["day:"..A.Day(day)]; local hasNote=note and note.text and note.text:find("%S")
+            if report.activeSeconds~=nil then
+                table.insert(lines,1,E.Format('{duration} played',{duration=E.LocaleDuration(report.activeSeconds)}))
+            elseif #lines>0 or #report.records>0 or hasNote then
+                table.insert(lines,1,E.L['Play time']..': —')
+            end
             local maxLines=math.max(1,math.floor((cellHeight-26)/10))
             if #lines>maxLines then
                 local shortened={}; for i=1,maxLines-1 do shortened[i]=lines[i]end
-                shortened[maxLines]=E.L["More inside >"]; lines=shortened
+                shortened[maxLines]=maxLines==1 and lines[1]or E.L["More inside >"]; lines=shortened
             end
             local text=report.pending and (prepared.error and E.L["Activity unavailable"] or E.L["Preparing activity..."]) or #lines>0 and table.concat(lines,"\n") or E.L[hasNote and "Personal notes" or #report.records>0 and "Recorded activity" or "No recorded history"]
             f.text:SetWidth(cellWidth-14); f.text:SetHeight(cellHeight-26); f.text:SetMaxLines(maxLines); f.text:SetText(text)
@@ -329,6 +334,7 @@ function V.Daily(right,c,report,prepared)
     end)
     local y
     local rows=(not B.calendarFilter or B.calendarFilter=="all") and report.records or report.filters[B.calendarFilter] or {}
+    rows=E.SourceFilters.Controls(right,rows,'calendar','calendarPage')
     local groupCounts=report.groupCounts
     if report.pending then
         B.Text(right,E.L[prepared.error or "Preparing this day's recorded events..."],16)
@@ -384,6 +390,7 @@ local function current(state)
 end
 local function dailyProjection(owner,day,cut,work)
     local report=V.Report(owner,day,work,cut)
+    report.activeSeconds=Q.TimeStats(owner,day,A.ShiftDay(day,1),nil,false,work,Q.CalendarPlayCut(owner)).activeSeconds
     indexEvents(owner,report,work)
     return report
 end
@@ -486,6 +493,11 @@ local function discard(owner)
         for _,day in ipairs(state.dates)do state.todo[day]=true end
     end
 end
+local function refreshPlayDays(state,r,all)
+    for _,day in ipairs(state.dates)do
+        if all or type(r.ts)=='number'and type(r.ended)=='number'and r.ts<state.ends[day]and r.ended>day then state.todo[day]=true end
+    end
+end
 E.On("RECORDS_REMOVED",discard)
 -- A normal chronologically appended source updates a settled day immediately.
 -- A first overnight link or out-of-order observation needs the ordered merge.
@@ -519,7 +531,7 @@ E.On("RECORD_ADDED",function(owner,r)
     local change=Q.CalendarChange(owner,r)
     -- A legacy sequence collision can replace a different row via Store.Add.
     if not change or change.prior then discard(owner);return end
-    if r.kind=="play" then state.playDirty=true;return end
+    if r.kind=="play" then state.playDirty=true;refreshPlayDays(state,r);return end
     if r.kind=="group" then discard(owner);return end
     local stamp=V.IndexStamp(r)
     if not internal[r.kind] and stamp and stamp>=state.start and stamp<state.finish then
@@ -537,6 +549,7 @@ E.On("RECORD_CHANGED",function(owner,r,_,receipt)
     local prior=change.prior
     if r.kind=="play" or prior=="play" then
         state.playDirty=true
+        refreshPlayDays(state,r,not change.playExtension)
         if not change.playExtension then state.activeSeconds=nil;state.playJob=nil;state.redraw=true end
     end
     if r.kind=="group" or prior=="group" then

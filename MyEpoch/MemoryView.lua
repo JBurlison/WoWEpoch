@@ -166,7 +166,7 @@ local function recordPicker(page,c,r,pagesOnly)
     local linked={};for _,id in ipairs(r.refs or {})do linked[id]=true end
     local query=(state.query or ""):lower()
     local rows=S.List(c,function(source)
-        if source.id==r.id or not (source.title or source.kind):lower():find(query,1,true) then return false end
+        if source.kind=="play"or source.id==r.id or not (source.title or source.kind):lower():find(query,1,true) then return false end
         if r.kind=="screenshot" and M.ScreenshotTarget(c,source) then
             for _,ref in ipairs(source.refs or {})do if ref==r.id then return state.attached==true end end
             return not state.attached
@@ -174,6 +174,7 @@ local function recordPicker(page,c,r,pagesOnly)
         return not pagesOnly and not linked[source.id] and M.AvailableSource(c,source)
             and not (r.kind=="screenshot" and (source.kind=="screenshot" or source.kind=="milestone"))
     end)
+    if not pagesOnly then rows=E.SourceFilters.Controls(page,rows,'memory-picker','memoryLinkPage')end
     if pagesOnly and #rows==0 then
         B.Text(page,state.query and state.query~="" and E.L["No matching pages."] or state.attached and E.L["No pages have this screenshot yet."] or E.L["No more pages available to attach."],13)
         return

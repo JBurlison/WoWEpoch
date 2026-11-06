@@ -45,6 +45,7 @@ local function pager(page,key,total,size,previous,nextLabel)
 end
 local function clamp(key,total,size)B[key]=math.max(1,math.min(B[key] or 1,math.max(1,math.ceil(total/size))))end
 function V.Records(page,records,key,report)
+    records=E.SourceFilters.Controls(page,records,'quests:'..key,key)
     local c,chapter,quest,selected=B.Character(),B.chapter,B.questAtlasID,B.selected
     clamp(key,#records,8)
     for i=(B[key]-1)*8+1,math.min(#records,B[key]*8)do local r=records[i];local kind=r.kind

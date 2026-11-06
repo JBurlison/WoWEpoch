@@ -3,7 +3,7 @@
 ## Notes: A character scrapbook of adventures, companions, and progress.
 ## Author: JBurlison
 ## IconTexture: Interface\AddOns\MyEpoch\Media\Book\emblem-small-v1.tga
-## Version: 0.1.5
+## Version: 0.1.8
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever
@@ -215,6 +215,7 @@ EncounterLoot.lua
 RecapVitals.lua
 TravelMoney.lua
 TrainingMoney.lua
+TrainerLearning.lua
 QuestKills.lua
 CombatMeter.lua
 Pulls.lua
@@ -265,6 +266,7 @@ Artwork.lua
 BookTheme.lua
 Characters.lua
 Book.lua
+SourceFilters.lua
 MilestoneSnapshotView.lua
 BookNavigation.lua
 CharacterView.lua

@@ -29,7 +29,7 @@ end
 local function rule(page,y)
     local width=B.Width(page);place(B.Acquire(page,"recapRule"),page,0,y,width,1)end
 function V.Allowed(c,r)
-    return r.kind=="play" or r.kind=="milestone" and r.subject==c.id and eligible[r.milestoneType]
+    return r.kind=="milestone" and r.subject==c.id and eligible[r.milestoneType]
         or (r.kind=="crafted" or r.kind=="gathered") and r.recipient==c.id
         or (r.kind=='death'or r.kind=='damage'or r.kind=='health')and r.subject==c.id
         or r.kind=='gold'
@@ -215,24 +215,11 @@ function V.Record(page,c,r)
     note:SetScript("OnTextChanged",function(self,user)if user then S.Note(c,key,self:GetText(),A.Now())end end)
     page.y=page.y+124; B.Text(page,E.L["Notes save as you type and stay separate from the generated writing."],12)
     local all,missing=projection.sources,projection.missing
-    local rows,kinds,counts=V.FilterSources(all,B.recapSourceExcluded)
-    local beside=width>=540
-    control(page,(B.recapSourcesOpen and "- " or "+ ")..E.Format('Follow the source records ({count})',{count=E.Number(#rows)}),0,page.y,math.min(350,width),function()B.recapSourcesOpen=not B.recapSourcesOpen; B.Render()end)
-    if not beside then page.y=page.y+40 end
-    control(page,E.L['Filter sources'],beside and 360 or 0,page.y,math.min(170,width),function()B.recapFiltersOpen=not B.recapFiltersOpen;B.Render()end,B.recapFiltersOpen)
-    page.y=page.y+44
-    if B.recapFiltersOpen then
-        local columns=math.max(1,math.floor(width/170));local cell=width/columns;local choices={{kind=false,label=E.L['All events']}}
-        for _,kind in ipairs(kinds)do choices[#choices+1]={kind=kind,label=E.Display.Kind(kind)..' ('..E.Number(counts[kind])..')'}end
-        for i,choice in ipairs(choices)do local kind=choice.kind
-            control(page,choice.label,((i-1)%columns)*cell,page.y+math.floor((i-1)/columns)*38,cell-6,function()
-                B.recapSourceExcluded=B.recapSourceExcluded or{}
-                if kind then B.recapSourceExcluded[kind]=not B.recapSourceExcluded[kind]or nil else B.recapSourceExcluded={}end
-                B.recapSourcePage=1;B.recapSourcesOpen=true;B.Render()
-            end,kind and not(B.recapSourceExcluded or{})[kind]or not kind and not next(B.recapSourceExcluded or{}))
-        end
-        page.y=page.y+math.ceil(#choices/columns)*38+8
-    end
+    local rows=E.SourceFilters.Filter(all,'recap')
+    local y=page.y
+    control(page,(B.recapSourcesOpen and "- " or "+ ")..E.Format('Follow the source records ({count})',{count=E.Number(#rows)}),0,y,math.min(350,width),function()B.recapSourcesOpen=not B.recapSourcesOpen;B.Render()end)
+    page.y=y+44
+    rows=E.SourceFilters.Controls(page,all,'recap','recapSourcePage',{x=width>=540 and 360 or nil,y=width>=540 and y or nil,changed=function()B.recapSourcesOpen=true end})
     if B.recapSourcesOpen then
         if (r.unavailableSourceCount or 0)>0 then B.Text(page,E.Format('{count} source records were unavailable when saved; their daily totals remain.',{count=E.Number(r.unavailableSourceCount)}),13)end
         if missing>0 then B.Text(page,E.Format('{count} linked source records are no longer available.',{count=E.Number(missing)}),13)end
