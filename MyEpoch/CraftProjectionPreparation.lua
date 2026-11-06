@@ -49,7 +49,7 @@ local function describe()
  local recap=selected and selected.kind=='recap'and selected
  if not selected and B.chapter=='Recaps'then recap=c.records[B.recapFocus]end
  local spec={chapter=B.chapter,recap=recap and recap.id}
- if B.chapter=='Loot'and(B.lootMode or'receipts')~='drops' and B.lootMode~='quest_rewards' and B.lootMode~='encounter_loot' and B.lootMode~='mob_rates'then
+ if B.chapter=='Loot'and(B.lootMode or'receipts')~='drops' and B.lootMode~='quest_rewards' and B.lootMode~='encounter_loot' and B.lootMode~='mob_rates' and B.lootMode~='stories'then
   local prefix=(B.lootMode or'receipts')=='receipts'and'loot'or'production'
   spec.mode=prefix=='loot'and'items'or'production';spec.prefix=prefix
   spec.preset=B[prefix..'Preset']or'all'

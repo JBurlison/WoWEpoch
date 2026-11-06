@@ -95,9 +95,10 @@ function V.Render(left,right)
     heading(left,E.L["CHAPTER XI - KEEP THE STORY SAFE"],E.L["The archive"])
     B.Text(left,E.L["Your history stays until you choose otherwise. Every category begins at Forever."],15)
     if R.saveSizeWarning then paper(left,E.L["Archive save warning"],E.L[R.saveSizeWarning])end
-    local tabs={};for _,tab in ipairs({{"retention",E.L["Retention review"]},{"storage",E.L["Archive size"]},{"accountStorage",E.L["Account archive size"]},{"capabilities",E.L["Recording status"]}})do local key=tab[1]
+    local tabs={};for _,tab in ipairs({{"retention",E.L["Retention review"]},{"notifications",E.L["Notifications"]},{"storage",E.L["Archive size"]},{"accountStorage",E.L["Account archive size"]},{"capabilities",E.L["Recording status"]}})do local key=tab[1]
         tabs[#tabs+1]={tab[2],function()B.archiveTab=key;B.selected=nil;B.Render(true)end,B.archiveTab==key}
     end;B.Navigation.Subviews(tabs)
+    if B.archiveTab=='notifications'then B.Clear(left);E.NotificationView.Render(left,right,c);return end
     if storage then
         paper(left,E.L["A growing collection."],account and E.L["All character scrapbooks and shared book settings are saved together. Measure the whole collection while recording continues."] or E.L["Measure this character's saved history in small batches while recording continues."])
         controls(left,{{account and E.L["Measure the account again"] or E.L["Measure this character again"],function()R.Start(subject);B.Render()end}},1)

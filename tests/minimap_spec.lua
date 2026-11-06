@@ -16,6 +16,7 @@ CreateFrame=function(kind,name,parent)
  local frame=originalCreate(kind,name,parent)
  if name=='MyEpochMinimapButton'then
   created=created+1
+  local highlight=frame:GetHighlightTexture();frame.GetHighlightTexture=function()return highlight end
   frame.RegisterForClicks=function(self,...)self.clickButtons={...}end
   frame.RegisterForDrag=function(self,...)self.dragButtons={...}end
  end
@@ -30,8 +31,17 @@ function GameTooltip:Show()self.shown=true end
 function GameTooltip:Hide()self.shown=false end
 assert(N.Start()and created==1 and N.frame:IsShown()and E.db.settings.minimap==nil,'launcher defaults visible without writing settings')
 local f=N.frame
-assert(f.parent==Minimap and f:GetWidth()==34 and f:GetHeight()==36 and f.letters==nil)
+assert(f.parent==Minimap and f:GetWidth()==32 and f:GetHeight()==32 and f.letters==nil)
 assert(f.crest:GetTexture():find('emblem%-small%-v1%.tga')and f.crest:GetWidth()==24 and f.crest:GetHeight()==24 and f.clickButtons[1]=='LeftButtonUp'and f.dragButtons[1]=='LeftButton')
+-- TrackingBorder is 64px with visible alpha in the upper-left 40px square.
+-- Assert the visible bezel center, not the padded texture rectangle's center.
+local border=f.border;assert(border:GetWidth()==54 and border:GetHeight()==54)
+local p=border.point;assert(p[1]=='TOPLEFT'and p[2]==f and p[3]=='TOPLEFT')
+assert(math.abs(p[4]+54*20/64-f:GetWidth()/2)<.001 and math.abs(-p[5]+54*20/64-f:GetHeight()/2)<.001,'visible tracking bezel must center on the launcher')
+for _,texture in ipairs({f.crest,f.background,f:GetHighlightTexture()})do
+ local anchor=texture.point
+ assert(anchor[1]=='CENTER'and anchor[2]==f and anchor[3]=='CENTER'and anchor[4]==0 and anchor[5]==0,'icon, background and hover share the bezel center')
+end
 assert(f.scripts.OnUpdate==nil,'launcher must not poll while idle')
 f.scripts.OnEnter(f);assert(GameTooltip.owner==f and GameTooltip.title=='My Epoch'and #GameTooltip.lines==3 and GameTooltip.shown)
 f.scripts.OnLeave(f);assert(not GameTooltip.shown)

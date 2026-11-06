@@ -152,6 +152,7 @@ runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('calendar_tab
 settled_ui('calendar_overnight_spec.lua')
 settled_ui('calendar_roster_days_spec.lua')
 runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('calendar_preparation_spec.lua',))
+runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('calendar_play_preparation_spec.lua', 'journey_overlays_spec.lua'))
 settled_ui('calendar_group_activity_spec.lua')
 lua.execute((ROOT / 'tests/fixtures/uiforever-recaps.lua').read_text(encoding='utf-8'))
 settled_ui('recap_view_spec.lua')
@@ -397,3 +398,4 @@ subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/calendar_recap_h
 subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/mob_drops_host.py')],check=True)
 subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/mob_drop_view_host.py')],check=True)
 runpy.run_path(str(ROOT / 'tests/run_milestone_snapshot.py'), run_name='__main__')
+subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/richer_memories_host.py')], check=True)

@@ -55,19 +55,22 @@ function N.Start()
     if not E.db or not Minimap then return false end
     if not N.frame then
         local f=CreateFrame("Button","MyEpochMinimapButton",Minimap);N.frame=f
-        f:SetSize(34,36);f:SetFrameStrata("MEDIUM");f:EnableMouse(true)
+        f:SetSize(32,32);f:SetFrameStrata("MEDIUM");f:EnableMouse(true)
         local level=A.Call("minimapFrameLevel",Minimap.GetFrameLevel,Minimap)
         if finite(level)then f:SetFrameLevel(level+5)end
         f:RegisterForClicks("LeftButtonUp");f:RegisterForDrag("LeftButton")
         -- Keep the transparent emblem inside a classic round minimap bezel.
         local background=E.BookTheme.Texture(f,"seal-v1","BACKGROUND")
-        background:SetVertexColor(.075,.065,.055);background:SetSize(28,28);background:SetPoint("CENTER");f.background=background
-        local crest=E.BookTheme.Texture(f,"emblem-small-v1","ARTWORK");crest:SetSize(24,24);crest:SetPoint("CENTER");f.crest=crest
+        background:SetVertexColor(.075,.065,.055);background:SetSize(28,28);background:SetPoint("CENTER",f,"CENTER",0,0);f.background=background
+        local crest=E.BookTheme.Texture(f,"emblem-small-v1","ARTWORK");crest:SetSize(24,24);crest:SetPoint("CENTER",f,"CENTER",0,0);f.crest=crest
         local border=f:CreateTexture(nil,"OVERLAY");border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-        -- This 54-unit asset has transparent padding to its bottom/right.
-        border:SetSize(54,54);border:SetPoint("TOPLEFT",2,-3);f.border=border
+        -- The 64px tracking texture occupies its upper-left 40px square.
+        -- At 54 UI units that visible square is 33.75 units; center it on
+        -- the 32-unit button, rather than centering the padded texture.
+        local inset=(32-54*40/64)/2
+        border:SetSize(54,54);border:SetPoint("TOPLEFT",f,"TOPLEFT",inset,-inset);f.border=border
         f:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-        local highlight=f:GetHighlightTexture();highlight:ClearAllPoints();highlight:SetSize(34,34);highlight:SetPoint("CENTER");highlight:SetAlpha(.65)
+        local highlight=f:GetHighlightTexture();highlight:ClearAllPoints();highlight:SetSize(34,34);highlight:SetPoint("CENTER",f,"CENTER",0,0);highlight:SetAlpha(.65)
         f:SetScript("OnMouseDown",function(_,button)if button=="LeftButton"and not N.dragging then N.suppressClick=nil end end)
         f:SetScript("OnClick",function(_,button)
             if button~="LeftButton"then return end

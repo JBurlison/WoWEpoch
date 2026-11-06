@@ -6,6 +6,7 @@ local chapters={encounter_loot="Loot",quest_reward="Loot",quest="Quests",quest_a
 local function unavailable(message)
     B.chapter="Search"; B.selected=nil; B.searchNoteKey=nil; B.searchError=message; B.Render()
 end
+chapters.chapter='Memories';chapters.goal='Memories';chapters.personal_record='Chronicle'
 for _,kind in ipairs({'mail','mail_scan','mail_collection','mail_request','mail_notice','mail_draft'})do chapters[kind]='Gold'end
 chapters.stock_move='Gold'
 chapters.stock_reset='Gold'
@@ -17,6 +18,9 @@ function V.Open(hit)
     B.searchError=nil; B.searchNoteKey=nil; B.searchOrigin=true
     if hit.record then
         local r=c.records[hit.record]
+        if r and(r.kind=='chapter'or r.kind=='goal'or r.kind=='personal_record')and not E.Keepsakes.Record(c,r)then
+            unavailable(E.L['This source record is no longer available. It has not been replaced with a different entry.']);return false
+        end
         if (hit.kind=="encounter_loot" or r and r.kind=="encounter_loot") and (not r or r.id~=hit.record
             or hit.kind and hit.kind~=r.kind or not E.EncounterLoot.Valid(c,r) or hit.encounterSource and hit.encounterSource~=r)then
             unavailable(E.L["This encounter loot notice is no longer available."]);return false
@@ -34,11 +38,14 @@ function V.Open(hit)
         if r.kind:match('^mail')then B.goldSection='mail';B.mailQuery=nil;B.mailFilter='all';B.mailPage=1 end
         if r.kind=="auction"then B.goldSection='auctions';B.auctionQuery=nil;B.auctionFilter='all';B.auctionPage=1 end
         if B.chapter=="Memories" then B.memoryMode="saved"; B.memoryQuery=nil; B.memoryPage=1;B.memoryEditing=false;B.memoryFocus=r.id end
+        if r.kind=='chapter'then E.ChapterView.Open(c,r.id);return true end
+        if r.kind=='goal'then E.WishView.Open(r.id);return true end
+        if r.kind=='personal_record'then B.chronicleMode='records';B.personalRecord=r.id end
         if B.chapter=="Journey" then B.journeyMap=E.Journey.LocationKey(r); B.journeyFilter="all"; B.journeyBucket=nil; B.journeyRecordsPage=1 end
         if B.chapter=="Quests" then
             B.questZone="all"; B.questFilter="all"; B.questQuery=""; B.questAtlasID=r.questID or r.attempt and c.records[r.attempt] and c.records[r.attempt].questID
         end
-        if r.kind=="milestone" and r.major and r.subject==c.id then B.chapter="Chronicle" end
+        if r.kind=="milestone" and r.major and r.subject==c.id then B.chapter="Chronicle";B.chronicleMode=nil end
         if r.kind=="chat" then B.groupFocus=r.group; B.transcriptSearch=""; B.transcriptHighlight=r.id; B.groupTab="chat"
         elseif r.kind=="group" then B.groupFocus=r.id; B.transcriptSearch=""; B.groupTab="events"
         elseif B.chapter=="Gold" then
@@ -56,6 +63,8 @@ function V.Open(hit)
         elseif B.chapter=="Calendar" then B.day=A.DayStart(r.from or r.ts)
         elseif r.kind=="recap" then B.recapKind=r.periodKind or "milestone"; B.recapDate=r.from end
     elseif hit.noteKey and c.notes[hit.noteKey] then
+        local itemID=tonumber(hit.noteKey:match('^itemstory:(%d+)$'))
+        if itemID and E.ItemStoryView then E.ItemStoryView.Open(c,itemID);return true end
         local day=hit.day and A.ParseDay(hit.day)
         local questID=tonumber(hit.noteKey:match("^quest:(%d+)$"))
         if questID and E.QuestAtlas.Completed(c,questID)==true then B.chapter="Quests"; B.questAtlasID=questID; B.questZone="all"; B.questFilter="all"; B.questQuery=""; B.selected=nil

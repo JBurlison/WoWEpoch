@@ -10,17 +10,17 @@ Each character has a separate journal. Switch between them with the character pi
 
 | Chapter | What you’ll find |
 | --- | --- |
-| **Chronicle** | Your character’s major milestones: levels, achievements, first discoveries and completions, and profession or weapon-skill thresholds. Milestones can include saved equipment, stats, and skills. |
+| **Chronicle** | Major milestones and saved equipment, stats, and skills. **Compare milestones** to see what changed, or revisit your **Personal records**. |
 | **Calendar** | Select a day to read its full diary and add your own notes. Switch to Events to filter quests, loot, mobs defeated, groups, milestones, recaps, and more. Routine movement samples stay out of the event list. |
 | **Recaps** | Daily, weekly, monthly, yearly, and milestone summaries of recorded activity and progress. |
 | **Quests** | Completed quest history, recorded attempts, notes, and kill history. Confirmed objective credit is separate from kills recorded while a quest was active. |
 | **Company** | Group sessions, companions, shared activity, recorded conversations, and available pull damage details. Open a whisper or add a companion as a friend. |
-| **Loot** | Item receipts, observed group drops, crafting and gathering records, and filters for exploring your finds. Mob reports show observed drop rates, kill counts, and item quantities. |
+| **Loot** | Item receipts, observed group drops, crafting and gathering records, and filters for exploring your finds. Follow an **Item story** through recorded acquisitions, milestone appearances, sales, and transfers. Mob reports show observed drop rates, kill counts, and item quantities. |
 | **Gold** | A dated ledger of recorded income and spending, balance charts, merchant receipts, trades, mail, auctions, and trading-cost reports. |
-| **Memories** | Write a story, save a quote, choose an illustration, attach screenshot references, and rediscover earlier adventures with **On This Day**. |
+| **Memories** | Write a story, gather **Adventure chapters**, keep a **Wish list**, and rediscover earlier adventures with **On This Day**. Choose illustrations and attach screenshot references. Optional writing prompts help you find a starting point. |
 | **Journey** | Explore recorded locations on the map and follow their links back into the journal. Death markers are hidden by default. |
 | **Search** | Find records, conversations, and personal notes across the selected character’s scrapbook. |
-| **Archive** | Adjust the book’s size and combat behavior, review storage, and choose how long each character’s history is kept. |
+| **Archive** | Adjust the book’s size, combat behavior, and notifications; review storage and choose how long each character’s history is kept. |
 
 ## Installation
 
@@ -62,11 +62,23 @@ The window fits most of your screen and keeps its size as you switch chapters. D
 
 ## Recaps and your calendar
 
-Calendar-period recaps are saved quietly on your first login after the period ends. For example, yesterday’s daily recap becomes available when you log in today. Level and skill milestone recaps do not wait for the next day.
+Calendar-period recaps become available on your first login after the period ends. For example, yesterday’s daily recap becomes available when you log in today. Level and skill milestone recaps do not wait for the next day.
 
 All dates use **your local time**. Weeks run **Tuesday through Monday**. Daily recaps appear on the Calendar day they describe; weekly, monthly, and yearly recaps appear on the period’s last day.
 
 Generated summaries stay separate from your editable notes. Recorded active-play time excludes recorded AFK time.
+
+## Chapters, wishes, and little celebrations
+
+In **Memories → Adventure chapters**, collect entries by hand or choose a date range and filters. An open chapter keeps gathering matching entries. **Seal chapter** freezes its selection; you can still edit it or reopen it later. Add a cover illustration and your own notes. Sealing does not protect entries from your retention rules—star the chapter to protect its linked sources.
+
+In **Memories → Wish list**, write a personal goal or track levels, skill ranks, items, crafting, gathering, quests, and places. Goals start counting from creation unless you choose to include recorded history. Completing a wish keeps a linked memory, and manual completion is available too.
+
+Use **Share a wish list** to copy a share code for a friend. Notes are included unless you turn that option off. Your friend can choose **Bring in a friend’s wishes**, paste the code, and review it before importing. Imported wishes start fresh: your progress, character identity, and completion memories stay yours.
+
+**Chronicle → Personal records** quietly keeps your best recorded days and death-free stretches. Choose which categories to track in that view. Missing prices, costs, or recording time remain unknown. Item stories describe recorded appearances and transactions, without claiming that two identical items are the same physical copy.
+
+Major milestones, completed wishes, and newly available recaps can show a small parchment notification. Notifications wait until combat ends and never open the book by themselves. **Archive → Notifications** has an account-wide off switch, category controls, optional character overrides, sound, and position settings. Turning notifications off does not stop recording or remove unread indicators.
 
 ## Capturing a moment
 

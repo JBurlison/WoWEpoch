@@ -712,26 +712,28 @@ function Q.TimeStats(c,from,through,within,withRecords,work,playCut)
     local records=withRecords and {}or nil
     local active,afk,unknown,known={},{},{},{}
     local sessions={}
-    local iter,state,key=pairs(index(c).kinds.play or {})
-    if playCut then
-        local n=0
-        iter=function()
-            while n<playCut.last do
-                n=n+1;work()
-                local r=c.records[playCut.ids[n]]
-                if r and r.kind=="play" then return n,r end
-            end
+    local function read(r)
+        if work then work()end
+        if S.Timestamp(r) and r.ended>from and r.ts<through then
+            if records then records[#records+1]=r end
+            local interval={math.max(from,r.ts),math.min(through,r.ended)}
+            if r.status=="active" then active[#active+1]=interval; known[#known+1]=interval
+                if withRecords and type(r.session)=='string'then sessions[r.session]=sessions[r.session]or{};sessions[r.session][#sessions[r.session]+1]=interval end
+            elseif r.status=="afk" then afk[#afk+1]=interval; known[#known+1]=interval
+            else unknown[#unknown+1]=interval end
         end
-        state=nil;key=nil
     end
-    for _,r in iter,state,key do if work then work()end;if S.Timestamp(r) and r.ended>from and r.ts<through then
-        if records then records[#records+1]=r end
-        local interval={math.max(from,r.ts),math.min(through,r.ended)}
-        if r.status=="active" then active[#active+1]=interval; known[#known+1]=interval
-            if withRecords and type(r.session)=='string'then sessions[r.session]=sessions[r.session]or{};sessions[r.session][#sessions[r.session]+1]=interval end
-        elseif r.status=="afk" then afk[#afk+1]=interval; known[#known+1]=interval
-        else unknown[#unknown+1]=interval end
-    end end
+    if playCut then
+        -- Lua 5.1 cannot yield from a generic-for iterator. Keep checkpoints
+        -- in this numeric traversal, including missing/reclassified IDs.
+        for n=1,playCut.last do
+            if work then work()end
+            local r=c.records[playCut.ids[n]]
+            if r and r.kind=="play" then read(r)end
+        end
+    else
+        for _,r in pairs(index(c).kinds.play or {})do read(r)end
+    end
     local exclusions={}; for _,i in ipairs(afk) do if work then work()end;exclusions[#exclusions+1]=i end
     for _,i in ipairs(unknown) do if work then work()end;exclusions[#exclusions+1]=i end
     local unknownUnion,knownUnion,activeUnion,afkUnion=union(unknown,work),union(known,work),union(active,work),union(afk,work)

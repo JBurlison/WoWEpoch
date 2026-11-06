@@ -8,6 +8,10 @@ local sets={quests={quest=true,quest_reward=true,quest_attempt=true,objective=tr
     memories={memory=true,screenshot=true},finance={gold=true,balance=true,merchant=true,auction=true,trade=true,trade_offer=true,trade_notice=true,inventory=true,inventory_gap=true,bank=true,bank_gap=true,item_sale=true,sale_return=true,cost_lot=true},
     journey={milestone=true,death=true,spell=true}}
 local internal={wallet_window=true,money_evidence=true,stock_reset=true,stock_move=true}
+sets.memories.chapter=true;sets.memories.goal=true;sets.memories.personal_record=true
+X.filters[#X.filters+1]={'chapter','Adventure chapters'}
+X.filters[#X.filters+1]={'goal','Wish list'}
+X.filters[#X.filters+1]={'personal_record','Personal records'}
 for _,kind in ipairs({'mail','mail_scan','mail_collection','mail_request','mail_notice','mail_draft'})do sets.finance[kind]=true end
 local function noteKeys(c,r)
     local keys={"record:"..r.id}

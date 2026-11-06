@@ -48,6 +48,7 @@ local kinds={quest='Quest',quest_attempt='Quest attempt',objective='Quest object
     travel='Journey',position='Position',zone='Location',gap='Recording gap',inventory='Inventory',
     cost_lot='Acquisition record',stock_move='Inventory outflow',stock_reset='Inventory baseline',
     bank='Bank observation',auction='Auction',trade='Trade',mail='Mail'}
+kinds.chapter='Adventure chapter';kinds.goal='Wish';kinds.personal_record='Personal record'
 function D.Kind(kind)return E.L[kinds[kind]or kind or 'Unknown']end
 function D.MilestoneTitle(r)
     if E.locale=='enUS'then return r.title end
@@ -66,6 +67,7 @@ end
 function D.RecordTitle(r)
     if type(r)~='table'then return E.L.Unknown end
     local kind=r.kind
+    if kind=='personal_record'and E.PersonalRecords then return E.L[E.PersonalRecords.Label(r.recordType)]end
     if kind=='xp'and type(r.amount)=='number'then
         local title=E.L['XP gained']..': '..E.Number(r.amount)
         local cause=r.xpCause

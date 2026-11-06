@@ -80,6 +80,44 @@ function J.Select(c,filter,deaths)
     end
     return locations
 end
+-- Forever 1.60.1.70790, eac30af597e5aaa43a60f6675ef5fdcea100375f:
+-- MapExplorationDataProvider adds the logged-in character's explored terrain
+-- over GetMapArtLayerTextures. Edge files are padded to powers of two (min 16),
+-- not necessarily the base layer's tile size. Never infer undiscovered terrain.
+function J.Exploration(mapID,layer)
+    local entries=A.Call('journeyExploration',C_MapExplorationInfo and C_MapExplorationInfo.GetExploredMapTextures,mapID)
+    local tiles={}
+    if type(entries)~='table'then return tiles end
+    local function offset(v)return type(v)=='number'and v==v and math.abs(v)<=16384 and v%1==0 end
+    local function padded(n)local size=16;while size<n do size=size*2 end;return size end
+    for index=1,math.min(#entries,128)do local entry=entries[index]
+        if type(entry)=='table'and entry.isShownByMouseOver==false and type(entry.isDrawOnTopLayer)=='boolean'
+            and id(entry.textureWidth)and entry.textureWidth<=16384 and id(entry.textureHeight)and entry.textureHeight<=16384
+            and offset(entry.offsetX)and offset(entry.offsetY)and type(entry.fileDataIDs)=='table'then
+            local columns,rows=math.ceil(entry.textureWidth/layer.tileWidth),math.ceil(entry.textureHeight/layer.tileHeight)
+            if columns*rows<=256-#tiles then
+                local group,valid={},true
+                for row=0,rows-1 do for col=0,columns-1 do
+                    local file=entry.fileDataIDs[row*columns+col+1]
+                    if not id(file)then valid=false;break end
+                    local width=math.min(layer.tileWidth,entry.textureWidth-col*layer.tileWidth)
+                    local height=math.min(layer.tileHeight,entry.textureHeight-row*layer.tileHeight)
+                    local fileWidth=col==columns-1 and padded(width)or layer.tileWidth
+                    local fileHeight=row==rows-1 and padded(height)or layer.tileHeight
+                    local x,y=entry.offsetX+col*layer.tileWidth,entry.offsetY+row*layer.tileHeight
+                    local left,top,right,bottom=math.max(0,x),math.max(0,y),math.min(layer.layerWidth,x+width),math.min(layer.layerHeight,y+height)
+                    if right>left and bottom>top then
+                        group[#group+1]={file=file,x=left,y=top,width=right-left,height=bottom-top,
+                            u0=(left-x)/fileWidth,v0=(top-y)/fileHeight,u=(right-x)/fileWidth,v=(bottom-y)/fileHeight,
+                            layer=entry.isDrawOnTopLayer and 2 or 1}
+                    end
+                end;if not valid then break end end
+                if valid then for _,tile in ipairs(group)do tiles[#tiles+1]=tile end end
+            end
+        end
+    end
+    return tiles
+end
 function J.Art(mapID)
     if not id(mapID) then return nil,"Map identity unavailable" end
     local info=A.Call("journeyMapInfo",C_Map and C_Map.GetMapInfo,mapID)
@@ -100,8 +138,9 @@ function J.Art(mapID)
         local w,h=math.min(layer.tileWidth,layer.layerWidth-col*layer.tileWidth),math.min(layer.tileHeight,layer.layerHeight-row*layer.tileHeight)
         tiles[#tiles+1]={file=file,x=col*layer.tileWidth,y=row*layer.tileHeight,width=w,height=h,u=w/layer.tileWidth,v=h/layer.tileHeight}
     end end
+    local overlays=J.Exploration(mapID,layer)
     if A.Call("journeyArtCheck",C_Map and C_Map.GetMapArtID,mapID)~=art then return nil,"Map artwork changed during observation" end
-    return {mapID=mapID,artID=art,name=info.name,width=layer.layerWidth,height=layer.layerHeight,tiles=tiles}
+    return {mapID=mapID,artID=art,name=info.name,width=layer.layerWidth,height=layer.layerHeight,tiles=tiles,overlays=overlays}
 end
 function J.Clusters(records,artID)
     local out={clusters={},byKey={},unplaced={},positioned=0,reasons={}}; local columns,rows=12,8
