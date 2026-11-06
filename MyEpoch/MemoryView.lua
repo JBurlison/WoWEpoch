@@ -57,9 +57,11 @@ function V.Render(left,right)
     local c=B.Character();B.memoryMode=B.memoryMode or "saved"
     title(left,E.L["CHAPTER VIII - THE THINGS WE HOLD ON TO"],B.memoryMode=="rediscover"and E.L["On This Day"]or (B.memoryMode=="illustrations"or B.memoryMode=="memory-art")and E.L["The illustrator's trunk"]or E.L["Memories & keepsakes"])
     B.Text(left,B.memoryMode=="illustrations"and E.L["A little character for every chapter. Choose a place, then a scene."]or E.L["Some moments deserve more than a line in a log."],14)
-    local modes={};for _,entry in ipairs({{"saved",E.L["Saved memories"]},{"rediscover",E.L["On This Day"]},{"illustrations","Illustrations"}})do local mode=entry[1]
+    local modes={};for _,entry in ipairs({{"saved",E.L["Saved memories"]},{"chapters","Adventure chapters"},{"wishes","Wish list"},{"rediscover",E.L["On This Day"]},{"illustrations","Illustrations"}})do local mode=entry[1]
         modes[#modes+1]={E.L[entry[2]],function()if mode=="illustrations"then E.ArtDialog.OpenForPage();return end;B.memoryMode=mode;B.selected=nil;B.memoryFocus=nil;B.memoryOverview=false;B.memoryEditing=false;B.memoryPage=1;B.Render(true)end,B.memoryMode==mode}
     end;B.Navigation.Subviews(modes)
+    if B.memoryMode=='chapters'then B.Clear(left);E.ChapterView.Render(left,right,c);return end
+    if B.memoryMode=='wishes'then B.Clear(left);E.WishView.Render(left,right,c);return end
     if B.memoryMode=="memory-art" then B.selected=nil;E.ArtView.Memory(left,right);return end
     if B.memoryMode=="illustrations"then B.selected=nil;E.ArtView.Render(left,right);return end
     if B.memoryMode=="saved"then
@@ -219,6 +221,7 @@ function V.Record(page,r)
     B.Text(page,E.L["Tags (comma-separated, Enter to save)"],13)
     B.Input(page,table.concat(r.tags or {},", "),function(value)local _,err=M.Edit(c,r.id,"tags",value); B.memoryError=err; B.Render()end)
     B.Text(page,r.kind=="memory" and E.L["Your story"] or E.L["Your caption"],20)
+    if E.KeepsakeView then E.KeepsakeView.Prompt(page,'caption:'..r.id,r)end
     local edit=B.Acquire(page,"edit"); edit:SetHeight(140); edit:SetMultiLine(true); edit:SetScript("OnEnterPressed",nil); edit:SetScript("OnTextChanged",nil)
     edit:SetText(r.caption or r.text or "")
     edit:SetScript("OnTextChanged",function(self,user)if user then M.Edit(c,r.id,"text",self:GetText()) end end)

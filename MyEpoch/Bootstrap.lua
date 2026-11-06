@@ -6,6 +6,11 @@ local function report(message)
 end
 local ownerLoggingOut=false
 local openFailure
+local function resumeKeepsakes(c,now)
+    E.Notifications.Start(c)
+    E.Wishes.Recover(c)
+    E.Chapters.Ensure(c)
+end
 local function bindVerifiedOwner(identity)
     local old=E.current
     local now=E.API.Now()
@@ -26,6 +31,7 @@ local function bindVerifiedOwner(identity)
     c.rosterAt=nil; c.rosterSize=nil; c.rosterObserved=false; c.chatGap=nil
     if not c.Start(identity,true) then return false end
     E.Capture.Recover(E.current)
+    resumeKeepsakes(E.current,now)
     E.JournalJobs.Login(E.current,now)
     E.Book.SyncCombat()
     elapsed,workElapsed=0,0
@@ -142,7 +148,7 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif event=="PLAYER_LOGIN" then
         E.Minimap.Start()
         E.Book.SyncCombat()
-        if E.db and E.Collectors.Start() then E.Capture.Recover(E.current); E.JournalJobs.Login(E.current,E.API.Now()); report("Your journal is recording. Open it with /myepoch.") elseif E.failure then report(E.failure) end
+        if E.db and E.Collectors.Start() then E.Capture.Recover(E.current); resumeKeepsakes(E.current,E.API.Now()); E.JournalJobs.Login(E.current,E.API.Now()); report("Your journal is recording. Open it with /myepoch.") elseif E.failure then report(E.failure) end
     elseif event=="GROUP_JOINED" or event=="GROUP_FORMED" or event=="GROUP_LEFT" then E.Collectors.GroupIdentity(event,...)
     elseif not E.current then return
     elseif event=="PLAYER_REGEN_DISABLED" then E.Book.Combat(true)
@@ -157,6 +163,9 @@ frame:SetScript("OnUpdate",function(_,delta)
     E.TravelMoney.Tick()
     E.TrainerLearning.Tick()
     E.Query.ProcessPreparation(500)
+    if E.Keepsakes then E.Keepsakes.Process(500)end
+    E.Notifications.Tick(delta)
+    E.KeepsakeView.Tick()
     E.ItemCache.Tick()
     E.Search.TranscriptTick(750)
     E.Gathering.Process()

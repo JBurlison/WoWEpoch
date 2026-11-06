@@ -397,3 +397,4 @@ subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/calendar_recap_h
 subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/mob_drops_host.py')],check=True)
 subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/mob_drop_view_host.py')],check=True)
 runpy.run_path(str(ROOT / 'tests/run_milestone_snapshot.py'), run_name='__main__')
+subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/richer_memories_host.py')], check=True)

@@ -8,9 +8,11 @@ local filters={{"all","All",48},{"group","Groups",76},{"quest","Quests",74},{"qu
 filters[#filters+1]={"recap","Recaps",76}
 kinds[#kinds+1]={"kill","mob defeated","mobs defeated","Mob defeated","Mobs defeated"}
 filters[#filters+1]={"kill","Mobs defeated",112}
+for _,entry in ipairs({{'chapter','Adventure chapters'},{'goal','Wish list'},{'personal_record','Personal records'}})do filters[#filters+1]={entry[1],entry[2],112}end
 local internal={travel=true,kill_observation=true,mail_scan=true,mail_request=true,mail_notice=true,trade_offer=true,trade_notice=true,play=true,objective=true,diary=true,wallet_window=true,money_evidence=true,cost_lot=true,stock_reset=true,stock_move=true}
 local names={group="Group adventure",quest="Quest completed",quest_reward="Quest reward event",encounter_loot="Encounter loot notice",quest_attempt="Quest attempt",auction=E.L["Auction observation"],trade=E.L["Player trade"],mail=E.L["Envelope observed"],mail_collection=E.L["Mailbox collection"],loot="Loot receipt",crafted="Crafted",gathered="Gathered",gather_action=E.L["Gathering action"],
     kill="Mob defeated",xp="Experience gained",milestone="Milestone",death="Death",spell="Learning",memory="Memory",screenshot="Captured moment",gold="Gold",chat="Group chat",pull=E.L["Meter observation"],encounter="Boss encounter",gap=E.L["Recording coverage"]}
+names.chapter='Adventure chapter';names.goal='Wish';names.personal_record='Personal record'
 local function font(parent,size,w,lines)
     local f=parent:CreateFontString(nil,"OVERLAY"); f:SetFont(E.Font(),size,"")
     f:SetTextColor(0.29,0.19,0.11); f:SetWidth(w); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP")
@@ -78,6 +80,7 @@ function V.IsMilestone(c,r)
 end
 function V.Visible(c,r)
     if internal[r.kind] then return false end
+    if r.kind=='chapter'or r.kind=='goal'or r.kind=='personal_record'then return E.Keepsakes.Record(c,r)end
     if r.kind=="kill" then return r.character==c.id and c.records[r.id]==r and type(r.npcID)=="number" and r.npcID>0 end
     if r.kind=="recap" then return r.character==c.id and c.records[r.id]==r and V.IndexStamp(r)~=nil and D.Visible(c,r) end
     if r.kind=="encounter_loot" then return E.EncounterLoot.Valid(c,r) end

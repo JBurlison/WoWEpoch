@@ -247,7 +247,7 @@ function V.Record(page,c,record)
         return
     end
     local row,message,key=R.ForRecord(c,record)
-    if not row then if (record.kind=="memory"or record.kind=="milestone")and record.artMode=="fixed" then B.Text(page,V.Message(message),14)end;return end
+    if not row then if R.CanCustomize(c,record)and record.artMode=="fixed" then B.Text(page,V.Message(message),14)end;return end
     V.Image(page,row,width(page),410,false,true)
     B.Text(page,E.L["Decorative illustration"].." | "..V.CollectionName(row).." | "..row.title,12)
 end

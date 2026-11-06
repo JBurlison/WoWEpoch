@@ -32,7 +32,7 @@ function N.RecapBadge(f,count,label)
     local measured=badge.text.GetStringWidth and badge.text:GetStringWidth()or #text*7
     local size=math.max(24,measured+14);badge:SetWidth(size);badge.text:SetWidth(size-8);badge:Show()
     f.text:SetWidth(math.max(24,f:GetWidth()-48-size));f.recapBadgeCount=count
-    f.recapBadgeHint=E.Count('unread recap','unread recaps',count)
+    f.recapBadgeHint=f.badgeKind=='records'and E.L['Personal records']..': '..E.Number(count)or E.Count('unread recap','unread recaps',count)
     f:SetScript("OnEnter",function(self)
         local tip=GameTooltip
         if not self.recapBadgeCount or not tip or type(tip.SetOwner)~="function"or type(tip.SetText)~="function"or type(tip.Show)~="function"then return end
@@ -71,7 +71,7 @@ end
 N.KeepDrafts=keepDrafts
 function N.Button(page,label,callback,active)
     local top=page.y;local f=B.Action(page,label,function()keepDrafts();callback()end);f.isChapter=false;f:SetWidth(width(page));f.text:SetWidth(width(page)-18)
-    f.recapUnread=nil;f.recapBadgeOwner=nil
+    f.recapUnread=nil;f.recapBadgeOwner=nil;f.badgeKind=nil
     if f.bookmark then f.bookmark:Hide();f.chapterIcon:Hide()end
     f.navLabel=label;f.navExpandable=false;f.navExpanded=false;f.navSubview=false;f.navActive=active==true
     if f.expandArrow then f.expandArrow:Hide()end
@@ -292,6 +292,7 @@ local function sections(page,list)
                 f.navSubview=true
                 if not active or #section.children>0 then N.Disclosure(f,open)end
                 if item[4]then
+                    f.badgeKind=item[5]
                     f.recapUnread=item[4];f.recapBadgeOwner=B.Character();N.RecapBadge(f,item[4](),item[1])
                 end
                 if open then N.Indent(page,function()sections(page,section.children)end)end
@@ -314,10 +315,13 @@ function N.Major(c)
     end
     local choices={}
     for _,pair in ipairs({{"all","Major milestones"},{"level","Character levels"},{"skills","Skills & professions"}})do local key=pair[1]
-        choices[#choices+1]={E.L[pair[2]],function()B.chronicleKind=key;B.selected=nil;B.page=1;B.Render(true)end,(B.chronicleKind or"all")==key}
+        choices[#choices+1]={E.L[pair[2]],function()B.chronicleMode=nil;B.chronicleKind=key;B.selected=nil;B.page=1;B.Render(true)end,not B.chronicleMode and(B.chronicleKind or"all")==key}
     end
+    choices[#choices+1]={E.L['Compare milestones'],function()E.ComparisonView.Open(c,B.selected)end,B.chronicleMode=='compare'}
+    choices[#choices+1]={E.L['Personal records'],function()B.chronicleMode='records';B.selected=nil;B.Render(true)end,B.chronicleMode=='records',function()return E.PersonalRecords and E.PersonalRecords.Unread(c)or 0 end,'records'}
     N.Subviews(choices)
     N.Controls(function(nav)
+        if B.chronicleMode then return end
         B.Text(nav,E.L["YEAR"],11)
         local options={{E.L["All recorded years"],function()B.chronicleYear=nil;B.selected=nil;B.page=1;B.Render(true)end,not B.chronicleYear}}
         for _,value in ipairs(E.SortedKeys(years))do local year=value;options[#options+1]={year,function()B.chronicleYear=year;B.selected=nil;B.page=1;B.Render(true)end,B.chronicleYear==year}end

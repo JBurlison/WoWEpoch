@@ -1,6 +1,6 @@
 local _,E=...
 local M,A,S,Q={},E.API,E.Store,E.Query; E.Memories=M
-M.linkable={quest=true,quest_attempt=true,group=true,pull=true,loot=true,crafted=true,gathered=true,chat=true,milestone=true,death=true,spell=true,screenshot=true}
+M.linkable={quest=true,quest_attempt=true,group=true,pull=true,loot=true,crafted=true,gathered=true,chat=true,milestone=true,death=true,spell=true,screenshot=true,chapter=true,goal=true,personal_record=true}
 function M.AvailableSource(c,r)
     return r and M.linkable[r.kind] and r.character==c.id and c.records[r.id]==r
 end

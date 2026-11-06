@@ -423,6 +423,7 @@ end
 local function dependencies(c,r,add,state)
     local work=state.work
     for _,ref in ipairs(r.refs or {})do _auctionTick(); checkpoint(work); add(ref,{kind="linked",source=r.id})end
+    if E.Chapters then E.Chapters.Retention(c,r,add,state)end
     if E.AuctionLinks then E.AuctionLinks.Retention(c,r,add,state)end
     if E.AuctionSettlement then E.AuctionSettlement.Retention(c,r,add,state)end
     if E.AuctionReturns then E.AuctionReturns.Retention(c,r,add,state)end
@@ -689,7 +690,7 @@ end
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Store",create=create}
-E.AuctionReaderSources["Store.lua"]="23406af9303e21c27c4b444da97d65abc110778e1d11e2d8dfe12c7c97409293"
+E.AuctionReaderSources["Store.lua"]="e6935f03cd894eddab0b70106f7cb140ac65567003471ef79544194ec3ded943"
 end
 
 -- Query.lua

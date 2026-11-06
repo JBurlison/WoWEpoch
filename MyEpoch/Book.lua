@@ -1,7 +1,8 @@
 local _, E = ...
 local B,A,S,Q = {chapter="Chronicle",page=1},E.API,E.Store,E.Query; E.Book=B
 local chapters={"Chronicle","Calendar","Recaps","Quests","Company","Loot","Gold","Memories","Journey","Search","Archive"}
-local viewFields={"chapter","page","selected","lastDetail","day","search","killMode","recapKind","recapDate","recapError","chronicleKind","chronicleYear",
+local viewFields={"chapter","page","selected","lastDetail","day","search","killMode","recapKind","recapDate","recapError","chronicleKind","chronicleYear","chronicleMode",
+    "personalRecord","personalRecordTab","personalRecordPage","personalRecordSources","chapterDiaryPage","chapterEventPage",
     "auctionMode","proceedsQuery","proceedsPage","proceedsFocus","proceedsItemPage",
     "auctionQuery","auctionFilter","auctionPage","auctionDetails","ledgerDetails","mailQuery","mailFilter","mailPage","mailFocus","mailItemPage","mailSentPage","mailLinkPage",
     "tradeQuery","tradePage","tradeFocus","tradeOfferIndex","tradeOfferRecord","tradeWalletPage","tradeInventoryPage",
@@ -162,14 +163,19 @@ function B.EndSection(page,f)
     f:SetHeight(page.y-f.startY+4);page.y=page.y+16
 end
 function B.Tabs(page,labels,selected,callback)
-    local y=page.y;local width=math.min(150,(B.Width(page)-6*(#labels-1))/#labels)
-    for i,name in ipairs(labels)do
+    local y,x=page.y,0;local available=B.Width(page);local height=40
+    for _,name in ipairs(labels)do
         page.y=y;local choice=name;local f=B.Action(page,E.L[name],function()callback(choice)end)
-        f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+(i-1)*(width+6),-y)
-        f:SetSize(width,40);f.text:SetWidth(width-16);f.text:SetFont(E.Font(),14,'')
+        f.text:SetFont(E.Font(),14,'')
+        local measured=f.text.GetStringWidth and f.text:GetStringWidth()or #E.L[name]*7
+        local width=math.min(available,math.max(76,measured+30))
+        if x>0 and x+width>available then y=y+height+3;x=0;height=40 end
+        f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+x,-y)
+        f.text:SetWidth(width-16);local h=math.max(40,f.text:GetStringHeight()+14)
+        f:SetSize(width,h);height=math.max(height,h);x=x+width+3
         E.BookTheme.ButtonStyle(f,name==selected and'active'or'tab')
     end
-    page.y=y+52
+    page.y=y+height+10
 end
 function B.UpdateBadges()
     if not B.tabs or not B.tabs.Recaps then return end
@@ -187,6 +193,10 @@ E.On('JOURNAL_WRITTEN',function(c)
 end)
 function B.Note(page,key,canEdit)
     local c=B.Character(); B.Text(page,E.L["Your notes"],20)
+    if E.KeepsakeView then
+        local record=c.records[tostring(key):match('^record:(.+)$')or key]or c.records[B.selected]
+        E.KeepsakeView.Prompt(page,key,record)
+    end
     local f=B.Acquire(page,"edit"); f:SetScript("OnTextChanged",nil)
     f:SetHeight(140); f:SetMultiLine(true); f:SetScript("OnEnterPressed",nil)
     f:SetText(c.notes[key] and c.notes[key].text or "")
@@ -235,6 +245,9 @@ function B.ValidQuote(c,id,r)
 end
 function B.Record(page,r)
     local c=B.Character()
+    if r.kind=='chapter'then E.ChapterView.Record(page,c,r);return end
+    if r.kind=='goal'then E.WishView.Record(page,c,r);return end
+    if r.kind=='personal_record'then E.PersonalRecordView.Record(page,c,r);return end
     if r.kind=="encounter_loot" then E.EncounterLoot.Detail(page,c,r);return end
     if r.kind=="quest_reward" then E.QuestRewards.Detail(page,c,r);return end
     local context=shownQuote
@@ -277,7 +290,10 @@ function B.Record(page,r)
     end
     if r.weaponReading and E.MilestoneSnapshotView then E.MilestoneSnapshotView.WeaponReading(page,c,r) end
     if E.ArtView then E.ArtView.Record(page,c,r) end
-    if r.kind=="milestone" and E.MilestoneSnapshotView then E.MilestoneSnapshotView.Render(page,r) end
+    if r.kind=="milestone" and E.MilestoneSnapshotView then
+        if E.SnapshotComparison.Snapshot(c,r)then B.Action(page,E.L['Compare milestones'],function()E.ComparisonView.Open(c,r.id)end)end
+        E.MilestoneSnapshotView.Render(page,r)
+    end
     if r.kind=="milestone" and r.milestoneType=="quest_chain" and r.questID and r.seriesSteps then
         B.Text(page,E.Format("{count} recorded turn-ins · {location}",{count=#r.seriesSteps,location=E.Display.Zone(r) or E.L["Final turn-in location unknown"]}),16)
         B.Action(page,E.L["Open the series in Quests"],function()E.QuestView.BrowseSeries(r.questID)end)
@@ -492,7 +508,11 @@ function B.Render(reset)
         E.BookTheme.Scroll(left);E.BookTheme.Scroll(right);if B.Navigation then B.Navigation.Render(c)end;B.UpdateBadges();return
     end
     if B.searchOrigin and B.chapter~="Search" then B.Action(left,E.L["Back to search results"],function()E.SearchView.Return()end) end
-    if B.chapter=="Chronicle" then B.Chronicle(left,c)
+    local ownPages=B.chapter=='Chronicle'and(B.chronicleMode=='compare'or B.chronicleMode=='records')
+    if ownPages then
+        B.Navigation.Major(c)
+        if B.chronicleMode=='compare'then E.ComparisonView.Render(left,right,c)else E.PersonalRecordView.Render(left,right,c)end
+    elseif B.chapter=="Chronicle" then B.Chronicle(left,c)
     elseif B.chapter=="Calendar" then B.Calendar(left,right)
     elseif B.chapter=="Recaps" then
         B.Recaps(left,right)
@@ -535,7 +555,7 @@ function B.Render(reset)
         if B.chapter=="Journey" then B.Action(right,E.L["Back to this location"],function()B.selected=nil; B.Render(true)end) end
         if B.chapter=="Quests" then B.Action(right,E.L["Back to quest overview"],function()B.selected=nil; B.Render(true)end) end
         B.Record(right,c.records[B.selected])
-    elseif B.chapter~="Calendar" and B.chapter~="Archive" and B.chapter~="Recaps" and B.chapter~="Gold" and B.chapter~="Search" and B.chapter~="Loot" and B.chapter~="Company" and B.chapter~="Memories" and B.chapter~="Journey" and B.chapter~="Quests" then B.Text(right,E.L["A life in Azeroth"],30); B.Text(right,E.L["Choose an entry on the left to revisit its details and add your own notes."]) end
+    elseif not ownPages and B.chapter~="Calendar" and B.chapter~="Archive" and B.chapter~="Recaps" and B.chapter~="Gold" and B.chapter~="Search" and B.chapter~="Loot" and B.chapter~="Company" and B.chapter~="Memories" and B.chapter~="Journey" and B.chapter~="Quests" then B.Text(right,E.L["A life in Azeroth"],30); B.Text(right,E.L["Choose an entry on the left to revisit its details and add your own notes."]) end
     B.Finish(left); B.Finish(right)
     if reset then left.scroll:SetVerticalScroll(0); right.scroll:SetVerticalScroll(0) end
     if E.CompanyLayout then E.CompanyLayout.FinishQuoteJump(right)end

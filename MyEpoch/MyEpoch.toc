@@ -3,7 +3,7 @@
 ## Notes: A character scrapbook of adventures, companions, and progress.
 ## Author: JBurlison
 ## IconTexture: Interface\AddOns\MyEpoch\Media\Book\emblem-small-v1.tga
-## Version: 0.1.9
+## Version: 0.1.10
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever
@@ -191,16 +191,28 @@ Locales/TradeMail/ruRU.lua
 Locales/TradeMail/koKR.lua
 Locales/TradeMail/zhCN.lua
 Locales/TradeMail/zhTW.lua
+Locales/Keepsakes/deDE.lua
+Locales/Keepsakes/frFR.lua
+Locales/Keepsakes/itIT.lua
+Locales/Keepsakes/esES.lua
+Locales/Keepsakes/ptBR.lua
+Locales/Keepsakes/ruRU.lua
+Locales/Keepsakes/koKR.lua
+Locales/Keepsakes/zhCN.lua
+Locales/Keepsakes/zhTW.lua
 RetentionWork.lua
 Store.lua
+Keepsakes.lua
 History.lua
 Query.lua
 Economy.lua
 Diary.lua
 Forever.lua
+Notifications.lua
 Display.lua
 DiaryPresentation.lua
 MilestoneSnapshot.lua
+SnapshotComparison.lua
 JournalJobs.lua
 JournalViews.lua
 Search.lua
@@ -209,6 +221,10 @@ ItemCache.lua
 Company.lua
 Social.lua
 Memories.lua
+Chapters.lua
+MemoryPrompts.lua
+Wishes.lua
+WishSharing.lua
 Collectors.lua
 QuestRewards.lua
 EncounterLoot.lua
@@ -268,6 +284,7 @@ Characters.lua
 Book.lua
 SourceFilters.lua
 MilestoneSnapshotView.lua
+ComparisonView.lua
 BookNavigation.lua
 CharacterView.lua
 CalendarView.lua
@@ -297,6 +314,10 @@ ScreenshotPages.lua
 MemoryView.lua
 ArtView.lua
 ArtDialog.lua
+KeepsakeView.lua
+ChapterView.lua
+WishView.lua
+NotificationView.lua
 JourneyView.lua
 Capture.lua
 AuctionHistory.lua
@@ -307,6 +328,10 @@ AuctionPreparationRows.lua
 AuctionPreparationView.lua
 CraftProjectionReaders.lua
 CraftProjectionPreparation.lua
+PersonalRecords.lua
+PersonalRecordView.lua
+ItemStories.lua
+ItemStoryView.lua
 Minimap.lua
 RecorderHandoff.lua
 Bootstrap.lua

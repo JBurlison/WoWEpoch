@@ -94,7 +94,7 @@ end
 function R.CanCustomize(c,record)
     if type(c)~="table" or type(c.records)~="table" or type(record)~="table" or type(record.id)~="string"
         or not E.db or E.db.characters[c.id]~=c or c.records[record.id]~=record or record.character~=c.id then return false end
-    return record.kind=="memory" or record.kind=="recap" or record.kind=="milestone" and record.subject==c.id
+    return record.kind=="memory" or record.kind=="recap" or record.kind=="chapter" or record.kind=="goal" or record.kind=="milestone" and record.subject==c.id
 end
 -- Canonical names remain authoritative. Legacy records can also carry an exact,
 -- unambiguous interior label from GetZoneText when no UiMap was available.

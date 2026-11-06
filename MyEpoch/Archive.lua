@@ -10,6 +10,7 @@ local function group(out,key)
     key=key or "unknown"; out.categories[key]=out.categories[key] or {key=key,label=R.labels[key] or key,bytes=0,records=0,notes=0}
     return out.categories[key]
 end
+R.labels.chapters='Adventure chapters';R.labels.goals='Wish list';R.labels.personalRecords='Personal records'
 local function amount(worker,bytes,category)
     worker.result.bytes=worker.result.bytes+bytes; local row=group(worker.result,category); row.bytes=row.bytes+bytes
 end
