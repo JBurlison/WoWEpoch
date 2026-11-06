@@ -14,7 +14,7 @@ local viewFields={"chapter","page","selected","lastDetail","day","search","killM
     "journeyFiltersOpen","journeyMapInfo","journeyMap","journeyFilter","journeyBucket","journeyRecordsPage","journeyChooser","journeyQuery","journeyLocationPage","merchantPage",
     "questZone","questFilter","questQuery","questAtlasPage","questAtlasID","questZoneChooser","questZonePage","questHistoryPage","questRelationsPage",
     "questReasonPage","questSourcePage","questMapPage","questProviderPage","questCompletedAttemptPage","questCompletedSeriesPage","lootMode","productionPreset","productionFrom","productionThrough",
-    "productionQuery","productionFilter","productionPage","productionError","productionResourcePage","productionRelatedPage","productionCostPage",
+    "productionQuery","productionFilter","productionPage","productionError","productionResourcePage","productionRecipePage","productionRelatedPage","productionCostPage",
     "dropPreset","dropFrom","dropThrough","dropDimension","dropSource","dropQuery","dropPage","dropListPage","dropBucket","dropError","dropRelatedPage","dropRollPage","dropSnapshotPage",
     "archiveSettingsOpen","archiveTab","archiveSizePage","archiveStatusPage","archiveCategoryPage","archiveCategory","archiveProtected","archiveRecordPage","archiveMessage","archivePolicyDrafts",
     "goldSection","inventoryQuery","inventoryPage","inventoryDetailPage","inventoryLocationPage","inventoryHelp","fifoPage","stockQuery","stockPage","stockItem","stockLotPage","stockHelp",
@@ -259,7 +259,7 @@ function B.Record(page,r)
     if r.kind=="trade" or r.kind=="trade_offer" or r.kind=="trade_notice" then E.TradeView.Record(page,c,r); return end
     local itemReceipt=r.kind=="loot" or r.kind=="crafted" or r.kind=="gathered"
     if B.lastDetail~=r.id then B.itemDetailsOpen=nil end
-    if B.lastDetail~=r.id then B.productionResourcePage=1; B.productionRelatedPage=1; B.productionCostPage=1; B.dropRelatedPage=1; B.dropRollPage=1; B.dropSnapshotPage=1 end
+    if B.lastDetail~=r.id then B.productionResourcePage=1; B.productionRecipePage=1; B.productionRelatedPage=1; B.productionCostPage=1; B.dropRelatedPage=1; B.dropRollPage=1; B.dropSnapshotPage=1 end
     if B.lastDetail~=r.id then B.lastDetail=r.id; B.sourcePage=1; B.detailPage=1; B.costPage=1; B.memberPage=1; B.groupGapPage=1; B.notificationPage=1; B.merchantDetailPage=1; B.merchantItemsPage=1; B.deathMembersPage=1; B.questFlagPage=1 end
     if r.kind=="memory" or r.kind=="screenshot" then E.MemoryView.Page(page,r); return end
     if B.chapter=="Chronicle" and r.kind=="milestone" then

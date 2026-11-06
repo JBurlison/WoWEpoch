@@ -179,3 +179,12 @@ E.Localize({
     ["Daily totals from recorded wallet changes. Days without records stay blank."]="已记录的每日收支合计。没有记录的日期留空。",
     ["Showing a selection of days. Choose a shorter date range for every day."]="当前仅显示部分日期。缩短日期范围即可查看每一天。",
 })
+
+E.Localize({
+    ["Recipe"]="配方",
+    ["The recipe was not recorded for this item."]="未记录这件物品的配方。",
+    ["Recipe {id}"]="配方 {id}",
+    ["Recipe link inferred"]="配方关联为推断结果",
+    ["Ingredients per craft"]="每次制作所需材料",
+    ["Recipe requirement"]="配方所需材料",
+})

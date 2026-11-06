@@ -58,6 +58,11 @@ function V.Record(page,r)
     if r.group and c.records[r.group]then
         B.Action(page,E.L["Open group"],function()E.SearchView.Open({character=c.id,record=r.group})end)
     end
+    if r.kind=="crafted"then
+        local detail=E.CraftProjectionPreparation.Detail(c,r)
+        if detail then E.ProductionView.Recipe(page,r,detail.association)
+        else B.Text(page,E.L["Preparing recipe association..."],14)end
+    end
     V.Location(page,r)
     B.Action(page,E.L["Receipt details"]..(B.itemDetailsOpen and " -"or" +"),function()B.itemDetailsOpen=not B.itemDetailsOpen;B.Render()end)
     if B.itemDetailsOpen then
@@ -66,13 +71,4 @@ function V.Record(page,r)
         B.EndSection(page,section)
     end
 end
-function V.Location(page,r)
-    if not r.mapID and not r.zone then return end
-    local art=E.Journey.Art(r.mapID)
-    local grouped=E.Journey.Clusters({r},art and art.artID)
-    local location=E.Display.Zone(r)or E.L["Location not recorded"]
-    if r.subzone and r.subzone~=""and r.subzone~=location then location=r.subzone.." / "..location end
-    local caption=location.." — "..E.L[grouped.positioned>0 and "Your location"or"Exact location not recorded"]
-    if art then E.JourneyView.Draw(page,art,grouped,{height=250,caption=caption,captionAtTop=grouped.clusters[1]and grouped.clusters[1].y>.5})
-    else B.Text(page,caption,14)end
-end
+function V.Location(page,r)return E.JourneyView.Location(page,r)end

@@ -95,9 +95,11 @@ function V.Draw(page,art,clusters,options)
             pin:ClearAllPoints(); pin:SetPoint("CENTER",frame,"TOPLEFT",left+cluster.x*w,-top-cluster.y*h)
             pin.fill:SetColorTexture(selected and 0.65 or 0.25,0.10,0.04,many and 0.65 or 0.9)
             pin.text:SetText(tostring(#cluster.records)); pin.key=cluster.key; pin.recordCount=#cluster.records
+            if not pin.dot then pin.dot=T.Texture(pin,"location-pin-v1","ARTWORK");pin.dot:SetAllPoints()end
+            pin.dot:Hide()
             pin:EnableMouse(not options)
             if options then
-                pin.fill:SetColorTexture(.24,.09,.03,1);pin.text:SetText("●");pin.text:SetTextColor(1,.82,.22);pin:SetSize(18,18)
+                pin.fill:SetColorTexture(0,0,0,0);pin.text:SetText("");pin.dot:Show();pin:SetSize(22,22)
             else
                 pin.text:SetTextColor(1,.95,.75)
                 pin:SetScript("OnClick",function()B.journeyBucket=cluster.key; B.journeyRecordsPage=1; B.selected=nil; B.Render()end)
@@ -200,20 +202,26 @@ function V.Render(left,right)
     if #records==0 then B.Text(right,E.L["No matching recorded moments on this page."],16)end
     pager(right,"journeyRecordsPage",#records,8,E.L["Newer entries"],E.L["Older entries"])
 end
+function V.Location(page,r)
+    if not r.mapID and not r.zone then return end
+    local art=E.Journey.Art(r.mapID)
+    local grouped=E.Journey.Clusters({r},art and art.artID)
+    local location=E.Display.Zone(r)or E.L["Location not recorded"]
+    if r.subzone and r.subzone~=""and r.subzone~=location then location=r.subzone.." / "..location end
+    local caption=location.." — "..E.L[grouped.positioned>0 and "Your location"or"Exact location not recorded"]
+    if art then V.Draw(page,art,grouped,{height=250,caption=caption,captionAtTop=grouped.clusters[1]and grouped.clusters[1].y>.5})
+    else B.Text(page,caption,14)end
+end
+
 function V.Record(page,r)
-    local c=B.Character(); local p=J.Coordinates(r)
-    if r.subzone then B.Text(page,E.Format('Subzone: {name}',{name=r.subzone}),14) end
-    if p then
-        B.Text(page,E.Format('Recorded player position: {x}, {y} | Map {map}',{x=string.format('%.1f',p.x*100),y=string.format('%.1f',p.y*100),map=p.mapID}),14)
-        B.Text(page,E.Format("Observed {date}. This is your character's position at observation time.",{date=A.Date(p.observedAt or r.ts)}),12)
-    elseif r.mapID or r.zone then B.Text(page,E.L["Zone association only; an exact position was not observed."],12) end
-    if J.Category(c,r) then
-        B.Action(page,r.kind=="death" and c.state.journeyShowDeaths~=true and E.L["Show in Journey (enable death locations)"] or E.L["View this location in Journey"],function()
-            if r.kind=="death" then c.state.journeyShowDeaths=true; S.Touch(c) end
-            B.chapter="Journey"; B.journeyFilter="all"; V.SelectLocation(J.LocationKey(r))
-        end)
-    end
+    local c=B.Character()
+    V.Location(page,r)
     if r.kind=="death" then
+        if c.state.journeyShowDeaths~=true then
+            B.Action(page,E.L["Show in Journey (enable death locations)"],function()
+                c.state.journeyShowDeaths=true;S.Touch(c);B.chapter="Journey";B.journeyFilter="all";V.SelectLocation(J.LocationKey(r))
+            end)
+        end
         B.Text(page,E.L["Death context"],20)
         B.Text(page,E.L[r.witnessCoverage or "Death cause, nearby presence and confirmed witnesses are unknown."],13)
         if r.membershipObserved==true then
