@@ -113,6 +113,9 @@ assert(quote.author==author and quote.text==words and quote.ts==ts)
 click(B.right,"Back to highlights");click(B.right,"Suggested");click(B.right,boss.title)
 click(B.right,"Star and protect this memory");assert(boss.starred and B.selected==boss.id)
 B.SetChapter("Calendar");B.calendarFilter="all";E.CalendarView.SelectDay(day)
+-- Selecting a day opens its diary; use the visible tab before following events.
+assert(B.calendarDiaryOpen~=false)
+click(B.right,"Events");assert(B.calendarDiaryOpen==false)
 local function followDayRecord(target)
  local pos
  for i,r in ipairs(E.CalendarView.lastReport.records)do if r==target then pos=i;break end end

@@ -7,6 +7,7 @@ local c=S.Character('personal-record-owner',{name='Bookworm'});local other=S.Cha
 E.current=c
 local function record(kind,at,data)return S.Add(c,kind,at,data or{})end
 local function drain()
+ P.Ensure(c) -- explicit page demand bypasses the automatic correction delay
  for n=1,10000 do K.Process(1000);if not K.Pending(c,'personal-records')then return end end
  error('Personal record background scan did not finish')
 end
@@ -136,6 +137,13 @@ local projected=P.Build(crafter,d2).desired['baseline:craft_profit'];assert(proj
 local craftWork=E.RetentionWork.Start(function(work)return P.Build(crafter,d2,work)end);local craftDone
 for n=1,50000 do local status,model=E.RetentionWork.Step(craftWork,20);if status then assert(status=='done',model);craftDone=model;break end end
 assert(craftDone and craftDone.desired['baseline:craft_profit'].value==35,'Nested FIFO projection must cooperate at tiny frame budgets')
+-- A retained competing request can be outside display order. Its negative
+-- evidence still closes the first request's observation window.
+local competing=S.Add(crafter,'craft_request',at+2,{subject=crafter.id,session=cs})
+competing.sequence=request.sequence+.5
+for i,id in ipairs(crafter.order)do if id==competing.id then table.remove(crafter.order,i);break end end
+assert(not P.Build(crafter,d2).desired['baseline:craft_profit'],'Unordered competing craft request must remain negative evidence')
+crafter.records[competing.id]=nil
 request.rejectCraftCosts=true;S.Changed(crafter,request)
 assert(not P.Build(crafter,d2).desired['baseline:craft_profit'],'Rejection invalidates projected material profit')
 -- Only the real logout path writes a pause witness; the next verified player

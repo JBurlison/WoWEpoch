@@ -245,6 +245,8 @@ function V.Graph(page,report,range,mode)
             if not hit then hit=CreateFrame("Frame",nil,plot);hit:EnableMouse(true);plot.hits[i]=hit end
             hit:ClearAllPoints();hit:SetPoint("BOTTOMLEFT",plot,"BOTTOMLEFT",x-2,bottom)
             hit:SetSize(math.max(4,chartWidth/count),top-bottom+24)
+            hit.controllerKey=mode..':'..tostring(bin.ts)
+            hit.controllerLabel=heading..': '..money(value)..' / '..(mode=='balance'and A.Date(bin.lastTS)or bin.day)
             hit:SetScript("OnEnter",function(self)
                 if not GameTooltip then return end
                 GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(heading..": "..money(value))

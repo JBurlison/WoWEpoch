@@ -127,6 +127,7 @@ function L.Retention(c,r,add,context)
 end
 E.On('HISTORY_TOUCHED',function(c,receipt)
  if receipt and(receipt.reason=='notes'or receipt.reason=='observation')then return end
- local r=receipt and receipt.detail and receipt.detail.record
+ local detail=receipt and type(receipt.detail)=='table'and receipt.detail
+ local r=detail and type(detail.record)=='table'and detail.record
  if not r or r.kind=='pull'or r.kind=='kill'or r.kind=='gap'then local s=state(c);s.generation=s.generation+1 end
 end)

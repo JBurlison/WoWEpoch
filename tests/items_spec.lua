@@ -1,4 +1,11 @@
 local S,H,L,A,B,V=E.Store,E.History,E.Items,E.API,E.Book,E.LootView
+local savedItemInfo=C_Item.GetItemInfo
+-- These synthetic item IDs have no client metadata. The general WoW mock's
+-- Copper Bar response must not replace the captured names used by this spec.
+C_Item.GetItemInfo=function(id)
+    if type(id)=='number'and id>=1 and id<=5000 then return end
+    if savedItemInfo then return savedItemInfo(id)end
+end
 local function eq(a,b,label)assert(a==b,(label or "Item mismatch")..": "..tostring(a).." ~= "..tostring(b))end
 local c=S.Character("item-owner",{name="Gatherer"}); local other=S.Character("item-other",{name="Other"})
 local t=A.ParseDay("2026-10-31")+3600; TEST_NOW(t+100)
@@ -70,4 +77,5 @@ eq(many.events,5000); eq(many.uniqueItems,5000)
 assert(L.Report(large,{from=t,through=t+6000})==many,"unchanged reports are cached")
 B.ChangeCharacter(large.id); B.SetChapter("Loot"); assert((B.right.used.lootBar or 0)<=8,"item aggregates are paginated")
 eq(B.frame:GetWidth(),1760); eq(B.frame:GetHeight(),940)
+C_Item.GetItemInfo=savedItemInfo
 print(string.format("PASS items: dimensions, recipients, unknowns, operation counts, historical valuations, drilldowns, date scope and 5,000-item report %.1f ms (host only)",elapsed*1000))

@@ -3,7 +3,7 @@
 ## Notes: A character scrapbook of adventures, companions, and progress.
 ## Author: JBurlison
 ## IconTexture: Interface\AddOns\MyEpoch\Media\Book\emblem-small-v1.tga
-## Version: 0.1.12
+## Version: 0.2.7
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever
@@ -209,6 +209,15 @@ Locales/Keepsakes/ruRU.lua
 Locales/Keepsakes/koKR.lua
 Locales/Keepsakes/zhCN.lua
 Locales/Keepsakes/zhTW.lua
+Locales/Controller/deDE.lua
+Locales/Controller/frFR.lua
+Locales/Controller/itIT.lua
+Locales/Controller/esES.lua
+Locales/Controller/ptBR.lua
+Locales/Controller/ruRU.lua
+Locales/Controller/koKR.lua
+Locales/Controller/zhCN.lua
+Locales/Controller/zhTW.lua
 RetentionWork.lua
 Store.lua
 Keepsakes.lua
@@ -345,5 +354,14 @@ KillLootView.lua
 ItemStories.lua
 ItemStoryView.lua
 Minimap.lua
+ControllerUnicodeData.lua
+ControllerUnicode.lua
+ControllerChinese.lua
+ControllerComposition.lua
+ControllerNavigation.lua
+ControllerText.lua
+Controller.lua
+ControllerFocus.lua
+ControllerAdapters.lua
 RecorderHandoff.lua
 Bootstrap.lua

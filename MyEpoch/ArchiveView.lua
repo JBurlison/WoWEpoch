@@ -84,8 +84,22 @@ local function settings(left)
     B.Text(left,E.Format('Book scale: {percent}% of automatic fit',{percent=math.floor(E.db.settings.scale*100+.5)}),14)
     local function scale(value)E.db.settings.scale=math.max(.65,math.min(1,value));B.Fit();B.Render()end
     controls(left,{{E.L["Make book smaller"],function()scale(E.db.settings.scale-.05)end},{E.L["Make book larger"],function()scale(E.db.settings.scale+.05)end},{E.L["Reset book scale"],function()scale(1)end}})
-    controls(left,{{E.Format('Combat auto-close: {state}',{state=E.L[E.db.settings.combatClose and'on'or'off']}),function()B.SetCombatClose(not E.db.settings.combatClose);B.Render()end,E.db.settings.combatClose}},1)
+    B.Checkbox(left,E.L['Combat auto-close'],E.db.settings.combatClose,function()B.SetCombatClose(not E.db.settings.combatClose);B.Render()end)
     B.Text(left,E.L["Combat auto-close starts off. When enabled, the book reopens after combat only if combat closed it. These book settings apply across characters."],13)
+    if E.Controller then
+        local controller=E.Controller;local prefs=controller.Settings()
+        local function setting(key,value)controller.Configure(key,value);B.Render()end
+        B.Checkbox(left,E.L['Controller navigation'],prefs.mode~='off',function()setting('mode',prefs.mode=='off'and'auto'or'off')end)
+        B.Text(left,E.L['Controller button prompts'],14)
+        controls(left,{{E.L['Automatic'],function()setting('glyphs','auto')end,prefs.glyphs=='auto'},
+            {'Xbox / Steam Deck',function()setting('glyphs','xbox')end,prefs.glyphs=='xbox'},
+            {'PlayStation',function()setting('glyphs','playstation')end,prefs.glyphs=='playstation'},
+            {'Switch Pro',function()setting('glyphs','switch')end,prefs.glyphs=='switch'}},2)
+        B.Checkbox(left,E.L['Swap Confirm and Back'],prefs.swapConfirm,function()setting('swapConfirm',not prefs.swapConfirm)end)
+        controls(left,{{E.L['Move book'],function()controller.ToggleMove()end},
+            {E.L['Center book'],function()controller.Recenter()end}},2)
+        B.Text(left,E.L['Assign Toggle My Epoch in the game key bindings, or open the book with its minimap button. Controller preferences apply to every character.'],13)
+    end
 end
 function V.Render(left,right)
     local c=B.Character();B.archiveTab=B.archiveTab or"retention";V.lastReview=nil
@@ -111,9 +125,9 @@ function V.Render(left,right)
         B.Text(left,E.Format('Policies apply only to {name}. Saving a policy does not immediately remove history.',{name=c.identity.name or c.id}),13)
         controls(left,{{E.L['Review cleanup'],function()pending[c]=nil;R.StartReview(c,A.Now(),true);B.archiveMessage=nil;B.Render(true)end},
             {E.L['Refresh review'],function()pending[c]=nil;R.StartReview(c,A.Now());B.archiveMessage=nil;B.Render(true)end}},2)
-        controls(left,{{E.Format('Automatic cleanup: {state}',{state=E.L[c.state.retentionAutomatic and'on'or'off']}),function()
+        B.Checkbox(left,E.L['Automatic cleanup'],c.state.retentionAutomatic,function()
             R.SetAutomatic(c,not c.state.retentionAutomatic);pending[c]=nil;B.archiveMessage=nil;B.Render()
-        end,c.state.retentionAutomatic}},1)
+        end)
         B.Text(left,E.L['Automatic cleanup starts off. When enabled, this character is checked once per local day while logged in, out of combat, with the book closed. Finite policies permanently expire eligible history and notes. Unknown combat state defers cleanup.'],13)
         if B.archiveMessage then B.Text(left,E.L[B.archiveMessage],14)end
     end

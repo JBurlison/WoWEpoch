@@ -1,5 +1,14 @@
 local B,V,D,S,A=E.Book,E.RecapView,E.Diary,E.Store,E.API
 local c=E.db.characters["myepoch-ui-fixture-026"]; local day=assert(A.ParseDay("2026-10-31"))
+-- Play/AFK observations contribute to totals but are intentionally hidden from
+-- source lists. Keep more than eight supported sources so this layout test
+-- still exercises pagination, without changing the fixture's ten crafted bars.
+local bars=assert(c.records[c.id..":6"])
+assert(bars.kind=="crafted" and bars.quantity==10)
+bars.quantity=6;S.Changed(c,bars)
+for i=1,4 do
+ S.Add(c,"crafted",bars.ts+i,{title=bars.title,recipient=c.id,itemID=bars.itemID,quantity=1})
+end
 local function drain()
  local n=0;while E.JournalViews.HasWork()do E.Query.ProcessPreparation(500);E.Gathering.Process();E.GoldChecks.Process();E.JournalJobs.StepWriters(c,A.Now(),500);n=n+1;assert(n<100000,'view work must finish')end
 end
@@ -37,6 +46,7 @@ local edit=B.right.pool.edit[1]; edit:SetText("My own mention of quests is allow
 assert(c.notes[key].text=="My own mention of quests is allowed." and r.text:find("quest completed",1,true))
 click(B.right,"Keep this recap"); assert(r.starred)
 local rows=V.Sources(c,r); assert(#rows==11)
+for _,source in ipairs(rows)do assert(source.kind~="play","Play and AFK observations stay hidden from recap source lists")end
 click(B.right,"+ Follow the source records ("..#rows..")"); assert(B.right.used.recapEntry==8)
 B.right.pool.recapEntry[1]:Click(); assert(B.selected==rows[1].id and B.recapFocus==r.id)
 local back=false; for i=1,B.right.used.button or 0 do local f=B.right.pool.button[i]; if f.text:GetText()=="Back to recap"then f:Click();back=true;break end end

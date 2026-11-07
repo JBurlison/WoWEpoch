@@ -72,6 +72,16 @@ for _,size in ipairs({{1920,1080},{2560,1440},{3840,2160}})do
  UIParent:SetSize(size[1],size[2]);B.Fit();B.Render();eq(B.frame:GetWidth(),1760);eq(B.frame:GetHeight(),940)
 end
 UIParent:SetSize(1920,1080);B.Fit()
+-- Clear cancels in-flight work; even a late completion cannot restore matches.
+B.search='Campfire';B.searchDraft=nil;X.Refresh(c,true);B.Render()
+assert(V.pending and not V.lastResult)
+local abandoned=V.pending.job
+TEST_UI_CLICK(E.L['Clear search'])
+assert(B.search==''and not V.pending and not V.lastResult and not V.freshness)
+local position=abandoned.position;X.Process(500)
+assert(abandoned.position==position,'Cleared search jobs stop scanning')
+E.Emit('SEARCH_READY',c,abandoned)
+assert(not V.lastResult and not V.pending and (B.right.used.searchRow or 0)==0,'Late completion leaves cleared Search idle')
 local tied=S.Character('search-jobs-ties',{name='Tied dates'})
 for i,key in ipairs({'a','b','c','d'})do
  local id=tied.id..':'..key;tied.order[i]=id

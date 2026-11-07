@@ -9,7 +9,14 @@ owner.state.lastLocation={mapID=historyMap,zone='Recorded coast'}
 for i,title in ipairs({'A catalog start','Another occurrence'})do
     S.Add(owner,'quest',100+i,{questID=918520+i,title=title,mapID=historyMap,zone='Recorded coast',status='completed'})
 end
-local originalRows,originalMapInfo=T.Rows,C_Map.GetMapInfo
+local originalRows,originalMapInfo,originalQuestTitle=T.Rows,C_Map.GetMapInfo,C_QuestLog.GetTitleForQuestID
+-- Display titles come from the client when available. Give this fixture's IDs
+-- their own client titles instead of the host mock's generic "Quest <id>".
+C_QuestLog.GetTitleForQuestID=function(id)
+    if id==918521 then return 'A catalog start' end
+    if id==918522 then return 'Another occurrence' end
+    return originalQuestTitle(id)
+end
 local start={mapID=startMap,x=34.25,y=87.5,scope='all'}
 T.Rows=function(c,...)
     local report=originalRows(c,...)
@@ -52,7 +59,7 @@ for i=1,B.left.used.questRow or 0 do local row=B.left.pool.questRow[i]
 end
 assert(button);button:Click()
 assert(B.questAtlasID==918522 and not field('Catalog start')and field('Observed here')=='Recorded coast')
-T.Rows=originalRows;C_Map.GetMapInfo=originalMapInfo
+T.Rows=originalRows;C_Map.GetMapInfo=originalMapInfo;C_QuestLog.GetTitleForQuestID=originalQuestTitle
 if previous then B.ChangeCharacter(previous)end
 print('PASS catalog start field: named and fallback maps, percentage bounds, separate observed/destination fields, withheld start and row navigation')
 

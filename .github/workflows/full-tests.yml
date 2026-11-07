@@ -30,5 +30,7 @@ jobs:
           cache-dependency-path: requirements-dev.txt
       - name: Install test dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Run isolated shared UI regressions
+        run: python -B -X utf8 tests/shared_ui_host.py
       - name: Run full addon regressions
         run: python -B -X utf8 tests/run.py

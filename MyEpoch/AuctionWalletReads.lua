@@ -3,8 +3,8 @@ local R={};E.AuctionWalletReads=R
 -- The generated factories bind these iterator/copy helpers. A changed source
 -- certificate defaults to strict invalidation until its read surface is audited.
 R.Expected={
- ["Store.lua"]="23406af9303e21c27c4b444da97d65abc110778e1d11e2d8dfe12c7c97409293",
- ["Query.lua"]="bb9a995e6562b7867228e2c5ea42610d8642973017e3eb1b01b6282281858046",
+ ["Store.lua"]="55c95d20066dca6d43a77dcc04a8304e603fe4d5f41c37764fee7100a9af2926",
+ ["Query.lua"]="9215baa503f6bf90b68efac3e13945403e2e9828311098f5839dfc0ca562ac0f",
  ["Economy.lua"]="8ab6288bca92335779e116a1dd42bb8f0b6d89a15dd9be4082558167bda6b68c",
  ["Trades.lua"]="e69aa92b2e8900406ef0234a54b065ad0dd17d720374907670d2681781c4c63d",
  ["Mail.lua"]="cea7f719ffa567b69eaf046d3bc5a5937fa4eed8a3e7db919a196ab96cf08024",

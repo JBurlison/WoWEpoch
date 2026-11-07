@@ -90,7 +90,8 @@ local function paper(page,title,text)
     local start=page.y;local panel=B.Acquire(page,"searchPaper");panel:SetWidth(B.Width(page));page.y=start+20
     for i,body in ipairs({title,text})do
         local y=page.y;local size=i==1 and 22 or 16;local f=B.Text(page,body,size)
-        f:SetWidth(B.Width(page)-48);f:ClearAllPoints();f:SetPoint("TOPLEFT",page.content,"TOPLEFT",36,-y)
+        f:SetWidth(B.Width(page)-48);f:SetMaxLines(0);f:SetHeight(0)
+        f:ClearAllPoints();f:SetPoint("TOPLEFT",page.content,"TOPLEFT",36,-y)
         local h=math.max(size,f:GetStringHeight());f:SetHeight(h);page.y=y+h+14
     end
     page.y=page.y+10;panel:SetHeight(page.y-start);page.y=page.y+18
@@ -99,8 +100,9 @@ function V.Return()
     B.chapter="Search";B.selected=nil;B.searchNoteKey=nil;B.searchError=nil;B.searchOrigin=false;B.Render(true)
     B.right.scroll:SetVerticalScroll(math.max(0,math.min(B.searchReturnScroll or 0,B.right.scroll:GetVerticalScrollRange())));T.Scroll(B.right)
 end
-local function apply(value,filter)
-    B.search=value;B.searchDraft=nil;B.searchFilter=filter or B.searchFilter;B.searchPage=1;B.searchError=nil;B.searchNoteKey=nil
+local function apply(value,filter,keepDraft)
+    B.search=value; if not keepDraft then B.searchDraft=nil end
+    B.searchFilter=filter or B.searchFilter;B.searchPage=1;B.searchError=nil;B.searchNoteKey=nil
     B.selected=nil;B.searchHit=nil;B.searchReturnScroll=0;B.searchOrigin=false;X.Refresh(B.Character(),true);B.Render(true)
 end
 local names={encounter_loot="Encounter loot notice",quest_reward="Quest reward event",quest="Quest",quest_attempt="Quest attempt",objective="Objective",credit="Objective credit",kill="Recorded kill",group="Company",chat="Chat",pull="Meter observation",encounter="Boss encounter",
@@ -139,7 +141,7 @@ function V.Render(left,right)
     B.Navigation.Controls(function(left)
     B.Navigation.Branch(left,E.Format("Record type: {type}",{type=filterName}),B.searchFiltersOpen,function()B.searchFiltersOpen=not B.searchFiltersOpen;B.Render()end,function(left)
         local rows={};for _,filter in ipairs(X.filters)do local key=filter[1]
-            rows[#rows+1]={E.L[filter[2]],function()B.searchFiltersOpen=false;apply(B.searchDraft or B.search,key)end,(B.searchFilter or"all")==key}
+            rows[#rows+1]={E.L[filter[2]],function()B.searchFiltersOpen=false;apply(B.search,key,true)end,(B.searchFilter or"all")==key}
         end;B.Navigation.Grid(left,rows,1,true)
     end)
     end)
@@ -156,6 +158,11 @@ function V.Render(left,right)
             if note.updated then B.Text(right,E.Format("Last edited: {date}",{date=A.Date(note.updated)}),13)end
             B.Note(right,B.searchNoteKey)
         else B.Text(right,E.L["These notes are no longer available."],17)end
+        return
+    end
+    -- An empty query is idle: do not build a full-text copy of the scrapbook
+    -- until the player actually submits words to search.
+    if not (B.search or ""):find("%S")then
         return
     end
     if not X.IsReady(c)then

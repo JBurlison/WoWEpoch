@@ -19,7 +19,7 @@ Each character has a separate journal. Switch between them with the character pi
 | **Gold** | A dated ledger of recorded income and spending, balance charts, merchant receipts, trades, mail, auctions, and trading-cost reports. |
 | **Memories** | Write a story, gather **Adventure chapters**, keep a **Wish list**, and rediscover earlier adventures with **On This Day**. Choose illustrations and attach screenshot references. Optional writing prompts help you find a starting point. |
 | **Journey** | Explore recorded locations on the map and follow their links back into the journal. Death markers are hidden by default. |
-| **Search** | Find records, conversations, and personal notes across the selected character’s scrapbook. |
+| **Search** | Find records, conversations, and personal notes across the selected character’s scrapbook. Enter words and press Enter or Search; Clear removes the results. |
 | **Archive** | Adjust the book’s size, combat behavior, and notifications; review storage and choose how long each character’s history is kept. |
 
 ## Installation
@@ -59,6 +59,33 @@ Click the **My Epoch minimap button** or type `/myepoch` to open the book. Recor
 - Open **Archive** to adjust scale or enable combat auto-close. It is off by default; when enabled, the book reopens after combat if combat closed it.
 
 The window fits most of your screen and keeps its size as you switch chapters. Drag its title bar to move it. You can also drag the minimap button around the minimap.
+
+## Using a controller
+
+My Epoch includes controller navigation for Xbox/Steam Deck, PlayStation, and Switch Pro. ImprovedForever is optional. While the book is open, use the game's UI-focus button—normally Xbox **View**, PlayStation **touchpad**, or Switch **Minus**—to take or release My Epoch's focus. The compact header icon shows the available focus key and can also be clicked. Current UI-focus remapping and explicit unbinding are respected. Release the button and center the sticks; the focus outline and header prompts show which control you can use. Switching focus preserves the current page and selection.
+
+Assign **Focus My Epoch with controller** to open or refocus the book, or use `/myepoch focus`. **Toggle My Epoch** remains a separate open/close binding. These addon bindings start unassigned. The temporary UI-focus shortcut applies only while the open book is eligible; it does not change saved bindings. Native popups, chat entry, CompactKeyboard's visible keyboard, and supported ImprovedForever overlays take priority; finish those interactions before reclaiming the book. If input still does not reach the book, `/myepoch controller` prints the loaded version, device, focus key, capture status, and recent focus attempts for troubleshooting. `/myepoch status` also reports the loaded version; a copy older than 0.2.0 does not include controller navigation.
+
+| Control | Action |
+| --- | --- |
+| D-pad or left stick | Move between controls and through grids. |
+| South face button | Select or activate the focused control. |
+| East face button | Go back or close the current dialog. |
+| Bumpers | Switch chapters. |
+| Triggers | Move between the header, bookmarks, and the two pages. |
+| Right stick | Scroll the selected page. |
+| West face button | Inspect a focused item or model when offered. |
+| North face button | Move the book; confirm or go back to finish. |
+
+Prompts follow your controller. The default Confirm/Back buttons are **A/B** on Xbox, **Cross/Circle** on PlayStation, and **B/A** on Switch Pro. In **Archive → Book settings**, you can swap Confirm and Back, choose a prompt style, turn controller navigation off, or recenter the book. These preferences apply across characters. Mouse and keyboard remain available.
+
+Select a text field to open the controller keyboard. It includes caret movement, selection, copy/cut/paste within My Epoch, undo, punctuation, and multiline writing. Bumpers move the caret; the west face button deletes; the north face button changes case. Notes keep their normal autosave behavior. Fields with an explicit Submit action keep that action. Back first cancels any unfinished composition, then leaves the editor; it does not undo text already saved.
+
+Keyboard layouts cover English, German, French, Italian, Spanish, Brazilian Portuguese, Russian, Korean, and Simplified/Traditional Chinese. Korean uses two-beolsik syllable composition. Chinese uses Pinyin and a paged character picker, including optional tone numbers and `v` for `ü`; it selects individual characters rather than predicting phrases. You can change the keyboard language independently of the game language. Choose **Symbols**, then **Accents**, for accented Latin letters. Use **Literal text / codes** for case-sensitive wish codes. External clipboard paste uses your platform's paste interface; the addon's clipboard only holds text copied within My Epoch.
+
+Controller navigation pauses during combat and while another supported controller window has input. Your normal combat auto-close setting still controls whether the book closes. Release held buttons and center the sticks before returning to the book. Screenshots and device disconnection also release controller input.
+
+The implementation includes host and simulator checks. Actual hardware input, secure combat behavior, and cross-language font availability require validation in the Forever client; see the controller validation notes in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Recaps and your calendar
 
@@ -117,6 +144,8 @@ Keep your backups outside the addon folder. Updating the addon does not require 
 | Command | Action |
 | --- | --- |
 | `/myepoch` or `/epoch` | Open or close the scrapbook. |
+| `/myepoch focus` | Open or refocus the book for controller navigation. |
+| `/myepoch controller` | Report controller detection, focus, and input-capture status. |
 | `/myepoch close` | Close the book and cancel a pending automatic reopen after combat. |
 | `/myepoch capture` | Capture a moment. |
 | `/myepoch minimap hide` | Hide the minimap button. |

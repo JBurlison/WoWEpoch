@@ -114,7 +114,7 @@ function V.Render(left,right,c)
   B.Text(left,E.L['Choose the records this character keeps.'],16)
   for _,category in ipairs(P.categories)do
    local key=category.key
-   B.Action(left,E.L[category.label]..' · '..(P.Enabled(c,key)and E.L['On']or E.L['Off']),function()
+   B.Checkbox(left,E.L[category.label],P.Enabled(c,key),function()
     if owned(c)then P.SetEnabled(c,key,not P.Enabled(c,key));B.Render()end
    end)
   end

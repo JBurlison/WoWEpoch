@@ -65,7 +65,9 @@ local function reconcileRecordingOwner()
         report("Now recording "..identity.name.."'s scrapbook.")
     end
 end
-BINDING_NAME_MYEPOCH_CAPTURE="Capture a moment in My Epoch"
+BINDING_NAME_MYEPOCH_CAPTURE=E.L["Capture a moment in My Epoch"]
+BINDING_NAME_MYEPOCH_TOGGLE=E.L["Toggle My Epoch"]
+BINDING_NAME_MYEPOCH_FOCUS=E.L["Focus My Epoch with controller"]
 E.On("CAPTURE_RESULT",function(c,r)
     report("Screenshot "..r.status.."; journal entry saved for "..(c.identity.name or "this character")..".")
 end)
@@ -74,6 +76,18 @@ function MyEpoch_Capture()
     local r,err=E.Capture.Request()
     if err then report(err) end
     return r
+end
+function MyEpoch_Toggle()
+    if openFailure then report(openFailure);return end
+    return E.Book.Toggle()
+end
+function MyEpoch_Focus()
+    if openFailure then report(openFailure);return end
+    if not E.Book.frame or not E.Book.frame:IsShown()then E.Book.Open()end
+    if not E.Book.frame or not E.Book.frame:IsShown()or not E.Controller then return false end
+    local active,reason=E.Controller.RequestFocus()
+    if reason then report(E.L[reason])end
+    return active
 end
 local function register(event)
     local ok=pcall(frame.RegisterEvent,frame,event)
@@ -118,6 +132,7 @@ frame:SetScript("OnEvent",function(_,event,...)
         end
         MyEpochDB=db
         E.Minimap.Start()
+        if E.Controller then E.Controller.Start()end
         for key in pairs(E.Collectors.handlers) do register(key) end
         for _,key in ipairs(E.Collectors.chatEvents) do register(key) end
         register("PLAYER_REGEN_DISABLED"); register("PLAYER_REGEN_ENABLED"); register("DISPLAY_SIZE_CHANGED"); register("UI_SCALE_CHANGED")
@@ -138,6 +153,8 @@ frame:SetScript("OnEvent",function(_,event,...)
             elseif command=="trades" then report(E.Trades.Diagnose())
             elseif command=="mail" then report(E.Mail.Diagnose())
             elseif command=="catalog" then E.QuestieBridge.Start();report(E.QuestieBridge.status)
+            elseif command=="focus" then MyEpoch_Focus()
+            elseif command=="controller" then if E.Controller then for _,line in ipairs(E.Controller.Diagnose())do report(line)end end
             elseif command=="minimap show" then E.Minimap.SetShown(true);report("Minimap button shown.")
             elseif command=="minimap hide" then E.Minimap.SetShown(false);report("Minimap button hidden. Use /myepoch minimap show to restore it.")
             elseif command=="minimap" then report("Use /myepoch minimap show or /myepoch minimap hide.")

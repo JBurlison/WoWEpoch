@@ -1,5 +1,12 @@
 local B,L,V,S,C=E.Book,E.CompanyLayout,E.CompanyView,E.Store,E.Company
 local c=E.db.characters["myepoch-ui-fixture-028"]; local g=c.records[c.id..":1"]
+-- These IDs are synthetic. Give the client-name lookup the same fixture data
+-- instead of the generic mock's fabricated "Quest <id>" title.
+local quest=c.records[c.id..":3"]
+local questTitle=C_QuestLog.GetTitleForQuestID
+local questNames={}
+for _,r in pairs(c.records)do if r.kind=="quest"then questNames[r.questID]=r.title end end
+C_QuestLog.GetTitleForQuestID=function(id)return questNames[id] or questTitle(id)end
 local function click(page,text)
  for _,kind in ipairs({"companyControl","companyRow","button"})do for i=1,page.used[kind] or 0 do local f=page.pool[kind][i]; if f.text:GetText()==text then f:Click(); return end end end
  return TEST_UI_CLICK(text,prefix)
@@ -17,7 +24,7 @@ click(B.right,"Earlier messages"); B.right.pool.companyChat[1]:Click(); assert(B
 click(B.right,"Back to group session"); assert(B.selected==g.id and B.groupTab=="chat")
 local input=B.right.pool.edit[1]; input:SetText("SNACKS"); input.scripts.OnEnterPressed(input); assert(#L.lastMessages==2)
 input=B.right.pool.edit[1]; input:SetText(""); input.scripts.OnEnterPressed(input)
-click(B.right,"Quests"); click(B.right,"The People's Militia"); assert(B.selected~=g.id); click(B.right,"Back to group session")
+click(B.right,"Quests"); click(B.right,"The People's Militia"); assert(B.selected==quest.id); click(B.right,"Back to group session")
 click(B.right,"Pulls"); assert(#L.lastSession.pulls==0)
 local content=""; for i=1,B.right.used.label or 0 do content=content..B.right.pool.label[i]:GetText()end
 assert(content:find("Membership at observation time",1,true) and not content:find("0 damage",1,true))
@@ -29,7 +36,7 @@ assert(B.right.used.companyStat==4)
 local oldWhisper=E.Social.Whisper; local requested
 E.Social.Whisper=function(p)requested=p.id; return "Composer only" end
 click(B.right,"Whisper - open composer"); assert(requested=="Player-Test-Merrin"); E.Social.Whisper=oldWhisper
-click(B.right,"Your quest completions (1)"); click(B.right,"The People's Militia"); click(B.right,"Back to companion")
+click(B.right,"Your quest completions (1)"); click(B.right,"The People's Militia"); assert(B.selected==quest.id); click(B.right,"Back to companion")
 assert(B.companySection=="quests" and c.notes["companion:Player-Test-Merrin"].text=="Always remembers to bring the snacks.")
 -- Long messages reuse a fixed page of frames, and notes are never mistaken for transcript search.
 for i=1,30 do S.Add(c,"chat",g.ts+400+i,{group=g.id,refs={g.id},author="A long recorded speaker name",channel="PARTY",text=string.rep("A very long memory ",40),title="Long message"})end
@@ -38,4 +45,5 @@ for i=1,5 do B.transcriptPage=i; B.Render(); assert((B.right.used.companyChat or
 local other=S.Character("company-layout-empty",{name="Other reader"})
 B.ChangeCharacter(other.id); B.SetChapter("Company"); assert(not B.companySessionFocus and (B.right.used.companyStat or 0)==0)
 B.ChangeCharacter(c.id); assert(B.companySessionFocus==g.id and B.frame:GetWidth()==1760 and B.frame:GetHeight()==940)
+C_QuestLog.GetTitleForQuestID=questTitle
 print("PASS Company layout: session tabs, bounded transcripts, canonical keepsakes/protection, literal search, source return, membership gaps, own milestones, guarded composer routing, notes, empty metrics and character isolation")

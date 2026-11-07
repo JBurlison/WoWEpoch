@@ -365,6 +365,17 @@ function X.Invalidate(c)
     if lastOwner==c then lastOwner=nil end
     if transcriptJob and transcriptJob.owner==c then transcriptJob.restart=true end
 end
+function X.ReleaseView()
+    -- The closed book no longer needs duplicated searchable text, sorted
+    -- result documents or transcript preparation. Explicit asynchronous API
+    -- work is independent of the book and must still be allowed to finish.
+    local keep=hasWork(apiOwner)and apiOwner or nil
+    for c in pairs(caches)do if c~=keep then caches[c]=nil end end
+    for c in pairs(transcripts)do transcripts[c]=nil end
+    transcriptJob=nil
+    apiOwner=keep
+    if lastOwner~=keep then lastOwner=nil end
+end
 local function changed(c,r)
     local cache=caches[c]
     if cache and c.records[r.id]==r then

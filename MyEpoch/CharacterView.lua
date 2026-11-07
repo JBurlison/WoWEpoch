@@ -26,6 +26,7 @@ function V.Render()
     end
     if V.page>1 then V.previous:Show()else V.previous:Hide()end
     if V.page<pages then V.next:Show()else V.next:Hide()end
+    if E.ControllerAdapters then E.ControllerAdapters.RefreshCharacter()end
 end
 function V.Build()
     if V.frame then return end
@@ -35,7 +36,7 @@ function V.Build()
     local panel=CreateFrame('Frame',nil,overlay);V.panel=panel;panel:SetSize(680,750);panel:SetPoint('TOPRIGHT',B.frame,'TOPRIGHT',-56,-72);panel:EnableMouse(true)
     T.Photo(panel)
     local heading=text(panel,25,530);heading:SetText(E.L['Choose a character']);heading:SetPoint('TOPLEFT',30,-30)
-    local close=button(panel,E.L['Close'],82,28,V.Hide);close:SetPoint('TOPRIGHT',-26,-26)
+    local close=button(panel,E.L['Close'],82,28,V.Hide);V.close=close;close:SetPoint('TOPRIGHT',-26,-26)
     local hint=text(panel,12,600);hint:SetText(E.L['Search names, realms or classes. Each journal stays separate.']);hint:SetPoint('TOPLEFT',30,-68)
     local input=CreateFrame('EditBox',nil,panel);V.input=input;input:SetSize(620,34);input:SetPoint('TOPLEFT',30,-92);input:SetAutoFocus(false);input:SetFont(E.Font(),15,'');input:SetTextColor(.26,.15,.08);input:SetTextInsets(10,10,6,6)
     local face=T.Texture(input,'button-v1');face:SetAllPoints()
@@ -55,6 +56,8 @@ function V.Build()
     V.next=button(panel,E.L['Next'],150,30,function()V.page=V.page+1;V.Render()end);V.next:SetPoint('BOTTOMRIGHT',-30,54)
     local footer=text(panel,11,620);footer:SetText(E.L['Only characters recorded by this addon appear here.']);footer:SetPoint('BOTTOMLEFT',30,25)
     if UISpecialFrames then table.insert(UISpecialFrames,'MyEpochCharacterPicker')end
+    overlay:SetScript('OnShow',function()if E.ControllerAdapters then E.ControllerAdapters.RefreshCharacter()end end)
+    overlay:SetScript('OnHide',function()input:ClearFocus();if E.ControllerAdapters then E.ControllerAdapters.Hide('characters')end end)
     overlay:Hide()
 end
 function V.Toggle()

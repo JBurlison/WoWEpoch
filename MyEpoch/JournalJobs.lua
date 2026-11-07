@@ -10,6 +10,7 @@ J.corrections=setmetatable({},{__mode='k'})
 J.spans=setmetatable({},{__mode='k'})
 J.dailyWriters=setmetatable({},{__mode='k'})
 local liveTurns=setmetatable({},{__mode='k'})
+local boundarySamples=setmetatable({},{__mode='k'})
 local function before(a,b)return a.due<b.due or a.due==b.due and a.queueKey<b.queueKey end
 local function exchange(q,a,b)
     q.rows[a],q.rows[b]=q.rows[b],q.rows[a]
@@ -250,16 +251,23 @@ function J.Seed(c,now)
     if not c or E.db.characters[c.id]~=c then return end
     D.CancelDaily(J.dailyWriters[c]);J.dailyWriters[c]=nil
     J.pending[c]={};queues[c]=nil;J.boundaries[c]=nil;J.corrections[c]=nil;J.spans[c]=nil;liveTurns[c]=nil
-    J.lastBoundaryDay[c]=A.Day(now);J.seeds[c]=scan(c,now,true)
+    J.lastBoundaryDay[c]=A.Day(now);boundarySamples[c]={at=now,day=J.lastBoundaryDay[c]};J.seeds[c]=scan(c,now,true)
     if J.seeds[c]then A.status.journalScheduling='Preparing diary and recap jobs in small batches.'end
 end
 function J.Boundary(c,now)
-    local today=A.Day(now); if J.lastBoundaryDay[c]==today then return end; J.lastBoundaryDay[c]=today
+    -- Step and Process often share the same integer clock sample over many
+    -- frames. Reuse only that exact timestamp, not an assumed 24-hour span:
+    -- the next second still observes local midnight, DST and clock rollback.
+    local sample=boundarySamples[c]
+    if sample and sample.at==now and sample.day==J.lastBoundaryDay[c]then return end
+    local today=A.Day(now)
+    sample=sample or{};sample.at=now;sample.day=today;boundarySamples[c]=sample
+    if J.lastBoundaryDay[c]==today then return end; J.lastBoundaryDay[c]=today
     J.boundaries[c]=scan(c,now,false)
 end
 function J.Step(c,now,budget)
     if not c then return end
-    if E.db.characters[c.id]~=c then J.seeds[c]=nil;J.boundaries[c]=nil;J.pending[c]=nil;queues[c]=nil;J.corrections[c]=nil;J.spans[c]=nil;liveTurns[c]=nil;return end
+    if E.db.characters[c.id]~=c then J.seeds[c]=nil;J.boundaries[c]=nil;J.pending[c]=nil;queues[c]=nil;J.corrections[c]=nil;J.spans[c]=nil;liveTurns[c]=nil;boundarySamples[c]=nil;return end
     J.Boundary(c,now)
     local workers=J.seeds[c]and J.seeds or J.boundaries;local job=workers[c]
     if not job then return stepLive(c,budget)end

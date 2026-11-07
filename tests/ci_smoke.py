@@ -26,6 +26,12 @@ SPECS = (
     'production_spec.lua',
     'company_spec.lua',
     'retention_controls_spec.lua',
+    'toggle_settings_spec.lua',
+    'search_cache_release_spec.lua',
+    'personal_records_performance_spec.lua',
+    'query_location_memory_spec.lua',
+    'journal_boundary_clock_spec.lua',
+    'idle_workers_spec.lua',
 )
 HOSTS = (
     'localization_host.py',
@@ -40,9 +46,11 @@ def main():
     bindings = ElementTree.parse(ROOT / 'MyEpoch/Bindings.xml').getroot()
     assert bindings.tag == 'Bindings'
     lua = LuaRuntime()
+    expected_bindings = {'MYEPOCH_CAPTURE', 'MYEPOCH_TOGGLE', 'MYEPOCH_FOCUS'}
+    assert len(bindings) == len(expected_bindings)
+    assert {binding.get('name') for binding in bindings} == expected_bindings
     for binding in bindings:
         assert binding.tag == 'Binding' and not binding.get('default')
-        assert binding.get('name') == 'MYEPOCH_CAPTURE'
         lua.execute('assert(loadstring(...))', binding.text)
     for name in SPECS:
         before = perf_counter()

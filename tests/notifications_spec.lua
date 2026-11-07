@@ -60,7 +60,7 @@ N.renderer,N.sound=realRender,realSound
 local B=E.Book;B.character=c.id;B.chapter='Archive';B.archiveTab='notifications';B.selected=nil;B.Build();B.Clear(B.left);B.Clear(B.right)
 E.NotificationView.Render(B.left,B.right,c)
 assert(B.left.y>100 and B.right.y>100)
-local V=E.NotificationView;local oldCallback=B.left.pool.notificationToggle[1].scripts.OnClick
+local V=E.NotificationView;local oldCallback=B.left.pool.toggle[1].scripts.OnClick
 local configured=N.Configure;local calls=0;N.Configure=function(...)calls=calls+1;return configured(...)end
 B.character=other.id;oldCallback();B.character=c.id;assert(calls==0,'Changed character rejects stale settings callbacks')
 V.scope='character';oldCallback();V.scope='account';assert(calls==0,'Changed scope cannot redirect an old action')
@@ -68,7 +68,7 @@ B.archiveTab='review';oldCallback();B.archiveTab='notifications';assert(calls==0
 local canonical=E.db.characters[c.id];E.db.characters[c.id]=nil;oldCallback();E.db.characters[c.id]=canonical;assert(calls==0)
 B.Clear(B.left);B.Clear(B.right);V.Render(B.left,B.right,c);oldCallback();assert(calls==0,'Rerender invalidates previous callbacks')
 local render=B.Render;B.Render=function()end
-B.left.pool.notificationToggle[1]:Click();assert(calls==1,'The current settings action still works')
+B.left.pool.toggle[1]:Click();assert(calls==1,'The current settings action still works')
 B.Render=render;N.Configure=configured
 N.Preview(c);assert(E.NotificationView.toast:IsShown()and N.Current().remaining==6)
 assert(E.NotificationView.toast:GetWidth()==370 and E.NotificationView.toast:GetHeight()>=106)

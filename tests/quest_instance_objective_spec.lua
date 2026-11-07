@@ -22,7 +22,7 @@ local function show(c,id)
  if report.rows[1]then B.questAtlasID=id;B.Clear(B.right);V.StructuredDetail(B.right,report.rows[1],report)end
  return report
 end
-for _,x in ipairs({{alliance,horde,95250,2999,"Ruins of Lordaeron","Head of the Baron","2026-10-13 / build 70338"},
+for _,x in ipairs({{alliance,horde,95250,2999,"Ruins of Lordaeron","Head of the Baron","2026-10-13 / Build 70338"},
  {horde,alliance,96987,2959,"City of Dalaran","The Founding of Dalaran","Cache series 2026-10-06 to 2026-10-23"}})do
  local c,other,id,map,name,item,stamp=unpack(x)
  kind,physical,ui="party",map,nil

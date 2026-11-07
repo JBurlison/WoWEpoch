@@ -169,7 +169,7 @@ local function watchOrder(s,r)
  if (r.kind=='mail' or r.kind=='auction') and finite(r.sequence)
   and (not finite(s.sequence) or s.sequence%1~=0 or s.sequence>9007199254740991 or r.sequence>s.sequence)then s.uncertainOrder=true end
 end
-function H.Snapshot(a,work)
+function H.Snapshot(a,work,includeUnordered)
  local db={characters={},settings={},schema=a.db.schema,bankOrder=a.db.bankOrder}
  local sources={}
  -- Directory construction contains no yield, so character membership is stable.
@@ -192,8 +192,20 @@ function H.Snapshot(a,work)
   -- order. Never call next again after an insertion mutates this iterator.
   a.dictionaryOwner=s.id
   for id in pairs(c.records)do
-   work();if a.uncertainOwners[s.id]then break end
+   work();if a.uncertainOwners[s.id]then
+    -- The personal-record/item-story reader includes canonical financial
+    -- negatives outside display order too. An interrupted dictionary scan
+    -- must not publish an incomplete set of those claims.
+    if includeUnordered then a.invalid=true end
+    break
+   end
    rememberException(a,s.id,id)
+   local r=c.records[id]
+   if includeUnordered and r and not target.records[id]and not ignored[r.kind]then
+    ledger(c).kinds[id]=r.kind;watchOrder(s,r)
+    a.size.records=a.size.records+1;target.records[id]=copy(a,r,work);target.order[#target.order+1]=id
+   end
+   if includeUnordered and a.uncertainOwners[s.id]then a.invalid=true;break end
   end
   a.dictionaryOwner=nil
  end

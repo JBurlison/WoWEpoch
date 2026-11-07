@@ -123,6 +123,7 @@ function D.UpdateFilterDropdown()
     end
     D.filterCount:SetText(#rows==0 and E.L['No matching tags']or E.Format('{first}–{last} of {count}',{first=D.filterOffset+1,last=math.min(#rows,D.filterOffset+10),count=#rows}))
     if #rows>10 then D.filterUp:Show();D.filterDown:Show()else D.filterUp:Hide();D.filterDown:Hide()end
+    if E.ControllerAdapters then E.ControllerAdapters.RefreshArtFilter()end
 end
 function D.OpenFilterDropdown()
     local context=D.context;if not D.Valid(context)then return end
@@ -152,6 +153,7 @@ function D.Render(reset)
     B.Finish(D.left);B.Finish(D.right)
     if reset then D.left.scroll:SetVerticalScroll(0);D.right.scroll:SetVerticalScroll(0)end
     T.Scroll(D.left);T.Scroll(D.right)
+    if E.ControllerAdapters then E.ControllerAdapters.RefreshArt()end
 end
 function D.Build()
     if D.frame then return end
@@ -190,7 +192,10 @@ function D.Build()
     D.filterUp=button(popup,E.L['Up'],75,function()scroll(-8)end);D.filterUp:SetPoint('BOTTOMRIGHT',-96,5)
     D.filterDown=button(popup,E.L['Down'],75,function()scroll(8)end);D.filterDown:SetPoint('BOTTOMRIGHT',-14,5)
     popup:SetScript('OnMouseWheel',function(_,delta)scroll(-delta*3)end)
-    menu:SetScript('OnHide',function()if not suspended then D.filterContext=nil;input:ClearFocus()end end);menu:Hide()
+    menu:SetScript('OnHide',function()
+        if not suspended then D.filterContext=nil;input:ClearFocus()end
+        if E.ControllerAdapters then E.ControllerAdapters.Hide('illustration-filter')end
+    end);menu:Hide()
     local line=panel:CreateTexture(nil,'ARTWORK');line:SetColorTexture(.55,.40,.22,.35);line:SetHeight(1)
     line:SetPoint('TOPLEFT',32,-96);line:SetPoint('TOPRIGHT',-32,-96)
     for i,key in ipairs({'left','right'})do
@@ -198,7 +203,7 @@ function D.Build()
         local scroll=CreateFrame('ScrollFrame',nil,page);scroll:SetSize(784,580);scroll:SetPoint('TOPLEFT',8,-6);scroll:SetClipsChildren(true)
         local content=CreateFrame('Frame',nil,scroll);content:SetSize(784,580);scroll:SetScrollChild(content);scroll:EnableMouseWheel(true)
         -- The picker keeps its own full-width pages when the book uses a sidebar.
-        local state={panel=page,scroll=scroll,content=content,width=760,pool={},used={},y=0};D[key]=state
+        local state={panel=page,scroll=scroll,content=content,width=760,pool={},used={},y=0,controllerScope='illustrations'};D[key]=state
         scroll:SetScript('OnMouseWheel',function(self,delta)self:SetVerticalScroll(math.max(0,math.min(self:GetVerticalScrollRange(),self:GetVerticalScroll()-delta*50)));T.Scroll(state)end)
     end
     D.previous=button(panel,E.L['Previous page'],180);D.previous:SetPoint('BOTTOMLEFT',50,72)
@@ -223,7 +228,11 @@ function D.Build()
             B.Render()
         end
     end
-    overlay:SetScript('OnHide',function()if not suspended then clearDialog()end end)
+    overlay:SetScript('OnShow',function()if E.ControllerAdapters then E.ControllerAdapters.RefreshArt()end end)
+    overlay:SetScript('OnHide',function()
+        if E.ControllerAdapters then E.ControllerAdapters.Hide('illustration-filter');E.ControllerAdapters.Hide('illustrations')end
+        if not suspended then clearDialog()end
+    end)
     if UISpecialFrames then table.insert(UISpecialFrames,'MyEpochIllustrationPicker');table.insert(UISpecialFrames,'MyEpochIllustrationFilter')end
     overlay:Hide()
 end
@@ -263,6 +272,7 @@ local function open(record,location)
         D.pageLabel:SetText(E.Format('Page {page} of {pages}',{page=page,pages=count}))
         for _,entry in ipairs({{D.previous,-1,page>1},{D.next,1,page<count}})do
             local control,delta,enabled=unpack(entry);control:SetAlpha(enabled and 1 or .4)
+            control.controllerPageEnabled=enabled
             control:SetScript('OnClick',function()if D.Valid(context)and enabled then move(delta)end end)
         end
     end

@@ -96,4 +96,17 @@ assert(S.Protected(prior)[gap.id]and not S.PreviewExpiry(prior,now).ids[gap.id],
 prior.records[gap.id]=nil;S.Touch(prior,'removed');assert(not L.Get(prior));K.Process(1)
 S.Add(prior,'gap',now,{removed={pulls=1},removedRanges={pulls={from=stamp+1,through=stamp+20}}})
 finish(prior);assert(not L.Get(prior).kills[survivingKill.id],'A gap added during preparation must invalidate and restart that pass')
+-- Opaque history touches carry no usable membership proof. They invalidate
+-- cached links conservatively without stopping later history listeners.
+local observed=0
+E.On('HISTORY_TOUCHED',function(c,receipt)if c==prior and receipt.reason=='record'then observed=observed+1 end end)
+for _,detail in ipairs({false,17,{},{record=false}})do
+ local ready=assert(L.Get(prior))
+ local previous=observed
+ S.Touch(prior,'record',detail~=false and detail or nil)
+ assert(observed==previous+1,'Opaque touch must not interrupt later listeners')
+ assert(not L.Get(prior),'Opaque touch must invalidate cached link evidence')
+ finish(prior)
+ assert(L.Get(prior)~=ready and not L.Get(prior).kills[survivingKill.id],'Rebuilt links preserve the known ambiguity')
+end
 print('PASS pull links: identity, full NPC ambiguity, reload isolation, reversible links, retained rival evidence, expired-history gaps and incremental invalidation')

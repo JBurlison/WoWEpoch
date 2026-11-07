@@ -46,6 +46,7 @@ local function button(parent,text,width,height,fn)
 end
 function B.Character() return E.db.characters[B.character] or E.current end
 function B.ChangeCharacter(id)
+    if E.ControllerText and E.ControllerText.Close then E.ControllerText.Close('transition')end
     B.pendingInputDrafts=nil
     if E.ArtDialog then E.ArtDialog.Hide(true)end
     if not E.db.characters[id]then return end
@@ -64,6 +65,7 @@ function B.ChangeCharacter(id)
     end
 end
 function B.SetChapter(name)
+    if E.ControllerText and E.ControllerText.Close then E.ControllerText.Close('transition')end
     B.pendingInputDrafts=nil
     if E.ArtDialog then E.ArtDialog.Hide(true)end
     B.chapter,B.page,B.selected=name,1,nil; B.searchOrigin=false; B.Render(true)
@@ -105,9 +107,13 @@ function B.Acquire(page,kind)
         f.text:ClearAllPoints();f.text:SetPoint("CENTER");f.text:SetJustifyH("CENTER")
         f.text:SetFont(E.Font(),13,"");E.BookTheme.ButtonStyle(f)
     end
-    if kind=="edit" then f:SetWidth(B.Width(page));f.inputValue=nil;f.inputLabel=nil end
+    if kind=="edit" then f:SetWidth(B.Width(page));f.inputValue=nil;f.inputLabel=nil;f.controllerLiteral=nil end
     if kind=="timeline" then f:SetWidth(B.Width(page));f.text:SetWidth(B.Width(page)-70);f.date:SetWidth(B.Width(page)-70);f.tag:SetWidth(B.Width(page)-70)end
     if B.Navigation and B.Navigation.FitRow then B.Navigation.FitRow(page,f)end
+    page.controllerUsed=(page.controllerUsed or 0)+1
+    f.controllerOrder=page.controllerUsed;f.controllerLayout={x=12+(page.navIndent or 0),y=page.y}
+    f.controllerID=nil;f.controllerRecord=nil;f.controllerBack=nil;f.controllerAvailable=nil
+    f.recordID=nil;f.hitID=nil
     f:ClearAllPoints(); f:SetPoint("TOPLEFT",page.content,"TOPLEFT",12+(page.navIndent or 0),-page.y); f:Show(); return f
 end
 function B.Text(page,text,size)
@@ -128,6 +134,13 @@ function B.RecorderAction(owner,fn)
 end
 function B.Action(page,text,fn)
     local f=B.Acquire(page,"button"); f.text:SetText(E.Text(text)); f:SetScript("OnClick",fn)
+    -- These are existing navigation actions, shared by clicks and controller
+    -- Back. Resolve keys at render time so every client locale has the same path.
+    for _,key in ipairs({'Back to search results','Back to the ledger','Back to archive review','Back to item history',
+        'Back to companion','Back to group session','Back to this memory','Back to On This Day','Back to saved memories',
+        'Back to this day','Back to recap','Back to this location','Back to quest overview'})do
+        if text==E.L[key]then f.controllerBack=true;break end
+    end
     -- Contextual actions use their label width; record grids can still set an
     -- explicit column width after acquiring the button.
     local measured=f.text.GetStringWidth and f.text:GetStringWidth()or #E.Text(text)*7
@@ -136,6 +149,28 @@ function B.Action(page,text,fn)
     local height=math.max(30,f.text:GetStringHeight()+12);f:SetHeight(height)
     page.y=page.y+height+8; return f
 end
+-- Boolean preferences share the notification settings' full-width parchment
+-- row. The label stays stable while its square mark reflects the saved value.
+B.widgetFactories.toggle=function(parent)
+    local f=CreateFrame('Button',nil,parent)
+    f.shade=f:CreateTexture(nil,'BACKGROUND');f.shade:SetColorTexture(.94,.85,.65,.38);f.shade:SetAllPoints()
+    f.rule=f:CreateTexture(nil,'BORDER');f.rule:SetColorTexture(.57,.41,.20,.30);f.rule:SetHeight(1);f.rule:SetPoint('BOTTOMLEFT');f.rule:SetPoint('BOTTOMRIGHT')
+    f.text=label(f,'',15);f.text:SetTextColor(.25,.14,.07);f.text:SetPoint('TOPLEFT',12,-12)
+    f.box=f:CreateTexture(nil,'ARTWORK');f.box:SetColorTexture(.40,.29,.14,1);f.box:SetSize(24,24);f.box:SetPoint('RIGHT',-12,0)
+    f.inside=f:CreateTexture(nil,'ARTWORK',nil,1);f.inside:SetColorTexture(.95,.87,.67,1);f.inside:SetSize(20,20);f.inside:SetPoint('CENTER',f.box,'CENTER')
+    f.check=f:CreateTexture(nil,'OVERLAY');f.check:SetColorTexture(.48,.25,.10,1);f.check:SetSize(12,12);f.check:SetPoint('CENTER',f.box,'CENTER')
+    f:SetHighlightTexture('Interface\\Buttons\\WHITE8X8');f:GetHighlightTexture():SetAlpha(.08)
+    return f
+end
+function B.Checkbox(page,text,enabled,callback)
+    local f=B.Acquire(page,'toggle');f:SetWidth(B.Width(page));f.text:SetWidth(B.Width(page)-60);f.text:SetText(E.Text(text))
+    f:SetHeight(math.max(44,f.text:GetStringHeight()+24));f.check:SetAlpha(enabled and 1 or 0)
+    local binding,owner,chapter={},B.Character(),B.chapter;f.toggleBinding=binding
+    f:SetScript('OnClick',function(...)
+        if f.toggleBinding==binding and f:IsShown()and B.Character()==owner and B.chapter==chapter then return callback(...)end
+    end)
+    page.y=page.y+f:GetHeight()+3;return f
+end
 function B.Input(page,value,submit)
     local f=B.Acquire(page,"edit"); f:SetHeight(38); f:SetMultiLine(false)
     f:SetScript("OnTextChanged",nil); f:SetText(value or "")
@@ -143,6 +178,25 @@ function B.Input(page,value,submit)
     f.inputValue=f:GetText();f.inputLabel=heading and heading:GetText()or""
     f:SetScript("OnEnterPressed",function(self) local value=self:GetText(); self:ClearFocus(); submit(value) end)
     page.y=page.y+52; return f
+end
+-- Controller edits use the exact same guarded user-change callback as keyboard
+-- input. The descriptor is captured when the editor opens; pooled frames cannot
+-- silently redirect a later edit to a different character, record or field.
+function B.ApplyUserText(frame,text,expectedEntry)
+    local nav=E.ControllerNavigation;local entry=expectedEntry or(nav and nav.Find(frame))
+    if not nav or not entry or entry.frame~=frame or not nav.IsValid(entry)or not entry.edit then return false,'stale'end
+    local changed=type(frame.GetScript)=='function'and frame:GetScript('OnTextChanged')or frame.scripts and frame.scripts.OnTextChanged
+    frame:SetText(text or'')
+    if not nav.IsValid(entry)then return false,'stale'end
+    if changed then changed(frame,true)end
+    return true
+end
+function B.SubmitUserText(frame,expectedEntry)
+    local nav=E.ControllerNavigation;local entry=expectedEntry or(nav and nav.Find(frame))
+    if not nav or not entry or entry.frame~=frame or not nav.IsValid(entry)or not entry.edit then return false,'stale'end
+    local submit=type(frame.GetScript)=='function'and frame:GetScript('OnEnterPressed')or frame.scripts and frame.scripts.OnEnterPressed
+    if submit then submit(frame)elseif type(frame.ClearFocus)=='function'then frame:ClearFocus()end
+    return true
 end
 -- Shared parchment groups keep related controls together without changing
 -- their owners, callbacks, or the page's content width.
@@ -214,7 +268,7 @@ function B.Note(page,key,canEdit)
 end
 function B.Clear(page)
     for _,pool in pairs(page.pool) do for _,f in ipairs(pool) do f:Hide() end end
-    page.used={}; page.y=14
+    page.used={}; page.y=14;page.controllerUsed=0
 end
 function B.Finish(page) page.content:SetHeight(math.max(page.y+20,page.scroll:GetHeight())); E.BookTheme.Scroll(page) end
 local milestoneNames={level="Character level-up",skill="Weapon-skill threshold",profession="Profession threshold",achievement="Personal achievement",
@@ -235,7 +289,7 @@ function B.Chronicle(page,c)
     B.page=math.max(1,math.min(B.page or 1,math.ceil(#rows/12)))
     if not B.selected then B.selected=rows[#rows-(B.page-1)*12].id end
     for i=#rows-(B.page-1)*12,math.max(1,#rows-B.page*12+1),-1 do local r=rows[i]
-        local f=B.Acquire(page,"timeline"); local selected=B.selected==r.id
+        local f=B.Acquire(page,"timeline");f.controllerRecord=r.id; local selected=B.selected==r.id
         E.BookTheme.Seal(f,selected); if selected then f.shade:Show(); f.rule:Show()else f.shade:Hide(); f.rule:Hide()end
         f.text:SetText(E.Text(E.Display.RecordTitle(r) or B.MilestoneName(r))); f.date:SetText(A.RecordDate(r).."  -  "..E.L["Local time"]); f.tag:SetText(B.MilestoneName(r))
         local titleHeight=math.max(26,f.text:GetStringHeight()); f.text:SetHeight(titleHeight)
@@ -412,7 +466,8 @@ function B.List(page,rows,paginationKey,onSelect)
     B[key]=math.max(1,math.min(B[key] or 1,math.ceil(#rows/12)))
     B.Text(page,E.Format("{count} records | page {page} of {pages}",{count=#rows,page=B[key],pages=math.ceil(#rows/12)}),13)
     for i=#rows-(B[key]-1)*12,math.max(1,#rows-B[key]*12+1),-1 do local r=rows[i]
-        B.Action(page,A.RecordDate(r).." - "..(E.Display.RecordTitle(r) or E.Display.Kind(r.kind)),function() if onSelect then onSelect(r) else B.selected=r.id; B.Render(true) end end)
+        local f=B.Action(page,A.RecordDate(r).." - "..(E.Display.RecordTitle(r) or E.Display.Kind(r.kind)),function() if onSelect then onSelect(r) else B.selected=r.id; B.Render(true) end end)
+        f.controllerRecord=r.id
     end
     if B[key]>1 then B.Action(page,E.L["Newer entries"],function() B[key]=B[key]-1; B.Render(true) end) end
     if B[key]*12<#rows then B.Action(page,E.L["Older entries"],function() B[key]=B[key]+1; B.Render(true) end) end
@@ -457,10 +512,16 @@ local function restoreInputDrafts()
     end
     if #kept>0 then context.drafts=kept;context.applied=true;B.pendingInputDrafts=context end
 end
+local function finishController(preparing)
+    if E.ControllerNavigation then E.ControllerNavigation.EndRender(preparing)end
+    if E.Controller and E.Controller.OnBookRender then E.Controller.OnBookRender()end
+end
 function B.Render(reset)
+    if E.ControllerText and E.ControllerText.DeferBookRender and E.ControllerText.DeferBookRender(reset)then return end
     if E.ComparisonView then E.ComparisonView.CloseMenu()end
     if E.CompanyLayout then E.CompanyLayout.CheckQuoteJump()end
     if E.ArtDialog and E.ArtDialog.IsOpen()then E.ArtDialog.refreshBook=true;return end
+    if B.frame and E.ControllerNavigation then E.ControllerNavigation.BeginRender()end
     if B.pendingInputDrafts and not draftContextValid(B.pendingInputDrafts)then B.pendingInputDrafts=nil end
     local drafts=B.pendingInputDrafts
     if drafts and drafts.applied then
@@ -482,6 +543,7 @@ function B.Render(reset)
             if B.Navigation.KeepDrafts then B.Navigation.KeepDrafts()end
             if B.pendingInputDrafts then B.pendingInputDrafts.applied=nil end
             B.Navigation.Begin();B.Navigation.Render(B.Character());B.Navigation.shown=nil;B.UpdateBadges()
+            finishController(true)
         end
     end
     if E.CraftProjectionPreparation and E.CraftProjectionPreparation.Gate(reset)then preparingNavigation();return end
@@ -517,7 +579,7 @@ function B.Render(reset)
         if readiness~='preparing'then B.Action(left,E.L['Retry opening this scrapbook'],function()Q.RetryWarm(c);E.Gathering.Retry(c);E.GoldChecks.Retry(c);B.Render()end)end
         B.Finish(left);B.Finish(right)
         if reset then left.scroll:SetVerticalScroll(0);right.scroll:SetVerticalScroll(0)end
-        E.BookTheme.Scroll(left);E.BookTheme.Scroll(right);if B.Navigation then B.Navigation.Render(c)end;B.UpdateBadges();return
+        E.BookTheme.Scroll(left);E.BookTheme.Scroll(right);if B.Navigation then B.Navigation.Render(c)end;B.UpdateBadges();finishController();return
     end
     if B.searchOrigin and B.chapter~="Search" then B.Action(left,E.L["Back to search results"],function()E.SearchView.Return()end) end
     local ownPages=B.chapter=='Chronicle'and(B.chronicleMode=='compare'or B.chronicleMode=='records')
@@ -577,6 +639,7 @@ function B.Render(reset)
     restoreInputDrafts()
     if E.AuctionPreparationView then E.AuctionPreparationView.Finished()end
     if E.CraftProjectionPreparation then E.CraftProjectionPreparation.Finished()end
+    finishController()
 end
 function B.Fit()
     if not B.frame then return end
@@ -646,12 +709,50 @@ function B.Build()
     local capture=button(frame,E.L["Capture a moment"],170,30,function()
         MyEpoch_Capture()
     end); B.captureButton=capture; capture:SetPoint("TOPLEFT",986,-73)
+    local controller=CreateFrame("Button",nil,frame)
+    B.controllerButton=controller;controller:SetSize(38,38);controller:SetPoint("TOPLEFT",1180,-69)
+    controller.icon=controller:CreateTexture(nil,"ARTWORK");controller.icon:SetSize(32,32);controller.icon:SetPoint("CENTER")
+    -- An overlapping-window mark remains clickable when no controller atlas or
+    -- focus binding is available. It does not advertise an unbound physical key.
+    controller.fallback={}
+    for _,window in ipairs({{-4,4},{4,-4}})do
+        for _,edge in ipairs({{-7,0,2,14},{7,0,2,14},{0,6,14,2},{0,-6,14,2}})do
+            local line=controller:CreateTexture(nil,"OVERLAY");line:SetColorTexture(.92,.84,.66)
+            line:SetSize(edge[3],edge[4]);line:SetPoint("CENTER",window[1]+edge[1],window[2]+edge[2])
+            controller.fallback[#controller.fallback+1]=line
+        end
+    end
+    controller:SetScript("OnClick",function()if E.Controller then E.Controller.ToggleFocus()end end)
+    controller:SetScript("OnEnter",function(self)
+        self.hovered=true;if E.Controller then E.Controller.UpdateFocusControl()end
+        if GameTooltip then GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(E.L["Controller focus"]);GameTooltip:Show()end
+    end)
+    controller:SetScript("OnLeave",function(self)
+        self.hovered=nil;if E.Controller then E.Controller.UpdateFocusControl()end
+        if GameTooltip then GameTooltip:Hide()end
+    end)
+    if E.Controller then E.Controller.UpdateFocusControl()end
     local memory=button(frame,E.L["+ Write a memory"],170,30,function()
         E.MemoryView.Create()
     end); B.memoryButton=memory; memory:SetPoint("TOPLEFT",808,-73)
     local illustrations=button(frame,E.L["Illustrations"],120,30,function()E.ArtDialog.OpenForPage()end); illustrations:SetPoint("TOPLEFT",680,-73);B.illustrations=illustrations
-    frame:SetScript("OnShow",function()if E.ArtDialog then E.ArtDialog.RestoreCapture()end end)
-    frame:SetScript("OnHide",function() A.Call("bookStopMoving",frame.StopMovingOrSizing,frame);B.pendingInputDrafts=nil; if E.ComparisonView then E.ComparisonView.CloseMenu()end; if E.ArtDialog and not B.captureHiding then E.ArtDialog.Hide(true)end; if E.CharacterView then E.CharacterView.Hide()end; if not B.combatHiding and not B.captureHiding then B.reopen=false; if E.Capture then E.Capture.CancelRestore() end end end)
+    frame:SetScript("OnShow",function()
+        if E.ArtDialog then E.ArtDialog.RestoreCapture()end
+        if E.Controller and E.Controller.OnBookShow then E.Controller.OnBookShow()end
+    end)
+    frame:SetScript("OnHide",function()
+        if E.Controller and E.Controller.OnBookHide then E.Controller.OnBookHide()end
+        if E.ControllerNavigation then E.ControllerNavigation.SetVisible(false)end
+        if not B.captureHiding and E.Search and E.Search.ReleaseView then
+            E.Search.ReleaseView()
+            if E.SearchView then E.SearchView.lastResult=nil;E.SearchView.pending=nil;E.SearchView.freshness=nil end
+        end
+        A.Call("bookStopMoving",frame.StopMovingOrSizing,frame);B.pendingInputDrafts=nil
+        if E.ComparisonView then E.ComparisonView.CloseMenu()end
+        if E.ArtDialog and not B.captureHiding then E.ArtDialog.Hide(true)end
+        if E.CharacterView then E.CharacterView.Hide()end
+        if not B.combatHiding and not B.captureHiding then B.reopen=false;if E.Capture then E.Capture.CancelRestore()end end
+    end)
     if UISpecialFrames then table.insert(UISpecialFrames,"MyEpochBook") end
     B.Fit(); frame:Hide()
 end
@@ -701,6 +802,7 @@ function B.SetCombatClose(enabled)
 end
 function B.Combat(started)
     B.inCombat=started
+    if E.Controller and E.Controller.OnBookCombat then E.Controller.OnBookCombat(started)end
     if started and E.db.settings.combatClose and B.frame and B.frame:IsShown() then
         B.reopen=true; B.combatHiding=true; B.frame:Hide(); B.combatHiding=false
     elseif not started and B.reopen then B.reopen=false; if not (E.Capture and E.Capture.pending) then B.frame:Show() end end
