@@ -122,7 +122,7 @@ function V.Record(page,c,r)
             B.Action(page,E.L['Back to recorded sources'],function()B.pullSource=nil;redraw()end)
             B.Text(page,sourceName(source),22)
             local rate=E.CombatMeter.Rate(source.totalAmount,snapshot.durationSeconds)
-            B.Text(page,amount(source.totalAmount)..' '..E.L['Damage done']..(rate and' · '..string.format('%.1f',rate)..' '..E.L['Damage / sec']or''),14)
+            B.Text(page,amount(source.totalAmount)..' '..E.L[selected]..(rate and' · '..string.format('%.1f',rate)..' '..E.L['Damage / sec']or''),14)
             local section=B.Section(page,E.L['Recorded spells'])
             local spells={};for _,spell in ipairs(source.detail and source.detail.spells or{})do if spell.totalAmount~=0 then spells[#spells+1]=spell end end
             table.sort(spells,function(a,b)return(a.totalAmount or-1)>(b.totalAmount or-1)end)

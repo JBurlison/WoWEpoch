@@ -22,6 +22,9 @@ B.Clear(B.right);V.Record(B.right,c,r);assert(B.right.used.pullRow==2 and B.righ
 assert(B.right.pool.pullRow[1].meta:GetText():find('Hogger',1,true))
 button('Back to recorded sources'):Click();button('Earlier snapshot'):Click();assert(B.pullSnapshot==1)
 button('Enemy damage taken'):Click();assert(B.pullMeter=='EnemyDamageTaken')
+r.snapshots.EnemyDamageTaken={snapshot};B.pullSource=1;B.Clear(B.right);V.Record(B.right,c,r)
+local enemyText='';for i=1,B.right.used.label do enemyText=enemyText..B.right.pool.label[i]:GetText()end
+assert(enemyText:find('420 '..E.L['Enemy damage taken'],1,true),'Enemy drilldown must label the selected measure')
 button('Damage done'):Click();assert(B.pullMeter=='DamageDone')
 local labels='';for i=1,B.right.used.label do labels=labels..B.right.pool.label[i]:GetText()end
 assert(not labels:find('Fight start',1,true),'technical evidence stays collapsed')
