@@ -235,6 +235,7 @@ TrainerLearning.lua
 QuestKills.lua
 CombatMeter.lua
 Pulls.lua
+PullLinks.lua
 Auctions.lua
 Trades.lua
 Mail.lua

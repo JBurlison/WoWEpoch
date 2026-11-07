@@ -28,7 +28,18 @@ local function seed()
     local reviewTimer
     MyEpoch_RicherReview=function(page)
         E.Book.Open();E.Book.ChangeCharacter(c.id)
-        if page=='calendar-live'then
+        if page=='combat'then
+            local now=E.API.Now();local p=c.records[c.state.reviewPull]
+            if not p then
+                local g=S.Add(c,'group',now-90,{title='A few friends near the river',memberships={}})
+                local sources={{name='Aldren',totalAmount=420,classFilename='WARRIOR',sourceGUID='Player-Review',detail={observedAt=now,spells={{spellID=6603,totalAmount=300,target={name='Hogger',isMob=true,amount=300}},{spellID=78,totalAmount=120,target={name='Hogger',amount=120}}}}},{name='A helpful rogue',totalAmount=120,classFilename='ROGUE'},{name='A cheerful mage',totalAmount=66,classFilename='MAGE'}}
+                local sample={totalAmount=606,durationSeconds=47,observedAt=now,sources=sources,coverage='partial'}
+                p=S.Add(c,'pull',now-47,{title='Hogger',recordingSession='combat-review',snapshots={DamageDone={sample,E.Copy(sample)},EnemyDamageTaken={{totalAmount=606,durationSeconds=47,observedAt=now,sources={{sourceCreatureID=448,name='Hogger',totalAmount=606}}}}},contexts={{from=now-47,through=now,mapID=1429,zone='Elwynn Forest',group=g.id}},gaps={},observedGroups={[g.id]=true},refs={g.id}})
+                S.Add(c,'kill',now-7,{title='Hogger',session='combat-review',source='PARTY_KILL',npcID=448,victimGUID='Creature-Review-Hogger',group=g.id,mapID=1429,zone='Elwynn Forest',position={mapID=1429,x=.265,y=.935,space='uiMap',unit='player'},refs={g.id}})
+                c.state.reviewPull=p.id
+            end
+            E.Book.chapter='Company';E.Book.companyMode='pulls';E.Book.selected=p.id;E.Book.Render(true)
+        elseif page=='calendar-live'then
             local now=E.API.Now();local day=E.API.DayStart(now)
             local r=S.Add(c,'play',now-45,{ended=now,status='active',title='Observed active time'})
             S.Add(c,'quest',now-20,{status='completed',title='A quiet page to write on'})

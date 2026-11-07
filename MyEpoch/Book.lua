@@ -24,7 +24,7 @@ local viewFields={"chapter","page","selected","lastDetail","day","search","killM
     "recapFocus","recapExpiredKey","recapRequested","recapSourcesOpen","recapSourcePage","milestonePage",
     "questTools","questKillPage","questKillSources","questKillSourcePage","companySessionFocus","companyEventPage","companyCoverageMemberPage","groupLeaderPage",
     "lootReceiptPage","dropReceiptPage","lootDates","dropDates","productionDates","lootMoreFilters","lootGroupMenu","dropGroupMenu","lootMeasure",
-    "pullQuery","pullPage","pullRecord","pullMeter","pullSnapshot","pullSource","pullSourcePage","pullSpellPage","pullCoverage","pullCoveragePage","pullGapPage"}
+    "pullQuery","pullPage","pullRecord","pullMeter","pullSnapshot","pullSource","pullSourcePage","pullSpellPage","pullKillPage","pullCoverage","pullCoveragePage","pullGapPage"}
 B.views={}
 B.widgetFactories={}
 function B.Width(page) return page and page.width or 760 end
@@ -94,6 +94,7 @@ function B.Acquire(page,kind)
     end
     if kind=="label" then f:SetWidth(B.Width(page)); f:SetFont(E.Font(),16,""); f:SetTextColor(unpack(ink)); f:SetJustifyH("LEFT"); f:SetJustifyV("TOP"); f:SetSpacing(0) end
     if kind=="button" then
+        f:SetEnabled(true)
         f.isChapter=false
         f.navExpandable=false;f.navExpanded=false;f.navLabel=nil
         if f.expandArrow then f.expandArrow:Hide()end
@@ -348,6 +349,7 @@ function B.Record(page,r)
     if E.EncounterView then E.EncounterView.Record(page,r) end
     E.CompanyLayout.HighlightRecord(page,r)
     if E.JourneyView and not itemReceipt then E.JourneyView.Record(page,r) end
+    if r.kind=="kill" and E.PullView then E.PullView.KillLink(page,c,r) end
     if E.QuestView then E.QuestView.Record(page,r) end
     if E.LootView then E.LootView.Record(page,r) end
     if E.ProductionView then E.ProductionView.Record(page,r) end
