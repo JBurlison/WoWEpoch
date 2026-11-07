@@ -2,6 +2,7 @@
 local _,E=...
 if E.locale~="ruRU" then return end
 E.Localize({
+    ["Choose a writing prompt"]="Выбрать тему для записи",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="МАЛЕНЬКАЯ МЕЧТА, НОВЫЙ ПУТЬ",
     ["A NEW CHAPTER"]="НОВАЯ ГЛАВА",
     ["A PERSONAL BEST"]="ЛИЧНЫЙ РЕКОРД",

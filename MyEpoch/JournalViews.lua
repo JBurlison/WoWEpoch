@@ -19,7 +19,7 @@ local function enqueue(entry)
     entry.queued=true;entry.status='pending';entry.error=nil
     if tail then tail.next=entry else head=entry end;tail=entry
 end
-function V.Get(c,job,now)
+function V.Get(c,job,now,passive)
     if not c or E.db.characters[c.id]~=c then return nil,'invalid'end
     local key,category,savedKey=identity(job)
     local existing=c.records[(c.state[category]or{})[savedKey]]
@@ -27,17 +27,18 @@ function V.Get(c,job,now)
         and not D.PeriodAllowed(c,existing and existing.through or job.through)then return nil,'pending-login'end
     if D.Expired(c,category,savedKey)then return nil,'expired'end
     entries[c]=entries[c]or{};local entry=entries[c][key]
+    local firstRequest=not entry
     if not entry then
         entry={owner=c,key=key,category=category,savedKey=savedKey,job=job};entries[c][key]=entry
     end
     local r=saved(c,entry)
     if job.kind~='daily'and job.kind~='milestone'and D.Completed(r)then return r,'ready',nil,entry end
     local progress=job.kind~='milestone'and((r and r.through or job.through)>now)or false
-    if not entry.queued and(entry.epoch~=(epochs[c]or 0)or entry.progress~=progress or entry.record~=r)then enqueue(entry)end
+    if (not passive or firstRequest)and not entry.queued and(entry.epoch~=(epochs[c]or 0)or entry.progress~=progress or entry.record~=r)then enqueue(entry)end
     return r,entry.status,entry.error,entry
 end
-function V.Watch(c,job,now)
-    local r,status,err,entry=V.Get(c,job,now);focus=entry;return r,status,err
+function V.Watch(c,job,now,passive)
+    local r,status,err,entry=V.Get(c,job,now,passive);focus=entry;return r,status,err,entry
 end
 function V.ClearFocus()focus=nil end
 function V.Retry(c,job)
@@ -54,6 +55,10 @@ end
 function V.Tick(now)
     local entry=focus;local B=E.Book
     if not entry or not B or not B.frame or not B.frame:IsShown()or B.Character()~=entry.owner then return end
+    -- Calendar is a page to read and write on, not a live activity monitor.
+    -- A deliberate navigation requests fresh writing through Watch; background
+    -- observations must not continually regenerate and repaint the open page.
+    if B.chapter=='Calendar' then return end
     local was=entry.status;local _,status=V.Get(entry.owner,entry.job,now)
     if status~=was then E.Emit('JOURNAL_WRITTEN',entry.owner)end
 end

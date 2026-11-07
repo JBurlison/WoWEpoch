@@ -119,6 +119,7 @@ function V.Heading(r)
     local from=r.startStamp and A.ParseDay(r.startStamp.day) or r.from
     local through=r.endStamp and A.ParseDay(r.endStamp.day) or r.through
     if not from or not through then return r.title or E.L["Saved recap"]end
+    if r.periodKind=='daily'then return E.locale=='enUS'and date('%b %d, %Y',from)or E.LocaleDate(from)end
     return E.locale=='enUS'and(date("%b %d, %Y",from).." - "..date("%b %d, %Y",A.ShiftDay(through,-1)))or E.Format('{from} to {through}',{from=E.LocaleDate(from),through=E.LocaleDate(A.ShiftDay(through,-1))})
 end
 function V.Navigate(kind,day)
@@ -186,7 +187,8 @@ function V.Record(page,c,r)
     local period=({daily='Daily',weekly='Weekly',monthly='Monthly',yearly='Yearly',milestone='Milestone'})[r.periodKind]or'Saved recap'
     B.Text(page,E.Format('{period} recap — {name}',{period=E.L[period],name=c.identity.name or ''}),11):SetTextColor(0.54,0.40,0.23)
     B.Text(page,V.Heading(r),29)
-    if r.from and r.through then B.Text(page,E.Format('{from} to {through}',{from=stamp(r.from,r.startStamp),through=stamp(r.through,r.endStamp)})..' / '..E.L[r.periodKind=='milestone'and'Through milestone'or'End exclusive'],12)end
+    local interval=r.from and r.through and(E.Format('{from} to {through}',{from=stamp(r.from,r.startStamp),through=stamp(r.through,r.endStamp)})..' / '..E.L[r.periodKind=='milestone'and'Through milestone'or'End exclusive'])
+    if interval and r.periodKind~='daily'then B.Text(page,interval,12)end
     local status=r.from and A.Now()<r.from and E.L["Upcoming"] or r.inProgress and E.L["In progress"] or E.L["Recorded interval"]
     B.Text(page,E.L[status]..' / '..E.L['Partial source coverage']..(r.partialBoundary and ' / '..E.L['Previous milestone unknown']or''),12):SetTextColor(0.52,0.30,0.15)
     if r.periodKind~='milestone'then
@@ -221,6 +223,7 @@ function V.Record(page,c,r)
     page.y=y+44
     rows=E.SourceFilters.Controls(page,all,'recap','recapSourcePage',{x=width>=540 and 360 or nil,y=width>=540 and y or nil,changed=function()B.recapSourcesOpen=true end})
     if B.recapSourcesOpen then
+        if interval and r.periodKind=='daily'then B.Text(page,interval,12)end
         if (r.unavailableSourceCount or 0)>0 then B.Text(page,E.Format('{count} source records were unavailable when saved; their daily totals remain.',{count=E.Number(r.unavailableSourceCount)}),13)end
         if missing>0 then B.Text(page,E.Format('{count} linked source records are no longer available.',{count=E.Number(missing)}),13)end
         B.recapSourcePage=math.max(1,math.min(B.recapSourcePage or 1,math.max(1,math.ceil(#rows/8))))

@@ -83,3 +83,27 @@ E.Localize({
     ["Earlier recording is no longer active; its exact stop time is unknown."]="Предыдущая запись больше не ведётся; точное время её окончания неизвестно.",
     ["Meter availability is unknown; missing data is not zero damage."]="Доступность счётчика неизвестна; отсутствие данных не означает нулевой урон.",
 })
+
+E.Localize({
+    ["Battle notes"]="Боевые заметки",
+    ["Damage / sec"]="Урон / сек.",
+    ["Duration"]="Длительность",
+    ["Participants"]="Участники",
+    ["Linked defeats"]="Связанные убийства",
+    ["Inferred from matching creature, group, and time."]="Связь предположена по совпадению существа, группы и времени.",
+    ["Matching victim, group, and time."]="Жертва, группа и время совпадают.",
+    ["Dismiss link"]="Скрыть связь",
+    ["Restore dismissed links"]="Восстановить скрытые связи",
+    ["Looking for related defeats..."]="Поиск связанных убийств...",
+    ["No linked defeats recorded."]="Связанных убийств не записано.",
+    ["Details"]="Подробности",
+    ["Latest snapshot"]="Последний снимок",
+    ["Recorded damage"]="Записанный урон",
+    ["Share"]="Доля",
+    ["Partial details"]="Неполные сведения",
+    ["Player details"]="Сведения об игроке",
+    ["No spell details were recorded."]="Сведения о заклинаниях не записаны.",
+    ["Related combat"]="Связанный бой",
+    ["Damage, duration and rates use the selected snapshot."]="Урон, длительность и показатели в секунду взяты из выбранного снимка.",
+    ["Recorded spells"]="Записанные заклинания",
+})

@@ -77,9 +77,9 @@ end
 B.ChangeCharacter(c.id);B.pullQuery='unrelated title';B.pullPage=9
 assert(E.SearchView.Open({character=c.id,record=r.id}));assert(B.companyMode=='pulls'and B.pullQuery==nil and B.pullPage==1);TEST_PREPARE_BOOK()
 assert(B.right.used.button<20 and B.right.used.label<22)
-click(B.right,'Aldren / 350');assert(B.pullSource==1)
+B.right.pool.pullRow[1].open:Click();assert(B.pullSource==1)
 local labels='';for i=1,B.right.used.label do labels=labels..B.right.pool.label[i]:GetText()end
-assert(labels:find('pet target',1,true)and labels:find('duration',1,true))
+assert(B.right.pool.pullRow[1].meta:GetText():find('pet target',1,true))
 assert(not labels:find('Spell 99',1,true),'zero spell rows hidden')
 click(B.right,'Back to recorded sources');click(B.right,'Earlier snapshot');assert(B.pullSnapshot==1 and B.pullSource==nil)
 click(B.right,'Observation context and gaps');assert(B.pullCoverage)

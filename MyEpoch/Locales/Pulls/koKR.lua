@@ -83,3 +83,27 @@ E.Localize({
     ["Earlier recording is no longer active; its exact stop time is unknown."]="이전 기록은 더 이상 진행 중이 아니에요. 정확히 언제 끝났는지는 알 수 없어요.",
     ["Meter availability is unknown; missing data is not zero damage."]="측정기를 사용할 수 있는지 알 수 없어요. 데이터가 없다고 피해량이 0인 것은 아니에요.",
 })
+
+E.Localize({
+    ["Battle notes"]="전투 기록",
+    ["Damage / sec"]="초당 피해",
+    ["Duration"]="지속 시간",
+    ["Participants"]="참여자",
+    ["Linked defeats"]="연결된 처치 기록",
+    ["Inferred from matching creature, group, and time."]="적 종류, 파티, 시간이 일치해 추정한 연결이에요.",
+    ["Matching victim, group, and time."]="처치 대상, 파티, 시간이 일치해요.",
+    ["Dismiss link"]="연결 숨기기",
+    ["Restore dismissed links"]="숨긴 연결 복원",
+    ["Looking for related defeats..."]="관련 처치 기록을 찾는 중...",
+    ["No linked defeats recorded."]="연결된 처치 기록이 없어요.",
+    ["Details"]="세부 정보",
+    ["Latest snapshot"]="최근 기록",
+    ["Recorded damage"]="기록된 피해",
+    ["Share"]="비중",
+    ["Partial details"]="일부 세부 정보",
+    ["Player details"]="플레이어 정보",
+    ["No spell details were recorded."]="주문 세부 정보가 기록되지 않았어요.",
+    ["Related combat"]="관련 전투",
+    ["Damage, duration and rates use the selected snapshot."]="피해, 지속 시간, 초당 수치는 선택한 기록을 기준으로 해요.",
+    ["Recorded spells"]="기록된 주문",
+})

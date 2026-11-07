@@ -18,6 +18,17 @@ local function drain(extra)
  while V.HasWork()or(extra and J.Retelling(c,extra))do TEST_HISTORY_CALL(J.StepWriters,current,now,61);V.Tick(now);n=n+1;assert(n<100000)end
 end
 drain()
+-- Completing a month placeholder can cause the first diary request to be passive.
+local initialDay=A.ShiftDay(from,-5)
+local initialJob={kind='daily',from=initialDay,through=A.ShiftDay(initialDay,1)}
+local _,initialStatus=V.Get(c,initialJob,now,true)
+assert(initialStatus=='pending'and V.HasWork(),'passive first presentation never queued its diary')
+drain()
+assert(c.records[c.state.diaries[A.Day(initialDay)]])
+S.Add(c,'quest',initialDay+10,{title='A later correction',status='completed'})
+V.Get(c,initialJob,now,true)
+assert(not V.HasWork(),'passive presentation requeued an already prepared diary')
+
 local save,generate,window=D.SaveDaily,D.Generate,D.MilestoneWindow
 D.SaveDaily=function()error('view must not synchronously create a diary')end
 D.Generate=function()error('view must not synchronously create a recap')end
@@ -33,15 +44,17 @@ assert(not V.HasWork()and diary.generation==gen,'repaint must not regenerate a f
 S.Add(c,'chat',from+90,{text='Unrelated chat'});S.Note(c,'other-note','Unrelated note',now);V.Tick(now)
 assert(not V.HasWork(),'new chat and notes do not invalidate summary facts')
 craft.quantity=7;S.Changed(c,craft);V.Tick(now)
+assert(not V.HasWork()and diary.text==old,'open Calendar must not regenerate on every observation')
+B.Render()
 assert(V.HasWork()and diary.text==old and label(B.right,'Updating the saved diary'))
 drain();assert(diary.generation==gen+1 and diary.text:find('7 x Linen',1,true))
-now=through+1;TEST_NOW(now);V.Tick(now);assert(V.HasWork());drain();assert(not diary.inProgress,'viewed day closes without logging into that character')
+now=through+1;TEST_NOW(now);B.Render();assert(V.HasWork());drain();assert(not diary.inProgress,'revisited day closes without logging into that character')
 -- Closure after the snapshot freezes must still schedule the closing pass.
 now=from+10;TEST_NOW(now);V.Tick(now)
 local dayJob={kind='daily',from=from,through=through}
 local _,_,_,entry=V.Get(c,dayJob,now)
 while not entry.state or entry.state.phase~='writing'do TEST_HISTORY_CALL(V.Step,now,1)end
-now=through+1;TEST_NOW(now);drain();assert(not diary.inProgress and not V.HasWork(),'a mid-write boundary cannot leave stale in-progress status')
+now=through+1;TEST_NOW(now);drain();B.Render();drain();assert(not diary.inProgress and not V.HasWork(),'revisiting completes a day that closed during preparation')
 
 local weekStart,weekEnd=A.Period(from,'weekly');local key='weekly:'..A.Day(weekStart)
 B.recapDate=from;B.recapKind='weekly';B.SetChapter('Recaps')

@@ -21,6 +21,13 @@ local function ready(expected)
 end
 local function equal()
     local oracle=V.Report(c,B.day)
+    -- Background projections stay current without repainting a page being read.
+    for i=1,6000 do
+        B.PreparationTick()
+        local state=V.Prepare(c)
+        if not state.job and not next(state.todo)then break end
+    end
+    B.Render()
     local r=ready(#oracle.records)
     assert(E.Same(oracle.counts,r.counts) and oracle.highlight==r.highlight)
     for i,old in ipairs(oracle.records)do assert(old==r.records[i])end

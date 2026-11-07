@@ -47,6 +47,21 @@ function P.Get(c,value,key)
     local index=choices[keyFor(value,key)]or 1
     return E.L[list[(index-1)%#list+1]],list[(index-1)%#list+1]
 end
+function P.Choices(c,value,key)
+    if not K.Owned(c)or P.Hidden(c)then return {}end
+    local _,selected=P.Get(c,value,key);local choices={}
+    for _,line in ipairs(P.lines[context(value)])do
+        choices[#choices+1]={key=line,label=E.L[line],selected=line==selected}
+    end
+    return choices
+end
+function P.Select(c,value,key,line)
+    if not K.Owned(c)or P.Hidden(c)then return end
+    for index,choice in ipairs(P.lines[context(value)])do if choice==line then
+        local choices=positions[c]or{};positions[c]=choices
+        choices[keyFor(value,key)]=index;return P.Get(c,value,key)
+    end end
+end
 function P.Another(c,value,key)
     if not K.Owned(c)then return end
     local choices=positions[c]or{};positions[c]=choices

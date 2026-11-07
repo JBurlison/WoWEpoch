@@ -83,3 +83,27 @@ E.Localize({
     ["Earlier recording is no longer active; its exact stop time is unknown."]="El registro anterior ya no está activo; se desconoce cuándo terminó exactamente.",
     ["Meter availability is unknown; missing data is not zero damage."]="Se desconoce si el medidor está disponible; datos ausentes no significan daño cero.",
 })
+
+E.Localize({
+    ["Battle notes"]="Notas de combate",
+    ["Damage / sec"]="Daño / s",
+    ["Duration"]="Duración",
+    ["Participants"]="Participantes",
+    ["Linked defeats"]="Enemigos derrotados vinculados",
+    ["Inferred from matching creature, group, and time."]="Inferido por coincidencia de criatura, grupo y hora.",
+    ["Matching victim, group, and time."]="Coinciden la víctima, el grupo y la hora.",
+    ["Dismiss link"]="Ocultar vínculo",
+    ["Restore dismissed links"]="Restaurar vínculos ocultos",
+    ["Looking for related defeats..."]="Buscando enemigos derrotados relacionados...",
+    ["No linked defeats recorded."]="No se han registrado enemigos derrotados vinculados.",
+    ["Details"]="Detalles",
+    ["Latest snapshot"]="Última lectura",
+    ["Recorded damage"]="Daño registrado",
+    ["Share"]="Proporción",
+    ["Partial details"]="Detalles parciales",
+    ["Player details"]="Detalles del jugador",
+    ["No spell details were recorded."]="No se registraron detalles de hechizos.",
+    ["Related combat"]="Combate relacionado",
+    ["Damage, duration and rates use the selected snapshot."]="El daño, la duración y los valores por segundo corresponden a la lectura seleccionada.",
+    ["Recorded spells"]="Hechizos registrados",
+})

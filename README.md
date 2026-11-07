@@ -68,6 +68,8 @@ All dates use **your local time**. Weeks run **Tuesday through Monday**. Daily r
 
 Generated summaries stay separate from your editable notes. Recorded active-play time excludes recorded AFK time.
 
+The Calendar holds its page steady while you read or write. Activity keeps recording in the background; select a day again or reopen the book to see the latest entries.
+
 ## Chapters, wishes, and little celebrations
 
 In **Memories → Adventure chapters**, collect entries by hand or choose a date range and filters. An open chapter keeps gathering matching entries. **Seal chapter** freezes its selection; you can still edit it or reopen it later. Add a cover illustration and your own notes. Sealing does not protect entries from your retention rules—star the chapter to protect its linked sources.

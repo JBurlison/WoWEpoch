@@ -4,15 +4,26 @@ M.linkable={quest=true,quest_attempt=true,group=true,pull=true,loot=true,crafted
 function M.AvailableSource(c,r)
     return r and M.linkable[r.kind] and r.character==c.id and c.records[r.id]==r
 end
+local function currentPlayer(c)
+    if c~=E.current or E.db.characters[c.id]~=c then return false end
+    local guid=A.Call("memoryOwner",UnitGUID,"player")
+    return guid==c.id and c==E.current and E.db.characters[c.id]==c
+end
 function M.Create(c,now,sourceID)
+    if not c or E.db.characters[c.id]~=c then return nil,"Choose a character first." end
     local source=sourceID and c.records[sourceID]
     if sourceID and (not M.AvailableSource(c,source) or source.id~=sourceID) then return nil,"Choose a source in this character's scrapbook." end
     local loc=source
-    if not loc and now==A.Now() and c==E.current and E.db.characters[c.id]==c and A.Call("memoryOwner",UnitGUID,"player")==c.id then
-        loc=A.Location()
+    if not loc and now==A.Now() and currentPlayer(c)then
+        local observed=A.Location()
+        -- A live API read may cross a character transition. Keep the draft,
+        -- but never attach another player's current location to its owner.
+        if currentPlayer(c)then loc=observed end
     end
+    if E.db.characters[c.id]~=c then return nil,"Choose a character first." end
     return S.Add(c,"memory",now,{title="A memory of my own",text="",tags={},createdAt=now,
-        zone=loc and loc.zone,mapID=loc and loc.mapID,instanceType=loc and loc.instanceType,instanceMapID=loc and loc.instanceMapID,
+        zone=loc and loc.zone,subzone=loc and loc.subzone,mapID=loc and loc.mapID,mapArtID=loc and loc.mapArtID,
+        position=loc and E.Copy(loc.position),instanceType=loc and loc.instanceType,instanceMapID=loc and loc.instanceMapID,
         instanceLocationUncertain=loc and loc.instanceLocationUncertain,locationObservedAt=loc and loc.locationObservedAt,
         artMode="none",refs=source and {source.id} or {}})
 end

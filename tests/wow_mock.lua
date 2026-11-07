@@ -18,6 +18,9 @@ function methods:RegisterEvent(event) self.events[event]=true end
 function methods:Show() self.shown=true; if self.scripts.OnShow then self.scripts.OnShow(self) end end
 function methods:Hide() self.shown=false; if self.scripts.OnHide then self.scripts.OnHide(self) end end
 function methods:IsShown() return self.shown end
+function methods:SetShown(value) if value then self:Show() else self:Hide() end end
+function methods:SetEnabled(value) self.enabled=value end
+function methods:IsEnabled() return self.enabled~=false end
 function methods:SetScrollChild(c) self.child=c end
 function methods:SetVerticalScroll(n) self.scroll=n end
 function methods:GetVerticalScroll() return self.scroll or 0 end
@@ -31,7 +34,7 @@ function methods:SetClampedToScreen(value) self.clamped=value end
 function methods:RegisterForDrag(...) self.dragButtons={...} end
 function methods:StartMoving() self.moving=true end
 function methods:StopMovingOrSizing() self.moving=false end
-function methods:Click() if self.scripts.OnClick then self.scripts.OnClick(self) end end
+function methods:Click() if self:IsEnabled() and self.scripts.OnClick then self.scripts.OnClick(self) end end
 for _,name in ipairs({"SetPoint","ClearAllPoints","SetAllPoints","SetColorTexture","SetFont","SetTextColor","SetJustifyH","SetJustifyV","SetFrameStrata","EnableMouse","EnableMouseWheel","SetHighlightTexture","SetAlpha","SetMultiLine","SetAutoFocus","SetTextInsets","ClearFocus","SetTexture"}) do methods[name]=function()end end
 local function object() return setmetatable({scripts={},events={},shown=true},{__index=methods}) end
 function methods:SetTexCoord(...) self.texCoords={...} end

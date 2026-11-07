@@ -83,3 +83,27 @@ E.Localize({
     ["Earlier recording is no longer active; its exact stop time is unknown."]="先前的記錄已停止；確切停止時間未知。",
     ["Meter availability is unknown; missing data is not zero damage."]="戰鬥統計是否可用尚不明確；缺失資料不代表零傷害。",
 })
+
+E.Localize({
+    ["Battle notes"]="戰鬥筆記",
+    ["Damage / sec"]="每秒傷害",
+    ["Duration"]="持續時間",
+    ["Participants"]="參與者",
+    ["Linked defeats"]="連結的擊敗紀錄",
+    ["Inferred from matching creature, group, and time."]="根據生物、隊伍和時間的吻合推斷連結。",
+    ["Matching victim, group, and time."]="被擊敗目標、隊伍和時間吻合。",
+    ["Dismiss link"]="隱藏連結",
+    ["Restore dismissed links"]="還原已隱藏的連結",
+    ["Looking for related defeats..."]="正在尋找相關擊敗紀錄...",
+    ["No linked defeats recorded."]="沒有連結的擊敗紀錄。",
+    ["Details"]="詳情",
+    ["Latest snapshot"]="最新快照",
+    ["Recorded damage"]="記錄的傷害",
+    ["Share"]="占比",
+    ["Partial details"]="部分詳情",
+    ["Player details"]="玩家詳情",
+    ["No spell details were recorded."]="未記錄法術詳情。",
+    ["Related combat"]="相關戰鬥",
+    ["Damage, duration and rates use the selected snapshot."]="傷害、持續時間與每秒數值均以所選快照為準。",
+    ["Recorded spells"]="記錄的法術",
+})

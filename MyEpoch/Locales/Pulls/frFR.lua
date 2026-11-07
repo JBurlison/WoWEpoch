@@ -83,3 +83,27 @@ E.Localize({
     ["Earlier recording is no longer active; its exact stop time is unknown."]="L'ancien enregistrement est terminé, mais son heure exacte d'arrêt est inconnue.",
     ["Meter availability is unknown; missing data is not zero damage."]="La disponibilité du compteur est inconnue ; des données absentes ne signifient pas zéro dégât.",
 })
+
+E.Localize({
+    ["Battle notes"]="Notes de combat",
+    ["Damage / sec"]="Dégâts / s",
+    ["Duration"]="Durée",
+    ["Participants"]="Participants",
+    ["Linked defeats"]="Ennemis vaincus associés",
+    ["Inferred from matching creature, group, and time."]="Déduit de la créature, du groupe et de l’heure correspondants.",
+    ["Matching victim, group, and time."]="Victime, groupe et heure concordent.",
+    ["Dismiss link"]="Masquer le lien",
+    ["Restore dismissed links"]="Rétablir les liens masqués",
+    ["Looking for related defeats..."]="Recherche d’ennemis vaincus associés...",
+    ["No linked defeats recorded."]="Aucun ennemi vaincu associé n’a été enregistré.",
+    ["Details"]="Détails",
+    ["Latest snapshot"]="Dernier relevé",
+    ["Recorded damage"]="Dégâts enregistrés",
+    ["Share"]="Part",
+    ["Partial details"]="Détails partiels",
+    ["Player details"]="Détails du joueur",
+    ["No spell details were recorded."]="Aucun détail de sort n’a été enregistré.",
+    ["Related combat"]="Combat associé",
+    ["Damage, duration and rates use the selected snapshot."]="Les dégâts, la durée et les valeurs par seconde proviennent du relevé sélectionné.",
+    ["Recorded spells"]="Sorts enregistrés",
+})

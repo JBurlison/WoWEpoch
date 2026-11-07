@@ -83,3 +83,27 @@ E.Localize({
     ["Earlier recording is no longer active; its exact stop time is unknown."]="Die frühere Aufzeichnung läuft nicht mehr; der genaue Endzeitpunkt ist unbekannt.",
     ["Meter availability is unknown; missing data is not zero damage."]="Ob das Kampfmeter verfügbar ist, ist unbekannt; fehlende Daten bedeuten nicht null Schaden.",
 })
+
+E.Localize({
+    ["Battle notes"]="Kampfnotizen",
+    ["Damage / sec"]="Schaden / Sek.",
+    ["Duration"]="Dauer",
+    ["Participants"]="Teilnehmer",
+    ["Linked defeats"]="Verknüpfte besiegte Gegner",
+    ["Inferred from matching creature, group, and time."]="Aus übereinstimmender Kreatur, Gruppe und Zeit abgeleitet.",
+    ["Matching victim, group, and time."]="Besiegter Gegner, Gruppe und Zeit stimmen überein.",
+    ["Dismiss link"]="Verknüpfung ausblenden",
+    ["Restore dismissed links"]="Ausgeblendete Verknüpfungen wiederherstellen",
+    ["Looking for related defeats..."]="Passende besiegte Gegner werden gesucht...",
+    ["No linked defeats recorded."]="Keine verknüpften besiegten Gegner erfasst.",
+    ["Details"]="Details",
+    ["Latest snapshot"]="Neueste Aufnahme",
+    ["Recorded damage"]="Erfasster Schaden",
+    ["Share"]="Anteil",
+    ["Partial details"]="Unvollständige Details",
+    ["Player details"]="Spielerdetails",
+    ["No spell details were recorded."]="Keine Zauberdetails erfasst.",
+    ["Related combat"]="Zugehöriger Kampf",
+    ["Damage, duration and rates use the selected snapshot."]="Schaden, Dauer und Werte pro Sekunde stammen aus der ausgewählten Aufnahme.",
+    ["Recorded spells"]="Erfasste Zauber",
+})

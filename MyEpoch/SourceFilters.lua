@@ -16,15 +16,26 @@ function F.Select(rows,excluded)
     table.sort(kinds);return shown,kinds,counts
 end
 function F.Filter(rows,key)return F.Select(rows,F.State(key).excluded)end
+function F.AllSelected(state,kinds)
+    for _,kind in ipairs(kinds)do if state.excluded[kind]then return false end end
+    return #kinds>0
+end
+function F.ToggleAll(state,kinds)
+    local selected=F.AllSelected(state,kinds)
+    state.excluded={}
+    if selected then for _,kind in ipairs(kinds)do state.excluded[kind]=true end end
+end
 function F.Controls(page,rows,key,pagination,options)
     options=options or{};local state=F.State(key)
     local shown,kinds,counts=F.Select(rows,state.excluded)
     if #kinds==0 then return shown end
+    local allSelected=F.AllSelected(state,kinds)
     local function redraw(kind,expand)
         if F.State(key)~=state then return end
         if expand then state.open=not state.open
         else
-            if kind then state.excluded[kind]=not state.excluded[kind]or nil else state.excluded={}end
+            if kind then state.excluded[kind]=not state.excluded[kind]or nil
+            else F.ToggleAll(state,kinds)end
             if pagination then B[pagination]=1 end
             if options.changed then options.changed()end
         end
@@ -47,7 +58,7 @@ function F.Controls(page,rows,key,pagination,options)
             local f=B.Action(page,choice.label,function()redraw(kind)end)
             f:SetWidth(width-6);f.text:SetWidth(width-22);f:SetHeight(math.max(32,f.text:GetStringHeight()+12))
             f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+((i-1)%columns)*width,-y)
-            E.BookTheme.ButtonStyle(f,(kind and not state.excluded[kind]or not kind and not next(state.excluded))and 'filter' or nil)
+            E.BookTheme.ButtonStyle(f,(kind and not state.excluded[kind]or not kind and allSelected)and 'filter' or nil)
             height=math.max(height,f:GetHeight())
         end
         page.y=y+height+12

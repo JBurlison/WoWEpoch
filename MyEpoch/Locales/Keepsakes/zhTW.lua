@@ -1,6 +1,7 @@
 local _,E=...
 if E.locale~="zhTW" then return end
 E.Localize({
+    ["Choose a writing prompt"]="選擇寫作靈感",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="一點夢想，一點方向",
     ["A NEW CHAPTER"]="新的一章",
     ["A PERSONAL BEST"]="個人最佳",

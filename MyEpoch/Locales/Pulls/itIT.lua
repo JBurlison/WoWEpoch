@@ -82,3 +82,27 @@ E.Localize({
     ["Earlier recording is no longer active; its exact stop time is unknown."]="La registrazione precedente non è più attiva; l'istante esatto di arresto è sconosciuto.",
     ["Meter availability is unknown; missing data is not zero damage."]="La disponibilità del contatore è sconosciuta; dati mancanti non significano zero danni.",
 })
+
+E.Localize({
+    ["Battle notes"]="Note di battaglia",
+    ["Damage / sec"]="Danni / sec",
+    ["Duration"]="Durata",
+    ["Participants"]="Partecipanti",
+    ["Linked defeats"]="Nemici sconfitti collegati",
+    ["Inferred from matching creature, group, and time."]="Dedotto dalla corrispondenza di creatura, gruppo e orario.",
+    ["Matching victim, group, and time."]="Vittima, gruppo e orario corrispondono.",
+    ["Dismiss link"]="Nascondi collegamento",
+    ["Restore dismissed links"]="Ripristina collegamenti nascosti",
+    ["Looking for related defeats..."]="Ricerca dei nemici sconfitti collegati...",
+    ["No linked defeats recorded."]="Non risultano nemici sconfitti collegati.",
+    ["Details"]="Dettagli",
+    ["Latest snapshot"]="Ultima istantanea",
+    ["Recorded damage"]="Danni registrati",
+    ["Share"]="Quota",
+    ["Partial details"]="Dettagli parziali",
+    ["Player details"]="Dettagli del giocatore",
+    ["No spell details were recorded."]="Non sono stati registrati dettagli sugli incantesimi.",
+    ["Related combat"]="Combattimento collegato",
+    ["Damage, duration and rates use the selected snapshot."]="Danni, durata e valori al secondo si riferiscono all’istantanea selezionata.",
+    ["Recorded spells"]="Incantesimi registrati",
+})

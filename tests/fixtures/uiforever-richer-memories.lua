@@ -25,9 +25,33 @@ local function seed()
         c.state.reviewFirst=first.id;c.state.reviewSecond=second.id;c.state.reviewChapter=chapter.id;c.state.reviewWish=wish.id
     end
     E.Wishes.Recover(c);E.Chapters.Ensure(c)
+    local reviewTimer
     MyEpoch_RicherReview=function(page)
         E.Book.Open();E.Book.ChangeCharacter(c.id)
-        if page=='calendar'then
+        if page=='combat'then
+            local now=E.API.Now();local p=c.records[c.state.reviewPull]
+            if not p then
+                local g=S.Add(c,'group',now-90,{title='A few friends near the river',memberships={}})
+                local sources={{name='Aldren',totalAmount=420,classFilename='WARRIOR',sourceGUID='Player-Review',detail={observedAt=now,spells={{spellID=6603,totalAmount=300,target={name='Hogger',isMob=true,amount=300}},{spellID=78,totalAmount=120,target={name='Hogger',amount=120}}}}},{name='A helpful rogue',totalAmount=120,classFilename='ROGUE'},{name='A cheerful mage',totalAmount=66,classFilename='MAGE'}}
+                local sample={totalAmount=606,durationSeconds=47,observedAt=now,sources=sources,coverage='partial'}
+                p=S.Add(c,'pull',now-47,{title='Hogger',recordingSession='combat-review',snapshots={DamageDone={sample,E.Copy(sample)},EnemyDamageTaken={{totalAmount=606,durationSeconds=47,observedAt=now,sources={{sourceCreatureID=448,name='Hogger',totalAmount=606}}}}},contexts={{from=now-47,through=now,mapID=1429,zone='Elwynn Forest',group=g.id}},gaps={},observedGroups={[g.id]=true},refs={g.id}})
+                S.Add(c,'kill',now-7,{title='Hogger',session='combat-review',source='PARTY_KILL',npcID=448,victimGUID='Creature-Review-Hogger',group=g.id,mapID=1429,zone='Elwynn Forest',position={mapID=1429,x=.265,y=.935,space='uiMap',unit='player'},refs={g.id}})
+                c.state.reviewPull=p.id
+            end
+            E.Book.chapter='Company';E.Book.companyMode='pulls';E.Book.selected=p.id;E.Book.Render(true)
+        elseif page=='calendar-live'then
+            local now=E.API.Now();local day=E.API.DayStart(now)
+            local r=S.Add(c,'play',now-45,{ended=now,status='active',title='Observed active time'})
+            S.Add(c,'quest',now-20,{status='completed',title='A quiet page to write on'})
+            E.Book.SetChapter('Calendar');E.CalendarView.SelectDay(day)
+            if not reviewTimer then reviewTimer=CreateFrame('Frame')end
+            local elapsed,count=0,0
+            reviewTimer:SetScript('OnUpdate',function(self,delta)
+                elapsed=elapsed+delta;if elapsed<1 then return end;elapsed=0;count=count+1
+                r.ended=E.API.Now();S.Changed(c,r)
+                if count>=120 then self:SetScript('OnUpdate',nil)end
+            end)
+        elseif page=='calendar'then
             local day=E.API.DayStart(c.records[c.state.reviewSecond].ts)
             if not c.state.calendarReview then
                 c.state.calendarReview=true
@@ -36,6 +60,27 @@ local function seed()
                 E.Diary.SaveDaily(c,day,E.API.ShiftDay(day,1),E.API.Now())
             end
             E.Book.SetChapter('Calendar');E.CalendarView.SelectDay(day);E.Book.Render(true)
+        elseif page=='memory-edit'then
+            local r=c.records[c.state.reviewMemory]
+            if not r then r=E.Memories.Create(c,E.API.Now(),c.state.reviewSecond);c.state.reviewMemory=r.id
+                E.Memories.Edit(c,r.id,'title','The crab had other plans');E.Memories.Edit(c,r.id,'text','We brought a picnic. The crab brought an appetite.')
+            end
+            r.artMode='fixed';r.artID='westfall-04'
+            E.Book.chapter='Memories';E.Book.memoryMode='saved';E.Book.selected=r.id;E.Book.memoryFocus=r.id;E.Book.memoryEditID=r.id;E.Book.memoryEditing=true;E.Book.Render(true)
+        elseif page=='record-rows'then
+            local now=E.API.Now();local day=E.API.ShiftDay(E.API.DayStart(now),-1);local r=c.records[c.state.reviewRecord]
+            if not r then
+                local refs={}
+                for i=1,4 do local item=S.Add(c,'crafted',day+3600+i*600,{recipient=c.id,itemID=2840,itemLink='item:2840',quantity=i,title='Copper Bar'});refs[#refs+1]=item.id end
+                r=S.Add(c,'personal_record',day+86399,{recordType='crafted',title='Most items crafted in a day',unit='count',value=10,from=day,through=E.API.ShiftDay(day,1),refs=refs,valid=true,baseline=true})
+                local state=E.Keepsakes.State(c);state.personalRecords=state.personalRecords or{ids={},enabled={}};table.insert(state.personalRecords.ids,r.id);c.state.reviewRecord=r.id
+            end
+            E.Book.chapter='Chronicle';E.Book.chronicleMode='records';E.Book.personalRecord=r.id;E.Book.personalRecordTab='Personal bests';E.Book.selected=nil;E.Book.Render(true)
+        elseif page=='daily-recap'then
+            local now=E.API.Now();local day=E.API.ShiftDay(E.API.DayStart(now),-1);local r=c.records[c.state.reviewRecap]
+            c.state.recapLoginThrough=E.API.DayStart(now)
+            if not r then r=S.Add(c,'recap',E.API.ShiftDay(day,1),{title='Daily recap',key='daily:'..E.API.Day(day),periodKind='daily',from=day,through=E.API.ShiftDay(day,1),read=true,readGeneration=1,generation=1,refs={},facts={},text='A small adventure, safely kept.'});c.state.reviewRecap=r.id end
+            E.Book.chapter='Recaps';E.Book.recapKind='daily';E.Book.recapFocus=r.id;E.Book.recapDate=day;E.Book.selected=r.id;E.Book.Render(true)
         elseif page=='toast'then
             E.Book.ChangeCharacter(E.current.id);E.Book.chapter='Archive';E.Book.archiveTab='notifications';E.Book.selected=nil;E.Book.Render(true);E.Notifications.Preview(E.current,'account')
         elseif page=='chapters'then E.ChapterView.Open(c,c.state.reviewChapter)
