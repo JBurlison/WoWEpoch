@@ -3,7 +3,7 @@
 ## Notes: A character scrapbook of adventures, companions, and progress.
 ## Author: JBurlison
 ## IconTexture: Interface\AddOns\MyEpoch\Media\Book\emblem-small-v1.tga
-## Version: 0.1.11
+## Version: 0.1.12
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever
@@ -29,6 +29,15 @@ Locales/Adventure/ruRU.lua
 Locales/Adventure/koKR.lua
 Locales/Adventure/zhCN.lua
 Locales/Adventure/zhTW.lua
+Locales/KillLoot/deDE.lua
+Locales/KillLoot/frFR.lua
+Locales/KillLoot/itIT.lua
+Locales/KillLoot/esES.lua
+Locales/KillLoot/ptBR.lua
+Locales/KillLoot/ruRU.lua
+Locales/KillLoot/koKR.lua
+Locales/KillLoot/zhCN.lua
+Locales/KillLoot/zhTW.lua
 Locales/ArchiveArt/deDE.lua
 Locales/ArchiveArt/frFR.lua
 Locales/ArchiveArt/itIT.lua
@@ -245,6 +254,7 @@ Encounters.lua
 Highlights.lua
 Drops.lua
 MobDrops.lua
+KillLoot.lua
 RecapActivity.lua
 ExperienceSources.lua
 LootMoney.lua
@@ -331,6 +341,7 @@ CraftProjectionReaders.lua
 CraftProjectionPreparation.lua
 PersonalRecords.lua
 PersonalRecordView.lua
+KillLootView.lua
 ItemStories.lua
 ItemStoryView.lua
 Minimap.lua

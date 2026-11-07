@@ -1,0 +1,24 @@
+local _,E=...
+if E.locale~="itIT" then return end
+E.Localize({
+    ["Loot from this defeat"]="Bottino di questa vittoria",
+    ["Looking for loot from this defeat…"]="Ricerca del bottino di questa vittoria…",
+    ["No loot encounter has been linked yet."]="Nessun ritrovamento di bottino ancora collegato.",
+    ["Matched to the defeated creature."]="Collegato alla creatura sconfitta.",
+    ["Approximate match · nearby kill and loot."]="Collegamento approssimativo · uccisione e bottino vicini.",
+    ["Exact and approximate matches"]="Collegamenti esatti e approssimativi",
+    ["Loot observed"]="Bottino osservato",
+    ["Quantity not recorded"]="Quantità non registrata",
+    ["Related defeat"]="Vittoria collegata",
+    ["Loot encounters"]="Ritrovamenti di bottino",
+    ["Loot encounter details"]="Dettagli del bottino trovato",
+    ["Dismiss approximate match"]="Scarta il collegamento approssimativo",
+    ["Restore dismissed loot matches"]="Ripristina i collegamenti del bottino scartati",
+    ["One encounter, all its items. Reopening the same corpse does not add another drop."]="Un ritrovamento con tutti i suoi oggetti. Riaprire lo stesso cadavere non conta come nuovo bottino.",
+    ["Observed drops do not identify who received them."]="Il bottino osservato non indica chi lo ha ricevuto.",
+    ["Open loot encounter"]="Apri il bottino trovato",
+    ["Recorded receipts"]="Ricezioni registrate",
+    ["Loot window · {date}"]="Finestra del bottino · {date}",
+    ["Item {id}"]="Oggetto {id}",
+    ["Matching loot is still being prepared. Reopen this entry to refresh it."]="Il bottino corrispondente è ancora in preparazione. Riapri questa voce per aggiornarla.",
+})

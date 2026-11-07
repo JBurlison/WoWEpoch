@@ -24,7 +24,8 @@ local viewFields={"chapter","page","selected","lastDetail","day","search","killM
     "recapFocus","recapExpiredKey","recapRequested","recapSourcesOpen","recapSourcePage","milestonePage",
     "questTools","questKillPage","questKillSources","questKillSourcePage","companySessionFocus","companyEventPage","companyCoverageMemberPage","groupLeaderPage",
     "lootReceiptPage","dropReceiptPage","lootDates","dropDates","productionDates","lootMoreFilters","lootGroupMenu","dropGroupMenu","lootMeasure",
-    "pullQuery","pullPage","pullRecord","pullMeter","pullSnapshot","pullSource","pullSourcePage","pullSpellPage","pullKillPage","pullCoverage","pullCoveragePage","pullGapPage"}
+    "pullQuery","pullPage","pullRecord","pullMeter","pullSnapshot","pullSource","pullSourcePage","pullSpellPage","pullKillPage","pullCoverage","pullCoveragePage","pullGapPage",
+    "killLootRecord","killLootItems","killLootWindows","killLootReceipts","killLootLinks","killLootDetails"}
 B.views={}
 B.widgetFactories={}
 function B.Width(page) return page and page.width or 760 end
@@ -354,6 +355,7 @@ function B.Record(page,r)
     if E.LootView then E.LootView.Record(page,r) end
     if E.ProductionView then E.ProductionView.Record(page,r) end
     if E.DropView then E.DropView.Record(page,r) end
+    if E.KillLootView then E.KillLootView.Record(page,c,r)end
     if contextSection then B.EndSection(page,contextSection)end
     if E.MemoryView and not itemReceipt then E.MemoryView.Record(page,r) end
     if r.partialBoundary then B.Text(page,E.L["The previous milestone was not observed. This recap covers available history only."]) end
@@ -635,6 +637,10 @@ function B.Build()
         local scroll=CreateFrame("ScrollFrame",nil,page);scroll:SetSize(contentWidth,ph-24);scroll:SetClipsChildren(true);scroll:SetPoint("TOPLEFT",inset,-12);scroll:SetPoint("BOTTOMRIGHT",-12,12)
         local content=CreateFrame("Frame",nil,scroll);content:SetSize(contentWidth,ph-24);scroll:SetScrollChild(content);scroll:EnableMouseWheel(true)
         scroll:SetScript("OnMouseWheel",function(self,delta) self:SetVerticalScroll(math.max(0,math.min(self:GetVerticalScrollRange(),self:GetVerticalScroll()-delta*50))); E.BookTheme.Scroll(B[key])end)
+        scroll:SetScript("OnVerticalScroll",function(self,offset)
+            if B[key]then E.BookTheme.Scroll(B[key])end
+            if E.ComparisonView and E.ComparisonView.SyncScroll then E.ComparisonView.SyncScroll(self,offset)end
+        end)
         B[key]={panel=page,scroll=scroll,content=content,pool={},used={},y=0,width=nav and 196 or 684}
     end
     local capture=button(frame,E.L["Capture a moment"],170,30,function()

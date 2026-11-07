@@ -94,6 +94,10 @@ My Epoch records what your character can observe while the addon is running. It 
 
 Mob drop rates use **kills with an observed item drop ÷ recorded kills of that mob**, including source-linked group loot. Item quantity is shown separately, so stacks and reopened corpses do not inflate the percentage. These are your recorded results, not guaranteed drop chances; unlinked drops are excluded from the rate.
 
+Open a recorded defeat to see **Loot from this defeat**: one encounter containing all its linked items. This works for kills throughout the book, including solo adventures. When the creature cannot be identified directly, My Epoch can use nearby recorded kill and loot activity to suggest an **approximate match**. Open **Loot encounter details** to dismiss a suggestion or restore one you dismissed. Approximate matches do not count as confirmed quest credit or enter the exact mob drop-rate calculation.
+
+In **Chronicle → Compare milestones**, browse major milestones by category and compare their saved gear on matching character panels. Changed equipment is highlighted, item tooltips still work, and the two pages scroll together. The gear preview uses your current appearance when you are logged in as that character.
+
 Gold and item-value reports distinguish actual money changes from estimated item values. Unknown costs remain unknown, and inferred associations are labeled. Group chat and damage history depend on what the client makes available to your character.
 
 ## Keeping your memories

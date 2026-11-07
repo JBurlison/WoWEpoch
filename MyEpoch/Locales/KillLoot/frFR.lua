@@ -1,0 +1,24 @@
+local _,E=...
+if E.locale~="frFR" then return end
+E.Localize({
+    ["Loot from this defeat"]="Butin de cette victoire",
+    ["Looking for loot from this defeat…"]="Recherche du butin de cette victoire…",
+    ["No loot encounter has been linked yet."]="Aucune découverte de butin n'a encore été reliée.",
+    ["Matched to the defeated creature."]="Relié à la créature vaincue.",
+    ["Approximate match · nearby kill and loot."]="Lien approximatif · victoire et butin proches.",
+    ["Exact and approximate matches"]="Liens exacts et approximatifs",
+    ["Loot observed"]="Butin observé",
+    ["Quantity not recorded"]="Quantité non enregistrée",
+    ["Related defeat"]="Victoire associée",
+    ["Loot encounters"]="Découvertes de butin",
+    ["Loot encounter details"]="Détails du butin découvert",
+    ["Dismiss approximate match"]="Écarter ce lien approximatif",
+    ["Restore dismissed loot matches"]="Rétablir les liens de butin écartés",
+    ["One encounter, all its items. Reopening the same corpse does not add another drop."]="Une découverte, tous ses objets. Rouvrir le même cadavre ne compte pas comme un nouveau butin.",
+    ["Observed drops do not identify who received them."]="Le butin observé n'indique pas qui l'a reçu.",
+    ["Open loot encounter"]="Ouvrir le butin découvert",
+    ["Recorded receipts"]="Réceptions enregistrées",
+    ["Loot window · {date}"]="Fenêtre de butin · {date}",
+    ["Item {id}"]="Objet {id}",
+    ["Matching loot is still being prepared. Reopen this entry to refresh it."]="Le butin correspondant est encore en cours de préparation. Rouvrez cette entrée pour l'actualiser.",
+})

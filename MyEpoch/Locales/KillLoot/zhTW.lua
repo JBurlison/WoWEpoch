@@ -1,0 +1,24 @@
+local _,E=...
+if E.locale~="zhTW" then return end
+E.Localize({
+    ["Loot from this defeat"]="本次擊殺的戰利品",
+    ["Looking for loot from this defeat…"]="正在尋找本次擊殺的戰利品……",
+    ["No loot encounter has been linked yet."]="尚未關聯任何戰利品發現記錄。",
+    ["Matched to the defeated creature."]="已關聯到被擊敗的生物。",
+    ["Approximate match · nearby kill and loot."]="推測關聯 · 擊殺與戰利品記錄相近。",
+    ["Exact and approximate matches"]="確切關聯與推測關聯",
+    ["Loot observed"]="觀察到的戰利品",
+    ["Quantity not recorded"]="未記錄數量",
+    ["Related defeat"]="相關擊殺",
+    ["Loot encounters"]="戰利品發現記錄",
+    ["Loot encounter details"]="戰利品發現詳情",
+    ["Dismiss approximate match"]="取消推測關聯",
+    ["Restore dismissed loot matches"]="恢復已取消的戰利品關聯",
+    ["One encounter, all its items. Reopening the same corpse does not add another drop."]="一次發現，列出所有物品。再次打開同一具屍體不會計為新的掉落。",
+    ["Observed drops do not identify who received them."]="觀察到的掉落無法說明是誰收到了這些物品。",
+    ["Open loot encounter"]="開啟戰利品發現記錄",
+    ["Recorded receipts"]="已記錄的物品收取",
+    ["Loot window · {date}"]="拾取視窗 · {date}",
+    ["Item {id}"]="物品 {id}",
+    ["Matching loot is still being prepared. Reopen this entry to refresh it."]="相關戰利品仍在整理中。重新開啟此條目即可更新。",
+})

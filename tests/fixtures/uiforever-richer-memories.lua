@@ -24,11 +24,52 @@ local function seed()
         E.Wishes.Create(c,{title='Learn to cook a proper camp supper',goalType='freeform',notes='Invite someone who did the cooking last time.'},now)
         c.state.reviewFirst=first.id;c.state.reviewSecond=second.id;c.state.reviewChapter=chapter.id;c.state.reviewWish=wish.id
     end
+    local reviewRecord=c.records[c.state.reviewRecord]
+    if reviewRecord and reviewRecord.recordType=='crafted'and not reviewRecord.recordKey then
+        reviewRecord.recordKey='baseline:crafted';S.Changed(c,reviewRecord)
+    end
     E.Wishes.Recover(c);E.Chapters.Ensure(c)
     local reviewTimer
+    MyEpoch_RicherReviewStatus=function(steps)
+        for i=1,math.min(1000,tonumber(steps)or 0)do E.Keepsakes.Process(500)end
+        local owner=E.Book.Character()
+        print('Review recording ready',E.RecorderReady(),'pending',E.Keepsakes.Pending(owner,'comparison-choices'))
+        print('Review owner',owner and owner.id,'live',E.current and E.current.id)
+        E.Keepsakes.Process(500)
+    end
+    E.On('KEEPSAKE_JOB_FAILED',function(_,key,err)print('Review preparation failed',key,tostring(err))end)
     MyEpoch_RicherReview=function(page)
         E.Book.Open();E.Book.ChangeCharacter(c.id)
-        if page=='combat'then
+        if page=='compare-current'then
+            local live=E.current;if not live then return end
+            local target=live.records[live.state.reviewCompareFinal]
+            if not target then
+                local now=E.API.Now();local kinds={'level','discovery','profession','skill','achievement','quest_chain','level'}
+                for i,kind in ipairs(kinds)do
+                    local snap=E.Copy(c.records[c.state.reviewFirst].characterSnapshot)
+                    snap.character=live.id;snap.capturedAt=now-(#kinds-i)*3600
+                    snap.equipment[5]={slot=5,status='equipped',itemID=2576,link='item:2576',name='White Linen Shirt'}
+                    if i==#kinds then snap.equipment[16]={slot=16,status='equipped',itemID=935,link='item:935',name='Night Watch Shortsword'}end
+                    target=S.Add(live,'milestone',snap.capturedAt,{subject=live.id,major=true,milestoneType=kind,title='REVIEW: '..kind..' milestone',characterSnapshot=snap,before=20,after=21})
+                end
+                live.state.reviewCompareFinal=target.id
+            end
+            E.Book.ChangeCharacter(live.id);E.ComparisonView.Open(live,target.id)
+        elseif page=='kill-loot'then
+            local now=E.API.Now();local k=c.records[c.state.reviewLootKill]
+            if not k then
+                k=S.Add(c,'kill',now-20,{title='Hogger',npcName='Hogger',source='PARTY_KILL',session='loot-review',npcID=448,victimGUID='Creature-0-1-2-3-448-0001',mapID=1429,zone='Elwynn Forest',groupState='solo'})
+                local w=S.Add(c,'loot_window',now-10,{title='A handful of treasures',source='loot_window',session='loot-review',fromItem=false,fishing=false,originEvidence=1,mapID=1429,groupState='solo'})
+                for slot,item in ipairs({{2589,'Linen Cloth',3},{1931,'Huge Gnoll Claw',1},{117,'Tough Jerky',2}})do
+                    local d=S.Add(c,'drop',now-9,{title=item[2],source='loot_window',session='loot-review',window=w.id,slot=slot,itemID=item[1],itemLink='item:'..item[1],mapID=1429,snapshots={}})
+                    local data={itemID=item[1],name=item[2],visibleQuantity=item[3]}
+                    d.snapshots={{ts=now-9,sequence=S.ReserveObservation(c),data=data}};d.latest=data
+                    S.Add(c,'loot',now-8,{title=item[2],itemID=item[1],itemLink='item:'..item[1],quantity=item[3],recipient=c.id,observedLootWindow=w.id,session='loot-review'})
+                end
+                c.state.reviewLootKill=k.id
+            end
+            E.SearchView.Open({character=c.id,record=k.id})
+        elseif page=='combat'then
             local now=E.API.Now();local p=c.records[c.state.reviewPull]
             if not p then
                 local g=S.Add(c,'group',now-90,{title='A few friends near the river',memberships={}})
@@ -72,7 +113,7 @@ local function seed()
             if not r then
                 local refs={}
                 for i=1,4 do local item=S.Add(c,'crafted',day+3600+i*600,{recipient=c.id,itemID=2840,itemLink='item:2840',quantity=i,title='Copper Bar'});refs[#refs+1]=item.id end
-                r=S.Add(c,'personal_record',day+86399,{recordType='crafted',title='Most items crafted in a day',unit='count',value=10,from=day,through=E.API.ShiftDay(day,1),refs=refs,valid=true,baseline=true})
+                r=S.Add(c,'personal_record',day+86399,{recordType='crafted',recordKey='baseline:crafted',title='Most items crafted in a day',unit='count',value=10,from=day,through=E.API.ShiftDay(day,1),refs=refs,valid=true,baseline=true})
                 local state=E.Keepsakes.State(c);state.personalRecords=state.personalRecords or{ids={},enabled={}};table.insert(state.personalRecords.ids,r.id);c.state.reviewRecord=r.id
             end
             E.Book.chapter='Chronicle';E.Book.chronicleMode='records';E.Book.personalRecord=r.id;E.Book.personalRecordTab='Personal bests';E.Book.selected=nil;E.Book.Render(true)

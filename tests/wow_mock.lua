@@ -37,6 +37,9 @@ function methods:StopMovingOrSizing() self.moving=false end
 function methods:Click() if self:IsEnabled() and self.scripts.OnClick then self.scripts.OnClick(self) end end
 for _,name in ipairs({"SetPoint","ClearAllPoints","SetAllPoints","SetColorTexture","SetFont","SetTextColor","SetJustifyH","SetJustifyV","SetFrameStrata","EnableMouse","EnableMouseWheel","SetHighlightTexture","SetAlpha","SetMultiLine","SetAutoFocus","SetTextInsets","ClearFocus","SetTexture"}) do methods[name]=function()end end
 local function object() return setmetatable({scripts={},events={},shown=true},{__index=methods}) end
+function methods:HasFocus() return self.focused==true end
+function methods:SetFocus() self.focused=true;if self.scripts.OnEditFocusGained then self.scripts.OnEditFocusGained(self)end end
+function methods:ClearFocus() self.focused=false;if self.scripts.OnEditFocusLost then self.scripts.OnEditFocusLost(self)end end
 function methods:SetTexCoord(...) self.texCoords={...} end
 function methods:SetAtlas(name,useAtlasSize) self.atlas=name; self.useAtlasSize=useAtlasSize end
 function methods:SetVertexColor(...) self.vertexColor={...} end

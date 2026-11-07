@@ -17,7 +17,7 @@ local function sourceName(r)return text(r.npcName)or text(r.name)or('NPC '..r.np
 -- All joins use retained observation order, never a time/proximity guess.
 function M.Report(c,options,work)
  local o=options or {};work=work or function()end
- local out={killCount=0,kills={},items={},byItem={},mobs={},unmatched={},excluded={},refs={},
+ local out={killCount=0,kills={},items={},byItem={},byWindow={},mobs={},unmatched={},excluded={},refs={},
   coverage='Observed item drops per recorded PARTY_KILL; unseen loot is not inferred. Units are the largest observed simultaneous quantity per kill and item across reopened windows.'}
  if not c or type(c.records)~='table'then return out end
  local events,drops,timelines,mobs,refSet={},{},{},{},{}
@@ -180,6 +180,7 @@ function M.Report(c,options,work)
    adjust(entries,1)
    end
   end
+  out.byWindow[windowID]=peaks
   for _,peak in pairs(peaks)do
    work();local items=byKill[peak.kill.id]or{};byKill[peak.kill.id]=items
    local value=items[peak.itemID]or{kill=peak.kill,itemID=peak.itemID,name=peak.name,quantity=0,unknown=false,refs={}};items[peak.itemID]=value
@@ -213,7 +214,7 @@ function M.Report(c,options,work)
  W.Sort(out.items,function(a,b)if a.killsWithItem~=b.killsWithItem then return a.killsWithItem>b.killsWithItem end;return a.itemID<b.itemID end,work)
  W.Sort(out.mobs,function(a,b)if a.name~=b.name then return a.name<b.name end;return a.npcID<b.npcID end,work)
  W.Sort(out.unmatched,function(a,b)if a.record~=b.record then return a.record<b.record end;return a.reason<b.reason end,work)
- out.refs=sorted(refSet,work)
+ out.refs=sorted(refSet,work);out.byKill=byKill
  return out
 end
 function M.List(c,options,work)return M.Report(c,options,work).mobs end
