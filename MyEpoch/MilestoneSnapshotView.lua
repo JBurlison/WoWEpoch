@@ -20,6 +20,13 @@ end
 local function valid(c,r,s)
     return owned(c,r)and B.Character()==c and B.selected==r.id and r.characterSnapshot==s and type(s)=='table'and s.version==1 and s.character==c.id
 end
+local function equipmentValid(c,r,s,state,context)
+    if context then
+        return B.Character()==c and type(s)=='table'and s.version==1 and s.character==c.id
+            and type(context.valid)=='function'and context.valid()
+    end
+    return V.state==state and valid(c,r,s)
+end
 local function hide(f)
     if V.tooltipOwner==f then V.tooltipOwner=nil;if GameTooltip and type(GameTooltip.Hide)=='function'then pcall(GameTooltip.Hide,GameTooltip)end end
 end
@@ -56,7 +63,7 @@ B.widgetFactories.milestoneModel=function(parent)
     return f
 end
 local visibleSlots={[1]=true,[3]=true,[4]=true,[5]=true,[6]=true,[7]=true,[8]=true,[9]=true,[10]=true,[15]=true,[16]=true,[17]=true,[18]=true,[19]=true}
-local function modelPreview(page,c,r,s,state,area)
+local function modelPreview(page,c,r,s,state,area,context)
     local f=B.Acquire(page,'milestoneModel');stopModel(f);f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',area.x,-area.y)
     f:SetSize(area.width,area.height);f.status:SetWidth(area.width-24);f.brandTitle:SetWidth(area.width-24);f.brand:Show();f.brandTitle:Show()
     local chapter=B.chapter
@@ -86,7 +93,7 @@ local function modelPreview(page,c,r,s,state,area)
     for slot in pairs(visibleSlots)do if not seen[slot]then partial=true end end
     table.sort(items,function(a,b)return a.slot<b.slot end)
     local token={};f.token=token;local busy=false;local bodyLoaded=false;local loadedFileID;local loadedWhileDressing=false;local dirty=true;local settle=false;local elapsed,retry=0,0
-    local function current()return f.token==token and V.state==state and state.preview and state.tab=='Equipment'and B.chapter==chapter and valid(c,r,s)and loggedIn(c)end
+    local function current()return f.token==token and state.preview and state.tab=='Equipment'and B.chapter==chapter and equipmentValid(c,r,s,state,context)and loggedIn(c)end
     local rotatable=type(m.SetFacing)=='function'and type(m.GetFacing)=='function'and type(m.GetEffectiveScale)=='function'
         and type(GetCursorPosition)=='function'and type(IsMouseButtonDown)=='function'
         and modelScript(m,'OnMouseDown')and modelScript(m,'OnMouseUp')
@@ -108,7 +115,12 @@ local function modelPreview(page,c,r,s,state,area)
         if busy then return end
         f.dragX=nil;m:SetAlpha(0);dirty=true;settle=false;retry=0;f.brand:Show();f.brandTitle:Show();f.status:SetText(E.L['Loading saved gear...'])
     end
-    m:SetAlpha(0);m:ClearAllPoints();m:SetPoint('TOPLEFT',8,-8);m:SetSize(area.width-16,area.height-76)
+    -- DressUpModel's default camera expands the character with a wide viewport.
+    -- Keep a portrait-shaped canvas inside the wider paper doll so comparisons
+    -- do not crop the head and feet. Captions still use the full center column.
+    local modelHeight=area.height-76
+    local modelWidth=math.min(area.width-16,modelHeight*.8)
+    m:SetAlpha(0);m:ClearAllPoints();m:SetPoint('TOP',f,'TOP',0,-8);m:SetSize(modelWidth,modelHeight)
     local ok=pcall(function()
         if not modelScript(m,'OnModelLoaded')then error('Model load callback unavailable')end
         m:SetScript('OnModelLoaded',function()if f.token~=token then return end;bodyLoaded=true;loadedFileID=nil;if busy then loadedWhileDressing=true else invalidate()end end)
@@ -163,12 +175,12 @@ local function modelPreview(page,c,r,s,state,area)
         if not pending and not loadedWhileDressing then dirty=false;settle=true end
     end)
 end
-local function previewControls(page,c,r,s,state,area)
-    modelPreview(page,c,r,s,state,area)
+local function previewControls(page,c,r,s,state,area,context)
+    modelPreview(page,c,r,s,state,area,context)
     if not loggedIn(c)then return end
     local chapter=B.chapter;local y=page.y
     local button=B.Action(page,state.preview and E.L['Hide gear preview']or E.L['Show gear preview'],function()
-        if not valid(c,r,s)or V.state~=state or state.tab~='Equipment'or B.chapter~=chapter or not loggedIn(c)then return end
+        if not equipmentValid(c,r,s,state,context)or state.tab~='Equipment'or B.chapter~=chapter or not loggedIn(c)then return end
         if B.Navigation and B.Navigation.KeepDrafts then B.Navigation.KeepDrafts()end
         state.preview=not state.preview;state.previewError=nil;B.Render()
     end)
@@ -182,6 +194,7 @@ end
 B.widgetFactories.milestoneEquipment=function(parent)
     local f=CreateFrame('Button',nil,parent)
     f.paper=E.BookTheme.Texture(f,'ledger-line-v1');f.paper:SetAllPoints()
+    f.change=f:CreateTexture(nil,'ARTWORK');f.change:SetAllPoints();f.change:SetColorTexture(.24,.46,.18,.20);f.change:Hide()
     f.icon=CreateFrame('Button',nil,f);f.icon:SetSize(34,34);f.icon:SetPoint('TOPLEFT',3,-3);f.icon:EnableMouse(true)
     f.icon.border=f.icon:CreateTexture(nil,'BACKGROUND');f.icon.border:SetAllPoints();f.icon.border:SetColorTexture(.42,.29,.14,.65)
     f.icon.image=f.icon:CreateTexture(nil,'ARTWORK');f.icon.image:SetPoint('TOPLEFT',2,-2);f.icon.image:SetPoint('BOTTOMRIGHT',-2,2)
@@ -191,8 +204,9 @@ B.widgetFactories.milestoneEquipment=function(parent)
     f:SetScript('OnHide',function()reset(f);f:SetScript('OnClick',nil);f.icon:SetScript('OnClick',nil)end);return f
 end
 local equipmentStats
-local function equipment(page,c,r,s,state)
-    local start,total=page.y,B.Width(page);local w=math.floor(total*.66);local sheet=B.Acquire(page,'milestoneSheet');sheet:SetSize(w,400)
+local function equipment(page,c,r,s,state,context)
+    local start,total=page.y,B.Width(page);local w=context and context.fullWidth and total or math.floor(total*.66)
+    local sheet=B.Acquire(page,'milestoneSheet');sheet:SetSize(w,400)
     local rows,duplicates={},{}
     for _,row in ipairs(type(s.equipment)=='table'and s.equipment or{})do if type(row)=='table'then local slot=number(row.slot)
         if slot and slot%1==0 and slotNames[slot]then if rows[slot]then duplicates[slot]=true else rows[slot]=row end end
@@ -203,11 +217,13 @@ local function equipment(page,c,r,s,state)
         local status=row and text(row.status)or'unavailable';local f=B.Acquire(page,'milestoneEquipment');reset(f)
         f.slot=slot;f.row=row;f:SetSize(width,38);f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',x,-y)
         f.text:SetWidth(width-46);f.meta:SetWidth(width-46);f.text:SetText(slot==15 and E.locale~='enUS'and E.L['Cloak']or slotNames[slot]);f.meta:SetText(status=='equipped'and E.L['Equipped']or status=='empty'and E.L['Empty slot']or E.L['Unavailable'])
+        f.changed=context and context.changedSlots and context.changedSlots[slot]or false
+        if f.changed then f.change:Show();f.text:SetTextColor(.17,.35,.13)else f.change:Hide();f.text:SetTextColor(.29,.19,.11)end
         f.icon.unknown:SetText(status=='empty'and'-'or'?')
         f.icon.border:SetColorTexture(state.equipmentSlot==slot and .68 or .42,state.equipmentSlot==slot and .44 or .29,.14,.8)
         local chapter=B.chapter
         local function selectSlot()
-            if not f:IsShown()or not valid(c,r,s)or V.state~=state or state.tab~='Equipment'or B.chapter~=chapter then return end
+            if not f:IsShown()or not equipmentValid(c,r,s,state,context)or state.tab~='Equipment'or B.chapter~=chapter then return end
             if B.Navigation and B.Navigation.KeepDrafts then B.Navigation.KeepDrafts()end
             state.equipmentSlot=slot;B.Render()
         end
@@ -218,12 +234,13 @@ local function equipment(page,c,r,s,state)
         local link=text(row.link);local id=number(row.itemID);if id and(id<=0 or id%1~=0)then id=nil end
         if status=='equipped'and(link~=''or id)then
             f.icon:SetScript('OnEnter',function()
-                if not f:IsShown()or not valid(c,r,s)or V.state~=state or state.tab~='Equipment'or B.chapter~=chapter or f.row~=row then return end
+                if not f:IsShown()or not equipmentValid(c,r,s,state,context)or state.tab~='Equipment'or B.chapter~=chapter or f.row~=row then return end
                 local tip=GameTooltip;if not tip or type(tip.SetOwner)~='function'or type(tip.SetHyperlink)~='function'or type(tip.Show)~='function'then return end
                 if V.tooltipOwner then hide(V.tooltipOwner)end;V.tooltipOwner=f
                 local ok=pcall(function()
                     tip:SetOwner(f.icon,'ANCHOR_RIGHT');tip:SetHyperlink(link~=''and link or'item:'..string.format('%.0f',id))
                     if type(tip.AddLine)=='function'then
+                        if f.changed then tip:AddLine(E.L['Changed'],.48,.78,.36)end
                         if number(row.durability)and number(row.maxDurability)then tip:AddLine(E.Format('Saved durability: {current} / {maximum}',{current=formatted(row.durability),maximum=formatted(row.maxDurability)}),.95,.85,.62)end
                         if link==''then tip:AddLine(E.L['Base item; exact link not recorded'],.95,.85,.62)end
                     end
@@ -237,9 +254,15 @@ local function equipment(page,c,r,s,state)
     for i,id in ipairs(leftSlots)do slot(id,20,start+14+(i-1)*40,100)end
     for i,id in ipairs(rightSlots)do slot(id,12+w-108,start+14+(i-1)*40,100)end
     for i,id in ipairs({16,17,18})do slot(id,12+(w-316)/2+(i-1)*108,start+348,100)end
-    previewControls(page,c,r,s,state,{x=124,y=start+22,width=w-224,height=270})
-    equipmentStats(page,c,r,s,state,{x=24+w,y=start,width=total-w-12,height=400})
+    previewControls(page,c,r,s,state,{x=124,y=start+22,width=w-224,height=270},context)
+    if not(context and context.fullWidth)then equipmentStats(page,c,r,s,state,{x=24+w,y=start,width=total-w-12,height=400})end
     page.y=start+412
+end
+-- Comparisons share the exact saved-gear renderer, but own independent pane
+-- state and validity checks because neither page is B.selected.
+function V.PaperDoll(page,c,s,state,context)
+    if not context or not equipmentValid(c,nil,s,state,context)then return end
+    equipment(page,c,nil,s,state,context)
 end
 local groupDefinitions={{'attributes',E.L['Attributes']},{'defense',E.L['Defense']},{'offense',E.L['Offense']},{'resources',E.L['Resources & movement']},{'other',E.L['Other recorded stats']}}
 local function visibleStat(row)

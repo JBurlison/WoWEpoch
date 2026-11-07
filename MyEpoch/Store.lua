@@ -409,6 +409,7 @@ local function dependencies(c,r,add,state)
     for _,ref in ipairs(r.refs or {})do checkpoint(work); add(ref,{kind="linked",source=r.id})end
     if E.Chapters then E.Chapters.Retention(c,r,add,state)end
     if E.PullLinks then E.PullLinks.Retention(c,r,add,state)end
+    if E.KillLoot then E.KillLoot.Retention(c,r,add,state)end
     if E.AuctionLinks then E.AuctionLinks.Retention(c,r,add,state)end
     if E.AuctionSettlement then E.AuctionSettlement.Retention(c,r,add,state)end
     if E.AuctionReturns then E.AuctionReturns.Retention(c,r,add,state)end

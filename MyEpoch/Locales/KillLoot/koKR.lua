@@ -1,0 +1,28 @@
+local _,E=...
+if E.locale~="koKR" then return end
+E.Localize({
+    ["Dropped by"]="전리품 출처",
+    ["Recorded creature source"]="기록된 출처 생물",
+    ["Approximate loot match"]="추정 전리품 연결",
+    ["Restore dismissed source match"]="제외한 출처 연결 복원",
+    ["Loot from this defeat"]="이 처치의 전리품",
+    ["Looking for loot from this defeat…"]="이 처치의 전리품을 찾고 있어요…",
+    ["No loot encounter has been linked yet."]="아직 연결된 전리품 발견 기록이 없어요.",
+    ["Matched to the defeated creature."]="처치한 생물과 연결됐어요.",
+    ["Approximate match · nearby kill and loot."]="추정 연결 · 처치와 전리품이 가까이 기록됐어요.",
+    ["Exact and approximate matches"]="정확한 연결과 추정 연결",
+    ["Loot observed"]="확인된 전리품",
+    ["Quantity not recorded"]="수량 기록 없음",
+    ["Related defeat"]="관련 처치",
+    ["Loot encounters"]="전리품 발견 기록",
+    ["Loot encounter details"]="전리품 발견 상세 정보",
+    ["Dismiss approximate match"]="추정 연결 해제",
+    ["Restore dismissed loot matches"]="해제한 전리품 연결 복원",
+    ["One encounter, all its items. Reopening the same corpse does not add another drop."]="한 번 발견한 전리품의 모든 아이템을 함께 보여 드려요. 같은 시체를 다시 열어도 새 전리품으로 세지 않아요.",
+    ["Observed drops do not identify who received them."]="확인된 전리품만으로는 누가 받았는지 알 수 없어요.",
+    ["Open loot encounter"]="전리품 발견 기록 열기",
+    ["Recorded receipts"]="받은 아이템 기록",
+    ["Loot window · {date}"]="전리품 창 · {date}",
+    ["Item {id}"]="아이템 {id}",
+    ["Matching loot is still being prepared. Reopen this entry to refresh it."]="관련 전리품을 아직 정리하고 있어요. 이 항목을 다시 열면 새로고침돼요.",
+})

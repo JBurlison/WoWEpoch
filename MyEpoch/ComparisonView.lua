@@ -2,6 +2,12 @@ local _,E=...
 local V,B,X,K={},E.Book,E.SnapshotComparison,E.Keepsakes;E.ComparisonView=V
 local states=setmetatable({},{__mode='k'})
 local revisions=setmetatable({},{__mode='k'})
+local filters={{'all','Major milestones'},{'level','Character levels'},{'achievement','Achievements'},
+    {'discovery','Discoveries'},{'completion','First completions'},{'profession','Professions'},{'skill','Weapon skills'}}
+local function category(r)
+    local key=r.milestoneType
+    return(key=='quest_chain'or key=='encounter')and'completion'or key
+end
 local function revision(c)return revisions[c]or 0 end
 local function invalidate(c,r)
     local s=states[c]
@@ -9,14 +15,20 @@ local function invalidate(c,r)
 end
 E.On('RECORD_ADDED',invalidate);E.On('RECORD_CHANGED',invalidate);E.On('RECORDS_REMOVED',function(c)invalidate(c)end)
 local function state(c)
-    local s=states[c];if not s then s={tab='Equipment',pages={before=1,after=1}};states[c]=s end;return s
+    local s=states[c];if not s then s={tab='Equipment',pages={before=1,after=1},filters={before='all',after='all'},paperDolls={}};states[c]=s end;return s
 end
 function V.State(c)return state(c)end
 local function current(c,s)return K.Owned(c)and B.Character()==c and states[c]==s and B.chapter=='Chronicle'and B.chronicleMode=='compare'end
 local function redraw(c,s)if current(c,s)then B.Render()end end
 local function prepare(c,s)
     if s.revision==revision(c) or K.Pending(c,'comparison-choices')then return end
-    K.Queue(c,'comparison-choices',function(work)return X.Choices(c,work)end,function(rows)
+    K.Queue(c,'comparison-choices',function(work)
+        local rows=X.Choices(c,work);local groups={all=rows}
+        for _,filter in ipairs(filters)do if filter[1]~='all'then groups[filter[1]]={}end end
+        for _,r in ipairs(rows)do work();local group=groups[category(r)];if group and group~=rows then group[#group+1]=r end end
+        return{rows=rows,groups=groups}
+    end,function(result)
+        local rows=result.rows;s.choiceGroups=result.groups
         s.choices=rows;s.revision=revision(c);s.choiceIDs={};for _,r in ipairs(rows)do s.choiceIDs[r.id]=true end
         if not X.Eligible(c,c.records[s.after])then s.after=rows[#rows]and rows[#rows].id end
         if not X.Eligible(c,c.records[s.before])then
@@ -63,14 +75,27 @@ local function menuButton(parent,label,fn)
 end
 function V.UpdateMenu()
     local ctx=V.menuContext;if not menuValid(ctx)then V.CloseMenu();return end
-    local c,s,side=ctx.c,ctx.s,ctx.side;local rows=s.choices or{};local count=#rows
+    local c,s,side=ctx.c,ctx.s,ctx.side;local selected=s.filters[side]or'all'
+    local rows=s.choiceGroups and s.choiceGroups[selected]or{};local count=#rows
     local visible=math.min(8,count);ctx.offset=math.max(0,math.min(ctx.offset,math.max(0,count-8)))
     local live=side=='after'and E.current==c
-    V.menuPanel:SetHeight(24+math.max(1,visible)*34+(live and 36 or 0)+36)
+    local filterHeight=102
+    V.menuPanel:SetHeight(24+filterHeight+math.max(1,visible)*34+(live and 36 or 0)+36)
+    local filterWidth=(ctx.width-32)/3
+    for i,filter in ipairs(filters)do local f=V.menuFilters[i];local key=filter[1]
+        f:SetWidth(filterWidth);f.text:SetWidth(filterWidth-16);f.text:SetText(E.L[filter[2]])
+        f:ClearAllPoints();f:SetPoint('TOPLEFT',12+((i-1)%3)*(filterWidth+4),-12-math.floor((i-1)/3)*32)
+        E.BookTheme.ButtonStyle(f,selected==key and'filter'or nil)
+        f:SetScript('OnClick',function()
+            if not menuValid(ctx)then V.CloseMenu();return end
+            s.filters[side]=key;ctx.offset=0;V.UpdateMenu()
+        end)
+    end
     for i,f in ipairs(V.menuButtons)do
         local r=i<=visible and rows[count-ctx.offset-i+1]
         if r then
             f:Show();f:SetWidth(ctx.width-24);f.text:SetWidth(ctx.width-44)
+            f:ClearAllPoints();f:SetPoint('TOPLEFT',12,-12-filterHeight-(i-1)*34)
             f.text:SetText(E.API.RecordDate(r)..' / '..title(r))
             E.BookTheme.ButtonStyle(f,s[side]==r.id and not(side=='after'and s.useCurrent)and'filter'or nil)
             f:SetScript('OnClick',function()
@@ -83,12 +108,12 @@ function V.UpdateMenu()
     end
     if live then V.menuLive:Show()else V.menuLive:Hide()end
     V.menuLive:SetWidth(ctx.width-24);V.menuLive.text:SetWidth(ctx.width-44)
-    V.menuLive:ClearAllPoints();V.menuLive:SetPoint('TOPLEFT',12,-12-math.max(1,visible)*34)
+    V.menuLive:ClearAllPoints();V.menuLive:SetPoint('TOPLEFT',12,-12-filterHeight-math.max(1,visible)*34)
     V.menuLive:SetScript('OnClick',function()
         if not menuValid(ctx)or E.current~=c then V.CloseMenu();return end
         fresh(c,s);V.CloseMenu();redraw(c,s)
     end)
-    V.menuCount:SetText(count==0 and E.L['Choose a milestone']or E.Format('{first}–{last} of {count}',{first=ctx.offset+1,last=math.min(count,ctx.offset+8),count=count}))
+    V.menuCount:SetText(count==0 and E.Format('{count} matching records',{count=0})or E.Format('{first}–{last} of {count}',{first=ctx.offset+1,last=math.min(count,ctx.offset+8),count=count}))
     V.menuUp:EnableMouse(ctx.offset>0);V.menuUp:SetAlpha(ctx.offset>0 and 1 or .4)
     V.menuDown:EnableMouse(ctx.offset+8<count);V.menuDown:SetAlpha(ctx.offset+8<count and 1 or .4)
 end
@@ -99,6 +124,7 @@ local function buildMenu()
     local dismiss=CreateFrame('Button',nil,menu);V.menuDismiss=dismiss;dismiss:SetAllPoints();dismiss:SetScript('OnClick',V.CloseMenu)
     local panel=CreateFrame('Frame',nil,menu);V.menuPanel=panel;panel:SetFrameLevel(menu:GetFrameLevel()+2)
     panel:EnableMouse(true);panel:EnableMouseWheel(true);E.BookTheme.DialogPaper(panel)
+    V.menuFilters={};for i=1,#filters do V.menuFilters[i]=menuButton(panel);V.menuFilters[i]:SetHeight(28)end
     V.menuButtons={}
     for i=1,8 do local f=menuButton(panel);V.menuButtons[i]=f;f:SetPoint('TOPLEFT',12,-12-(i-1)*34)end
     V.menuLive=menuButton(panel,E.L['Compare with current character'])
@@ -125,38 +151,20 @@ local function selector(page,c,s,side)
     f=B.Action(page,label..'  v',function()openMenu(f,page,c,s,side)end)
     if side=='after'and s.useCurrent then B.Action(page,E.L['Refresh current reading'],function()if current(c,s)then fresh(c,s);redraw(c,s)end end)end
 end
-local slots={'Head','Neck','Shoulders','Shirt','Chest','Waist','Legs','Feet','Wrists','Hands','Finger 1','Finger 2','Trinket 1','Trinket 2','Cloak','Main hand','Off hand','Ranged','Tabard'}
 local function font(p,size)
     local f=p:CreateFontString(nil,'OVERLAY');f:SetFont(E.Font(),size,'');f:SetTextColor(.29,.19,.11);f:SetJustifyH('LEFT');f:SetJustifyV('TOP');return f
 end
-B.widgetFactories.compareItem=function(p)
-    local f=CreateFrame('Frame',nil,p);f.background=f:CreateTexture(nil,'BACKGROUND');f.background:SetAllPoints()
-    f.rule=f:CreateTexture(nil,'BORDER');f.rule:SetPoint('TOPLEFT');f.rule:SetPoint('BOTTOMLEFT');f.rule:SetWidth(3)
-    f.icon=E.LedgerStyle.CreateIcon(f,32,8,-9);f.slot=font(f,11);f.slot:SetPoint('TOPLEFT',48,-8)
-    f.name=font(f,14);f.name:SetPoint('TOPLEFT',48,-25)
-    return f
-end
-local function equipment(page,comparison,side)
-    local start,width=page.y,(B.Width(page)-8)/2;local y=start;local height=0
-    for i,row in ipairs(comparison.equipment)do
-        if i>1 and i%2==1 then y=y+height+8;height=0 end
-        local item=row[side];page.y=y;local f=B.Acquire(page,'compareItem');f:SetWidth(width)
-        f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+((i-1)%2)*(width+8),-y)
-        local changed=row.known and row.changed
-        f.background:SetColorTexture(changed and .42 or .98,changed and .57 or .90,changed and .34 or .70,changed and .22 or .22)
-        f.rule:SetColorTexture(changed and .30 or .62,changed and .48 or .45,changed and .25 or .25,changed and .8 or .35)
-        f.slot:SetWidth(width-56);f.name:SetWidth(width-56)
-        f.slot:SetText(E.Text(E.L[slots[row.slot]]..(side=='after'and changed and' / '..E.L['Changed']or'')))
-        local equipped=item and item.status=='equipped'and K.ID(item.itemID)
-        E.LedgerStyle.SetIcon(f.icon,equipped and item.itemID or nil,equipped and item.link or nil)
-        f.icon.unknown:SetText(item and item.status=='empty'and'-'or'?')
-        if equipped and not f.icon.image:IsShown()and(K.Number(item.icon,1)or type(item.icon)=='string'and item.icon~='')then
-            if pcall(f.icon.image.SetTexture,f.icon.image,item.icon)then f.icon.image:Show();f.icon.unknown:Hide()end
-        end
-        local name=equipped and E.Display.Item(item.itemID,item.name)or item and item.status=='empty'and E.L['Empty slot']or E.L['Not recorded']
-        f.name:SetText(E.Text(name));f:SetHeight(math.max(62,29+f.name:GetStringHeight()+10));height=math.max(height,f:GetHeight())
-    end
-    page.y=y+height+14
+local function equipment(page,c,s,comparison,side)
+    local snapshot=comparison[side];local pane=s.paperDolls[side]
+    if not pane or pane.snapshot~=snapshot then pane={snapshot=snapshot,tab='Equipment',preview=true};s.paperDolls[side]=pane end
+    local record=c.records[s[side]];local live=side=='after'and s.useCurrent
+    local changed={};for _,row in ipairs(comparison.equipment)do if row.known and row.changed then changed[row.slot]=true end end
+    E.MilestoneSnapshotView.PaperDoll(page,c,snapshot,pane,{fullWidth=true,changedSlots=changed,valid=function()
+        if not current(c,s)or s.tab~='Equipment'or s.paperDolls[side]~=pane then return false end
+        if live then return s.useCurrent and s.fresh and s.fresh.after==snapshot and E.current==c end
+        return not(side=='after'and s.useCurrent)and c.records[s[side]]==record and X.Eligible(c,record)==snapshot
+    end})
+    if next(changed)then local label=B.Text(page,E.L['Changed'],12);label:SetTextColor(.17,.35,.13)end
 end
 B.widgetFactories.compareStat=function(p)
     local f=CreateFrame('Frame',nil,p);f.label=font(f,14);f.label:SetPoint('TOPLEFT',0,-8)
@@ -165,17 +173,25 @@ B.widgetFactories.compareStat=function(p)
     f.rule=f:CreateTexture(nil,'BACKGROUND');f.rule:SetPoint('BOTTOMLEFT');f.rule:SetPoint('BOTTOMRIGHT');f.rule:SetHeight(1);f.rule:SetColorTexture(.52,.36,.17,.25)
     return f
 end
-local function stats(page,comparison,side)
+local function stats(left,right,comparison)
+    local pages={{left,'before'},{right,'after'}}
     for _,row in ipairs(comparison.stats)do
-        local entry=row[side];local other=row.before or row.after;local f=B.Acquire(page,'compareStat');f:SetWidth(B.Width(page))
-        local title=E.MilestoneSnapshotView.StatLabel(other or{key=row.key})
-        if(row.key=='power'or row.key=='maxPower')and not row.compatible then
-            local snap=comparison[side];title=title..' / '..E.L[snap.powerToken or'Unknown power type']
+        local frames,height={},44
+        for i,pair in ipairs(pages)do
+            local page,side=pair[1],pair[2]
+            local entry=row[side];local other=row.before or row.after;local f=B.Acquire(page,'compareStat');f:SetWidth(B.Width(page));frames[i]=f
+            local title=E.MilestoneSnapshotView.StatLabel(other or{key=row.key})
+            if(row.key=='power'or row.key=='maxPower')and not row.compatible then
+                local snap=comparison[side];title=title..' / '..E.L[snap.powerToken or'Unknown power type']
+            end
+            f.label:SetWidth(math.max(40,B.Width(page)-240));f.value:SetWidth(100);f.change:SetWidth(115)
+            f.label:SetText(E.Text(title));f.value:SetText(number(entry and entry.value)..(entry and K.Number(entry.value)and entry.unit and' '..E.L[entry.unit]or''))
+            f.change:SetText(side=='after'and delta(row.delta,row.unit)or'');f.change:SetTextColor(row.delta and row.delta<0 and .55 or .22,row.delta and row.delta<0 and .22 or .40,.18)
+            height=math.max(height,f.label:GetStringHeight()+20,f.value:GetStringHeight()+20,f.change:GetStringHeight()+20)
         end
-        f.label:SetWidth(math.max(40,B.Width(page)-240));f.value:SetWidth(100);f.change:SetWidth(115)
-        f.label:SetText(E.Text(title));f.value:SetText(number(entry and entry.value)..(entry and K.Number(entry.value)and entry.unit and' '..E.L[entry.unit]or''))
-        f.change:SetText(side=='after'and delta(row.delta,row.unit)or'');f.change:SetTextColor(row.delta and row.delta<0 and .55 or .22,row.delta and row.delta<0 and .22 or .40,.18)
-        f:SetHeight(math.max(44,f.label:GetStringHeight()+20,f.value:GetStringHeight()+20,f.change:GetStringHeight()+20));page.y=page.y+f:GetHeight()
+        -- Match each pair, not just the final page height: missing readings,
+        -- translated labels and change text can wrap on only one side.
+        for i,pair in ipairs(pages)do frames[i]:SetHeight(height);pair[1].y=pair[1].y+height end
     end
 end
 local function skills(page,comparison,side)
@@ -189,10 +205,20 @@ local function skills(page,comparison,side)
     end
     if #comparison.skills==0 then B.Text(page,E.L['Skills were not recorded.'],14)end
 end
+function V.SyncScroll(scroll,offset)
+    local c=B.Character();local s=c and states[c]
+    if V.syncing or V.rendering or not s or not current(c,s)or B.selected or V.scrollOwner~=c then return end
+    local other=scroll==B.left.scroll and B.right or scroll==B.right.scroll and B.left
+    if not other then return end
+    offset=K.Number(offset,0);if not offset then return end
+    local target=math.min(offset,other.scroll:GetVerticalScrollRange())
+    if other.scroll:GetVerticalScroll()==target then return end
+    V.syncing=true;other.scroll:SetVerticalScroll(target);E.BookTheme.Scroll(other);V.syncing=nil
+end
 function V.Render(left,right,c)
     V.CloseMenu()
     c=c or B.Character();if not K.Owned(c)then return end
-    B.selected=nil;local s=state(c);prepare(c,s)
+    B.selected=nil;local s=state(c);prepare(c,s);V.rendering=true;V.scrollOwner=c
     if s.useCurrent and E.current~=c then s.fresh=nil;s.currentUnavailable=true end
     local comparison=X.Eligible(c,c.records[s.before])and(s.useCurrent and s.fresh or X.Eligible(c,c.records[s.after])and X.Saved(c,s.before,s.after))or nil
     for _,pair in ipairs({{left,'before'},{right,'after'}})do
@@ -203,16 +229,25 @@ function V.Render(left,right,c)
         local reading=side=='after'and s.useCurrent and s.fresh and s.fresh.after or c.records[s[side]]
         if reading then B.Text(page,E.API.RecordDate(reading.ts and reading or{ts=reading.capturedAt}),12)end
         B.Tabs(page,{'Equipment','Stats','Skills'},s.tab,function(tab)if current(c,s)then s.tab=tab;redraw(c,s)end end)
+    end
+    -- Both snapshots begin at the same vertical position, including when the
+    -- current-reading refresh control or a translated title adds another line.
+    left.y=math.max(left.y,right.y);right.y=left.y
+    if s.tab=='Stats'and s.choices and comparison and not(s.useCurrent and s.currentUnavailable)then stats(left,right,comparison)end
+    for _,pair in ipairs({{left,'before'},{right,'after'}})do
+        local page,side=pair[1],pair[2]
         if not s.choices then B.Text(page,E.L['Preparing saved snapshots…'],14)
         elseif s.useCurrent and s.currentUnavailable then B.Text(page,E.L['A current reading is unavailable. Choose a saved milestone or try again while logged in as this character.'],14)
         elseif not comparison then B.Text(page,E.L['Choose two recorded snapshots to compare. Missing readings stay unknown.'],14)
         else
-            if s.tab=='Equipment'then equipment(page,comparison,side)elseif s.tab=='Stats'then stats(page,comparison,side)else skills(page,comparison,side)end
+            if s.tab=='Equipment'then equipment(page,c,s,comparison,side)elseif s.tab~='Stats'then skills(page,comparison,side)end
             local r=not(side=='after'and s.useCurrent)and c.records[s[side]]
             if r then B.Action(page,E.L[side=='before'and'Open earlier milestone'or'Open later milestone'],function()
                 if current(c,s)and X.Snapshot(c,r)then B.chronicleMode=nil;E.SearchView.Open({character=c.id,record=r.id,kind=r.kind})end
             end)end
         end
     end
-    V.lastComparison=comparison;return comparison
+    -- Equal scroll extents keep the two paper dolls aligned all the way down.
+    left.y=math.max(left.y,right.y);right.y=left.y
+    V.rendering=nil;V.lastComparison=comparison;return comparison
 end
