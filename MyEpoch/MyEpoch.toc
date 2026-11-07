@@ -3,7 +3,7 @@
 ## Notes: A character scrapbook of adventures, companions, and progress.
 ## Author: JBurlison
 ## IconTexture: Interface\AddOns\MyEpoch\Media\Book\emblem-small-v1.tga
-## Version: 0.1.10
+## Version: 0.1.11
 ## SavedVariables: MyEpochDB
 ## OptionalDeps: QuestieDB
 ## X-MyEpoch-Target: forever

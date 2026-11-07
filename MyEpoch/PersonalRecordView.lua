@@ -8,7 +8,61 @@ end
 local function owned(c)return B.Character()==c and K.Owned(c)end
 local function select(c,r)
  if not owned(c)or not K.Record(c,r,'personal_record')then return end
- B.personalRecord=r.id;B.selected=nil;P.MarkRead(c,r);B.Render(true)
+ B.personalRecord=r.id;B.personalRecordSources=1;B.selected=nil;P.MarkRead(c,r);B.Render(true)
+end
+B.widgetFactories.personalRecordRow=function(parent)
+ local f=B.widgetFactories.questRow(parent)
+ f.itemIcon=E.LedgerStyle.CreateIcon(f,34,12,-12)
+ f.open=B.widgetFactories.calendarControl(f);f.open:SetPoint('TOPRIGHT',-12,-10);f.open:SetSize(80,28)
+ f.open.text:SetWidth(64);f.open.text:SetFont(E.Font(),12,'');f.status:Hide()
+ f:SetScript('OnHide',function(self)E.LedgerStyle.SetIcon(self.itemIcon,nil);self.itemIcon:Hide()end)
+ return f
+end
+local function row(page,r,canOpen,open)
+ local f=B.Acquire(page,'personalRecordRow');local width=B.Width(page)
+ local output=type(r.result)=='table'and r.result.itemID and r.result or r.outputPreview
+ local itemID=K.ID(E.API.Plain(r.itemID or output and output.itemID or r.materialSpec and r.materialSpec.outputItemID))
+ E.LedgerStyle.SetIcon(f.itemIcon,itemID,r.itemLink or r.auctionData and r.auctionData.itemLink or output and output.hyperlink)
+ if itemID then f.itemIcon:Show()else f.itemIcon:Hide()end
+ local inset=itemID and 58 or 12
+ f:SetWidth(width);f.text:SetFont(E.Font(),16,'');f.text:ClearAllPoints();f.text:SetPoint('TOPLEFT',inset,-12)
+ f.text:SetWidth(math.max(40,width-inset-104))
+ f.text:SetText(E.Text(r.kind=='personal_record'and E.L[P.Label(r.recordType)]or E.Display.RecordTitle(r)or E.Display.Kind(r.kind)))
+ f.open.text:SetText(E.L['Open']..' >');E.BookTheme.ButtonStyle(f.open)
+ local meta=E.API.RecordDate(r)..' · '..E.Display.Kind(r.kind)
+ if r.kind=='personal_record'then meta=value(r)..' · '..E.API.Date(r.from)..' — '..E.API.Date(r.through-1)
+ elseif K.Number(r.quantity,0)then meta=meta..' · '..E.L['Qty.']..' '..E.Number(r.quantity)
+ elseif r.kind=='gold'and K.Number(r.amount)then meta=meta..' · '..E.Money(r.amount)end
+ f.meta:SetFont(E.Font(),12,'');f.meta:SetWidth(math.max(40,width-inset-24));f.meta:SetText(E.Text(meta))
+ local titleHeight=f.text:GetStringHeight()
+ f.meta:ClearAllPoints();f.meta:SetPoint('TOPLEFT',inset,-titleHeight-18)
+ f:SetHeight(math.max(64,titleHeight+f.meta:GetStringHeight()+30))
+ local selected=(r.kind=='personal_record'and B.personalRecord or B.selected)==r.id
+ f.tint:SetAlpha(selected and .10 or 0);f.accent:SetAlpha(r.unread and 1 or 0)
+ local activate=function()if canOpen()then open(r)end end
+ f:SetScript('OnClick',activate);f.open:SetScript('OnClick',activate);page.y=page.y+f:GetHeight()
+ return f
+end
+local function list(page,c,rows,key,sourceRecord)
+ if #rows==0 then B.Text(page,E.L['No matching recorded history yet.']);return end
+ local chapter,selected,personalRecord,tab=B.chapter,B.selected,B.personalRecord,B.personalRecordTab
+ local function current()
+  return owned(c)and B.chapter==chapter and B.selected==selected and B.personalRecord==personalRecord and B.personalRecordTab==tab
+   and(not sourceRecord or K.Record(c,sourceRecord,'personal_record'))
+ end
+ local pages=math.ceil(#rows/12);B[key]=math.max(1,math.min(B[key]or 1,pages))
+ B.Text(page,E.Format('{count} records | page {page} of {pages}',{count=#rows,page=B[key],pages=pages}),13)
+ for i=#rows-(B[key]-1)*12,math.max(1,#rows-B[key]*12+1),-1 do local r=rows[i];local kind=r.kind
+  row(page,r,function()
+   if not current()or r.kind~=kind then return false end
+   if not sourceRecord then return K.Record(c,r,'personal_record')end
+   if not K.VisibleSource(c,r)then return false end
+   for _,id in ipairs(sourceRecord.refs or{})do if id==r.id then return true end end
+   return false
+  end,function(record)if sourceRecord then B.selected=record.id;B.Render(true)else select(c,record)end end)
+ end
+ if B[key]>1 then B.Action(page,E.L['Newer entries'],function()if current()then B[key]=B[key]-1;B.Render(true)end end)end
+ if B[key]<pages then B.Action(page,E.L['Older entries'],function()if current()then B[key]=B[key]+1;B.Render(true)end end)end
 end
 local function card(page,c,category,r)
  local f=B.Acquire(page,'questRow');f:SetWidth(B.Width(page))
@@ -34,10 +88,10 @@ function V.Record(page,c,r)
  if r.incomplete then B.Text(page,E.L['Known records only; some values were not recorded.'],13)end
  if r.inferred then B.Text(page,E.L['Includes accepted inferred evidence.'],13)end
  local section=B.Section(page,E.L['The story behind the number'])
- local rows={};for _,id in ipairs(r.refs or{})do local source=c.records[id];if K.VisibleSource(c,source)then rows[#rows+1]=source end end
+ local rows,seen={},{};for _,id in ipairs(r.refs or{})do local source=c.records[id];if not seen[id]and K.VisibleSource(c,source)then rows[#rows+1]=source;seen[id]=true end end
  table.sort(rows,E.Store.Before)
  rows=E.SourceFilters.Controls(page,rows,'personal-record:'..r.id,'personalRecordSources')
- B.List(page,rows,'personalRecordSources',function(source)if owned(c)then B.selected=source.id;B.Render(true)end end)
+ list(page,c,rows,'personalRecordSources',r)
  B.EndSection(page,section)
  B.Action(page,r.starred and E.L['Unstar this memory']or E.L['Star and protect this memory'],function()
   if owned(c)and K.Record(c,r,'personal_record')then r.starred=not r.starred;E.Store.Changed(c,r);B.Render()end
@@ -64,7 +118,7 @@ function V.Render(left,right,c)
     if owned(c)then P.SetEnabled(c,key,not P.Enabled(c,key));B.Render()end
    end)
   end
- elseif B.personalRecordTab=='Record history'then B.List(left,rows,'personalRecordPage',function(r)select(c,r)end)
+ elseif B.personalRecordTab=='Record history'then list(left,c,rows,'personalRecordPage')
  else for _,category in ipairs(P.categories)do card(left,c,category,best[category.key])end end
  local selected=c.records[B.personalRecord]
  if not K.Record(c,selected,'personal_record')then

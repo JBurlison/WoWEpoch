@@ -1,6 +1,7 @@
 local _,E=...
 if E.locale~="itIT" then return end
 E.Localize({
+    ["Choose a writing prompt"]="Scegli uno spunto di scrittura",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="UN PICCOLO SOGNO CHE INDICA LA VIA",
     ["A NEW CHAPTER"]="UN NUOVO CAPITOLO",
     ["A PERSONAL BEST"]="UN NUOVO RECORD PERSONALE",

@@ -50,7 +50,7 @@ end
 assert(B.right.pool.edit[1]:GetText()=='A note worth keeping' and diary.text~='')
 
 -- Current-day heartbeat updates must not restart yesterday's selected time
--- job. The month can update today's tile once its displayed minute changes.
+-- job. Even a changed displayed minute waits for deliberate navigation.
 local live=S.Add(c,'play',tomorrow+10,{ended=tomorrow+70,status='active',title='Observed active time'})
 state=settled();B.Render()
 local report=state.days[day]
@@ -64,7 +64,7 @@ end
 assert(renders==0,'unchanged displayed play time redrew the whole book on every heartbeat')
 assert(state.days[day]==report and V.lastReport==report,'quiet updates preserve the rendered source callbacks')
 live.ended=tomorrow+131;S.Changed(c,live);settled()
-assert(renders==1,'the next displayed minute still refreshes the month')
+assert(renders==0,'the next displayed minute must not interrupt the open page')
 assert(state.days[tomorrow].activeSeconds==121 and state.activeSeconds==12600)
 -- Real historical corrections still replace the relevant totals.
 played.ended=day+10800;S.Changed(c,played);settled()

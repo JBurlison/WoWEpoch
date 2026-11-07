@@ -12,6 +12,10 @@ TEST_UI_CLICK('Quest (1)');assert(#E.JourneyView.lastRecords==1 and E.JourneyVie
 B.journeyRecordsPage=20;TEST_UI_CLICK('All events');assert(B.journeyRecordsPage==1 and #E.JourneyView.lastRecords==3)
 local pinned=0;for _,cluster in ipairs(E.JourneyView.lastClusters.clusters)do pinned=pinned+#cluster.records end
 assert(pinned+#E.JourneyView.lastClusters.unplaced==3)
+TEST_UI_CLICK('All events')
+assert(#E.JourneyView.lastRecords==0 and #E.JourneyView.lastLocation.rows==0,'selected All events clears every map/list source')
+TEST_UI_CLICK('All events')
+assert(#E.JourneyView.lastRecords==3,'unselected All events enables every source')
 local saved=F.State('journey');saved.excluded.loot=true
 local other=S.Character('source-filter-other',{name='Someone else'});B.ChangeCharacter(other.id)
 assert(F.State('journey')~=saved and not next(F.State('journey').excluded),'Filters cannot leak across characters')
@@ -19,5 +23,8 @@ B.ChangeCharacter(c.id);B.SetChapter('Calendar');E.CalendarView.SelectDay(at,'Ev
 assert(TEST_UI_FIND('Filter sources'))
 TEST_UI_CLICK('Filter sources');TEST_UI_CLICK('Loot (1)');assert(B.right.used.calendarEvent==2)
 TEST_UI_CLICK('Quest (1)');assert(B.right.used.calendarEvent==1)
+TEST_UI_CLICK('All events');assert(B.right.used.calendarEvent==3)
+TEST_UI_CLICK('All events');assert((B.right.used.calendarEvent or 0)==0)
+TEST_UI_CLICK('Loot (1)');assert(B.right.used.calendarEvent==1,'individual filters still work after clearing all')
 assert(c.records[loot.id]==loot and c.records[quest.id]==quest,'Filtering never mutates sources')
 print('PASS shared source filters: Journey map/list consistency, combined types, reset/pagination, character isolation and Calendar events')

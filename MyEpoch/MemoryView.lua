@@ -114,10 +114,12 @@ function V.Page(page,r)
     B.Ribbon(page,r.kind=="memory"and E.L["A MEMORY OF YOUR OWN"]or E.L["A CAPTURED MOMENT"])
     B.Text(page,r.title or E.L["Untitled memory"],32);B.Text(page,A.RecordDate(r).." / "..E.L["Local time"],12)
     if E.Display.Zone(r) then B.Text(page,E.Display.Zone(r),14)end
-    if r.kind=="memory" then controls(page,{{E.L["Choose memory illustration"],function()E.ArtView.OpenMemory(r)end}},1)end
+    if r.kind=="memory" then
+        controls(page,{{E.L["Choose memory illustration"],function()E.ArtView.OpenMemory(r)end}},1)
+        E.ArtView.Record(page,c,r)
+    end
     if not B.memoryEditing then
         if r.kind=="memory"then
-            E.ArtView.Record(page,c,r)
             paper(page,(r.text or r.caption or "")~=""and(r.text or r.caption)or E.L["A page waiting for your words."],19)
         else
             paper(page,(r.caption or "")~=""and r.caption or E.L["Add a caption to remember this moment."],19)
@@ -224,7 +226,13 @@ function V.Record(page,r)
     if E.KeepsakeView then E.KeepsakeView.Prompt(page,'caption:'..r.id,r)end
     local edit=B.Acquire(page,"edit"); edit:SetHeight(140); edit:SetMultiLine(true); edit:SetScript("OnEnterPressed",nil); edit:SetScript("OnTextChanged",nil)
     edit:SetText(r.caption or r.text or "")
-    edit:SetScript("OnTextChanged",function(self,user)if user then M.Edit(c,r.id,"text",self:GetText()) end end)
+    edit.inputValue=edit:GetText();edit.inputLabel='memory:caption:'..r.id
+    local pass=page.used
+    edit:SetScript("OnTextChanged",function(self,user)
+        if user and page.used==pass and B.Character()==c and c.records[r.id]==r and B.selected==r.id then
+            local value=self:GetText();if M.Edit(c,r.id,"text",value)then self.inputValue=value end
+        end
+    end)
     page.y=page.y+155; B.Text(page,E.L["Your words save as you type. Linked source records keep their original facts."],12)
     recordPicker(page,c,r,false)
     if B.memoryError then B.Text(page,E.L[B.memoryError],14) end

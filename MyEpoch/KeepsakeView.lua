@@ -98,12 +98,12 @@ function V.Sources(page,c,rows,key,pageField)
             if index>1 and(index-1)%columns==0 then y=y+height+6;height=0 end
             page.y=y;local kind=choice.kind
             local f=B.Action(page,choice.label,V.Guard(c,nil,function()
-                if kind then state.excluded[kind]=not state.excluded[kind]or nil else state.excluded={}end
+                if kind then state.excluded[kind]=not state.excluded[kind]or nil else E.SourceFilters.ToggleAll(state,report.kinds)end
                 B[pageField]=1;B.Render()
             end))
             f:SetWidth(width-6);f.text:SetWidth(width-22);f:SetHeight(math.max(32,f.text:GetStringHeight()+12))
             f:ClearAllPoints();f:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+((index-1)%columns)*width,-y)
-            E.BookTheme.ButtonStyle(f,(kind and not state.excluded[kind]or not kind and not next(state.excluded))and'filter'or nil)
+            E.BookTheme.ButtonStyle(f,(kind and not state.excluded[kind]or not kind and E.SourceFilters.AllSelected(state,report.kinds))and'filter'or nil)
             height=math.max(height,f:GetHeight())
         end
         page.y=y+height+12
@@ -122,10 +122,61 @@ function V.Sources(page,c,rows,key,pageField)
         B[pageField]=math.max(1,math.min(pages,B[pageField]+(choice=='Previous page'and -1 or 1)));B.Render()
     end))
 end
+function V.ClosePromptDropdown()
+    V.promptContext=nil
+    if V.promptOverlay then V.promptOverlay:Hide()end
+end
+local function openPromptDropdown(anchor,state)
+    if not state.valid()or E.MemoryPrompts.Hidden(state.owner)then return end
+    if V.promptContext and V.promptContext.anchor==anchor then V.ClosePromptDropdown();return end
+    if not V.promptOverlay then
+        local overlay=CreateFrame('Frame','MyEpochWritingPrompts',B.frame);V.promptOverlay=overlay
+        overlay:SetAllPoints();overlay:SetFrameStrata('FULLSCREEN_DIALOG');overlay:SetFrameLevel(B.frame:GetFrameLevel()+80)
+        local dismiss=CreateFrame('Button',nil,overlay);V.promptDismiss=dismiss
+        dismiss:SetAllPoints();dismiss:SetScript('OnClick',V.ClosePromptDropdown)
+        local panel=CreateFrame('Frame',nil,overlay);V.promptPanel=panel
+        panel:SetFrameLevel(overlay:GetFrameLevel()+2);panel:SetClampedToScreen(true);panel:EnableMouse(true);E.BookTheme.DialogPaper(panel)
+        V.promptButtons={}
+        overlay:SetScript('OnHide',function(self)
+            V.promptContext=nil
+            -- Hiding the book must also dismiss the popup's own shown state,
+            -- so reopening after combat cannot reveal an obsolete menu.
+            if self:IsShown()then self:Hide()end
+        end)
+        overlay:SetScript('OnUpdate',function()
+            local active=V.promptContext
+            if active and(not active.state.valid()or E.MemoryPrompts.Hidden(active.state.owner))then V.ClosePromptDropdown()end
+        end)
+        if UISpecialFrames then UISpecialFrames[#UISpecialFrames+1]='MyEpochWritingPrompts'end
+    end
+    local active={anchor=anchor,state=state};V.promptContext=active
+    local choices=E.MemoryPrompts.Choices(state.owner,state.context,state.key)
+    local panel=V.promptPanel;local width=math.min(560,B.Width(state.page));local y=10
+    panel:SetWidth(width);panel:ClearAllPoints();panel:SetPoint('TOPLEFT',anchor,'BOTTOMLEFT',0,-3)
+    for index,choice in ipairs(choices)do
+        local f=V.promptButtons[index]
+        if not f then
+            f=CreateFrame('Button',nil,panel);V.promptButtons[index]=f;E.BookTheme.Button(f)
+            f.text=f:CreateFontString(nil,'OVERLAY');f.text:SetFont(E.Font(),14,'');f.text:SetTextColor(.26,.15,.08)
+            f.text:SetJustifyH('LEFT');f.text:SetJustifyV('TOP');f.text:SetPoint('TOPLEFT',12,-10)
+        end
+        f:SetWidth(width-20);f.text:SetWidth(width-44);f.text:SetText(E.Text(choice.label))
+        local height=math.max(42,f.text:GetStringHeight()+20);f:SetHeight(height)
+        f:ClearAllPoints();f:SetPoint('TOPLEFT',10,-y);f:Show();E.BookTheme.ButtonStyle(f,choice.selected and'filter'or nil)
+        f:SetScript('OnClick',function()
+            if V.promptContext~=active or not state.valid()then return end
+            if E.MemoryPrompts.Select(state.owner,state.context,state.key,choice.key)then state.update()end
+            V.ClosePromptDropdown()
+        end)
+        y=y+height+4
+    end
+    for index=#choices+1,#V.promptButtons do local f=V.promptButtons[index];f:Hide();f:SetScript('OnClick',nil)end
+    panel:SetHeight(y+6);V.promptOverlay:Show()
+end
 function V.Prompt(page,key,context)
     local c=B.Character();local P=E.MemoryPrompts;if not P then return end
     key=tostring(key or'editor')
-    if page.promptPass~=page.used then page.promptPass=page.used;page.promptKeys={}end
+    if page.promptPass~=page.used then page.promptPass=page.used;page.promptKeys={};page.promptStates={}end
     if page.promptKeys[key]then return end;page.promptKeys[key]=true
     local label=B.Text(page,P.Get(c,context or'default',key)or'',13);label:SetTextColor(.48,.30,.15)
     -- Reserve the longest bundled prompt, so changing it never rebuilds the
@@ -133,16 +184,36 @@ function V.Prompt(page,key,context)
     local oldHeight=label:GetHeight();local height=oldHeight
     for _,lines in pairs(P.lines)do for _,line in ipairs(lines)do label:SetText(E.Text(E.L[line]));height=math.max(height,label:GetStringHeight())end end
     label:SetHeight(height);page.y=page.y+height-oldHeight
-    local y=page.y;local another,hide
+    local y=page.y;local choose,hide
+    local pass,chapter,selected=page.used,B.chapter,B.selected
+    local selectedRecord=selected and c.records[selected]
+    local state={owner=c,page=page,key=key,context=context or'default'}
+    state.valid=function()
+        return K.Owned(c)and B.Character()==c and B.frame:IsShown()and B.chapter==chapter and B.selected==selected
+            and(not selected or c.records[selected]==selectedRecord)and page.used==pass
+            and(type(context)~='table'or not context.id or K.Record(c,context))
+    end
     local function update()
         local hidden=P.Hidden(c);label:SetText(hidden and''or E.Text(P.Get(c,context or'default',key)))
-        if hidden then another:Hide()else another:Show()end
-        hide.text:SetText(E.L[hidden and'Show writing prompts'or'Hide']);hide:SetWidth(math.min(B.Width(page),hidden and 190 or 88));hide.text:SetWidth(hide:GetWidth()-16)
-        hide:ClearAllPoints();hide:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+(hidden and 0 or another:GetWidth()+3),-y)
+        if hidden then choose:Hide()else choose:Show()end
+        hide.text:SetText(E.L[hidden and'Show writing prompts'or'Hide'])
+        local measured=hide.text.GetStringWidth and hide.text:GetStringWidth()or #hide.text:GetText()*7
+        hide:SetWidth(math.min(B.Width(page),math.max(88,measured+28)));hide.text:SetWidth(hide:GetWidth()-16)
+        hide:ClearAllPoints();hide:SetPoint('TOPLEFT',page.content,'TOPLEFT',12+(hidden and 0 or choose:GetWidth()+3),-y)
     end
-    another=B.Action(page,E.L['Another prompt'],V.Guard(c,nil,function()P.Another(c,context or'default',key);update()end))
+    state.update=update;page.promptStates[#page.promptStates+1]=state
+    choose=B.Action(page,E.L['Choose a writing prompt']..'  v',function()openPromptDropdown(choose,state)end)
+    choose:SetScript('OnHide',function(self)
+        if V.promptContext and V.promptContext.anchor==self then V.ClosePromptDropdown()end
+    end)
     local bottom=page.y;page.y=y
-    hide=B.Action(page,E.L['Hide'],V.Guard(c,nil,function()P.Hide(c,not P.Hidden(c));update()end))
+    hide=B.Action(page,E.L['Hide'],function()
+        if not state.valid()then return end
+        P.Hide(c,not P.Hidden(c));V.ClosePromptDropdown()
+        for _,p in ipairs({B.left,B.right,B.nav})do
+            for _,shown in ipairs(p.promptStates or{})do if shown.valid()then shown.update()end end
+        end
+    end)
     page.y=math.max(bottom,page.y);update()
 end
 -- Small selectors are published from one cooperative pass; rendering never
@@ -175,6 +246,7 @@ end
 function V.Tick()
     local c=V.dirty
     if K.Owned(c)and B.frame and B.frame:IsShown()and B.Character()==c then
+        if B.chapter=='Calendar'and not B.selected then V.dirty=nil;E.CalendarView.BackgroundRefresh(c);return end
         for _,page in ipairs({B.left,B.right,B.nav})do
             for _,edit in ipairs(page and page.pool and page.pool.edit or{})do if edit:IsShown()and edit.HasFocus and edit:HasFocus()then return end end
         end

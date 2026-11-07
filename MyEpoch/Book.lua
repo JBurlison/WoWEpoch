@@ -88,6 +88,7 @@ function B.Acquire(page,kind)
             f=CreateFrame("EditBox",nil,page.content); f:SetSize(760,140); f:SetMultiLine(true); f:SetAutoFocus(false)
             f:SetFont(E.Font(),15,""); f:SetTextColor(unpack(ink)); f:SetTextInsets(8,8,8,8)
             color(f,0.98,0.90,0.70,0.6); f:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
+            f:SetScript("OnEditFocusGained",function()if E.CalendarView then E.CalendarView.HoldRefresh()end end)
         end
         page.pool[kind][i]=f
     end
@@ -189,7 +190,10 @@ function B.UpdateBadges()
 end
 E.On("RECAP_UPDATED",function() B.UpdateBadges() end)
 E.On('JOURNAL_WRITTEN',function(c)
-    if B.frame and B.frame:IsShown()and B.Character()==c and(B.chapter=='Calendar'or B.chapter=='Recaps')then B.Render()end
+    if B.frame and B.frame:IsShown()and B.Character()==c then
+        if B.chapter=='Calendar'then E.CalendarView.BackgroundRefresh(c)
+        elseif B.chapter=='Recaps'then B.Render()end
+    end
 end)
 function B.Note(page,key,canEdit)
     local c=B.Character(); B.Text(page,E.L["Your notes"],20)
@@ -200,7 +204,10 @@ function B.Note(page,key,canEdit)
     local f=B.Acquire(page,"edit"); f:SetScript("OnTextChanged",nil)
     f:SetHeight(140); f:SetMultiLine(true); f:SetScript("OnEnterPressed",nil)
     f:SetText(c.notes[key] and c.notes[key].text or "")
-    f:SetScript("OnTextChanged",function(self,user) if user and B.Character()==c and (not canEdit or canEdit()) then S.Note(c,key,self:GetText(),A.Now()) end end)
+    f.inputValue=f:GetText();f.inputLabel='note:'..tostring(key)
+    f:SetScript("OnTextChanged",function(self,user) if user and B.Character()==c and (not canEdit or canEdit()) then
+        local text=self:GetText();S.Note(c,key,text,A.Now());self.inputValue=text
+    end end)
     page.y=page.y+155; B.Text(page,E.L["Notes save as you type and stay separate from generated writing."],12)
 end
 function B.Clear(page)

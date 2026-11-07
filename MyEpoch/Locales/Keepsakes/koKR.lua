@@ -1,6 +1,7 @@
 local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
+    ["Choose a writing prompt"]="글감 선택",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="작은 꿈, 작은 이정표",
     ["A NEW CHAPTER"]="새로운 장",
     ["A PERSONAL BEST"]="나의 최고 기록",

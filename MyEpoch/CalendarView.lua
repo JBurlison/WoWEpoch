@@ -1,6 +1,15 @@
 local _,E=...
 local V,B,A,Q,D,T={},E.Book,E.API,E.Query,E.Diary,E.BookTheme; E.CalendarView=V
 local gap=6
+-- Background work may finish placeholders, but never replace an already read
+-- page. Focusing any editor holds even those initial updates until navigation.
+local displayed,refreshing
+function V.HoldRefresh()
+    if displayed and B.chapter=='Calendar'and B.Character()==displayed.owner then displayed.editing=true end
+end
+function V.WaitForPresentation(c,r,entry)
+    if displayed and B.chapter=='Calendar'and displayed.owner==c and B.selected==r.id then displayed.detailText=entry end
+end
 local kinds={{"group","group","groups","Group","Groups"},{"quest","quest","quests","Quest done","Quests done"},{"loot","loot","loot","Loot receipt","Loot receipts"},
     {"encounter_loot","boss loot notice","boss loot notices","Encounter loot notice","Encounter loot notices"},
     {"milestone","milestone","milestones","Milestone","Milestones"},{"crafted","crafted","crafted","Item crafted","Items crafted"},{"gathered","gathered","gathered","Item gathered","Items gathered"},{"recap","recap","recaps","Recap","Recaps"}}
@@ -215,6 +224,7 @@ function V.Month(left,c,prepared)
         if not day then place(B.Acquire(left,"calendarPad"),left,x,rowY,cellWidth,cellHeight)
         else
             local report=prepared.days[day] or {counts={},records={},pending=true}; local f=place(B.Acquire(left,"calendarDay"),left,x,rowY,cellWidth,cellHeight); f.day=day
+            if report.pending and not prepared.error then displayed.days[day]=true end
             T.Skin(f.face,day==B.day and "calendar-day-selected-v1" or "calendar-day-v1"); f.number:SetText(tonumber(date("%d",day)))
             if A.Day(day)==today then f.today:Show()else f.today:Hide()end
             local lines=metricLines(report.counts); local note=c.notes["day:"..A.Day(day)]; local hasNote=note and note.text and note.text:find("%S")
@@ -293,6 +303,7 @@ function V.Daily(right,c,report,prepared)
     end
     if prepared then
         prepared.playPendingShown=active==nil and (prepared.playJob or prepared.playDirty)~=nil
+        displayed.play=prepared.playPendingShown and not prepared.playError
         if prepared.playPendingShown or prepared.playError then
             B.Text(right,E.L[prepared.playError or "Updating active play time for this day..."],12)
         end
@@ -300,10 +311,14 @@ function V.Daily(right,c,report,prepared)
     local job={kind='daily',from=B.day,through=A.ShiftDay(B.day,1)}
     if diaryOpen then
         B.Text(right,E.L["The day, in words"],26)
-        local diary,writing,writeError=E.JournalViews.Watch(c,job,A.Now())
+        local diary,writing,writeError,entry=E.JournalViews.Watch(c,job,A.Now(),refreshing)
+        displayed.journal=writing=='pending'and entry or nil
         local missing=writing=='expired'and"This day's generated diary expired under your retention policy. Your personal notes remain separate."
             or writing=='error'and"This day's writing is unavailable. Your notes remain available below."or"Preparing this day's diary from recorded history..."
-        paragraph(right,diary and E.DiaryPresentation.Daily(c,diary) or E.L[missing],16)
+        local text,presentation
+        if diary then text,presentation=E.DiaryPresentation.Daily(c,diary)end
+        displayed.presentation=presentation
+        paragraph(right,text or E.L[missing],16)
         if diary and writing=='pending'then paragraph(right,E.L['Updating the saved diary...'],12)end
         if writeError then
             paragraph(right,E.L[writeError],12)
@@ -311,13 +326,14 @@ function V.Daily(right,c,report,prepared)
         end
         if diary and #(diary.refs or {})>0 then
             local busy=E.JournalJobs.Retelling(c,diary)
+            displayed.retell=busy and diary or nil
             control(right,E.L[busy and "Writing another telling..."or"Try another telling"],16,right.y,210,function()if not busy then E.JournalJobs.RequestRetell(c,diary);B.Render()end end); right.y=right.y+42
             local err=E.JournalJobs.RetellError(c,diary);if err then paragraph(right,E.L[err],12)end
         end
         local notes=B.Section(right,E.L["Your own words"])
         local key="day:"..A.Day(B.day); local note=place(B.Acquire(right,"edit"),right,20,right.y,width-40,120)
         note:SetMultiLine(true); note:SetScript("OnEnterPressed",nil); note:SetScript("OnTextChanged",nil); note:SetText(c.notes[key] and c.notes[key].text or "")
-        note:SetScript("OnTextChanged",function(self,user)if user then E.Store.Note(c,key,self:GetText(),A.Now())end end)
+        note:SetScript("OnTextChanged",function(self,user)if user then V.HoldRefresh();E.Store.Note(c,key,self:GetText(),A.Now())end end)
         right.y=right.y+134; paragraph(right,E.L["Notes save as you type and stay separate from generated writing."],12)
         B.EndSection(right,notes)
         return
@@ -370,9 +386,9 @@ function V.Daily(right,c,report,prepared)
         f:SetScript("OnClick",function()
             if B.chapter~="Calendar" or B.calendarDiaryOpen~=false or B.Character()~=c or E.db.characters[c.id]~=c or B.selected
                 or B.day~=day or B.calendarFilter~=filter or B.calendarPage~=page then return end
-            if prepared and (prepared.records~=c.records or not prepared.days or prepared.days[day]~=report or V.lastReport~=report) then return end
+            if prepared and (prepared.records~=c.records or V.lastReport~=report) then return end
             if c.records[id]~=r or r.id~=id or r.character~=c.id or r.kind~=kind or not V.Visible(c,r) then return end
-            if kind=="encounter_loot" or kind=="quest_reward" or kind=="recap" then
+            if kind~='group'or not activity then
                 local ts=V.IndexStamp(r)
                 if not ts or ts<day or ts>=A.ShiftDay(day,1) then return end
             end
@@ -502,15 +518,31 @@ function V.Tick()
     if not state then return end
     if not current(state)then
         calendarCache=nil;V.lastReport=nil
-        if B.frame and B.frame:IsShown() and B.chapter=="Calendar" and B.Character()==state.owner and not B.selected then B.Render()end
         return
     end
-    local changed=false
-    for _=1,4 do if step(state,1000)then changed=true end end
-    if playStep(state,500)then changed=true end
-    if changed or state.redraw then
-        state.redraw=nil
-        if not B.selected then B.Navigation.KeepDrafts();B.Render()end
+    for _=1,4 do step(state,1000)end
+    playStep(state,500)
+    state.redraw=nil
+    V.BackgroundRefresh(state.owner)
+end
+function V.BackgroundRefresh(owner)
+    local view,state=displayed,calendarCache
+    if not view or view.owner~=owner or view.editing or not current(state)or B.selected~=view.selected or B.day~=view.day then return end
+    local ready=false
+    if view.selected then
+        ready=view.detailText and not E.DiaryPresentation.Pending(view.detailText)
+    else
+        for day in pairs(view.days)do if state.days[day]or state.error then ready=true;break end end
+        if view.play and (state.playError or not state.playJob and not state.playDirty)then ready=true end
+        if view.journal and view.journal.status~='pending'then ready=true end
+        if view.presentation and not E.DiaryPresentation.Pending(view.presentation)then ready=true end
+        if view.retell and not E.JournalJobs.Retelling(owner,view.retell)then ready=true end
+    end
+    if ready then
+        B.Navigation.KeepDrafts()
+        -- Read the finished job without scheduling another generation merely
+        -- because recording advanced while the first one was being prepared.
+        refreshing=true;B.Render();refreshing=nil
     end
 end
 local function discard(owner)
@@ -602,6 +634,7 @@ end)
 
 function V.Render(left,right)
     local c=B.Character(); B.day=A.DayStart(B.day or A.Now())
+    displayed={owner=c,day=B.day,selected=B.selected,days={}}
     local prepared=V.Prepare(c)
     V.Month(left,c,prepared)
     local report=prepared.days[B.day]

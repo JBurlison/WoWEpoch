@@ -138,7 +138,9 @@ local function request(c,r,mode)
     if entry.ready then return entry.text end
     if not entry.job then return r.text end
     active=entry
-    return E.L[mode=='recap'and'Preparing this recap and its source records...'or"Preparing this day's diary from recorded history..."]
+    if E.CalendarView then E.CalendarView.WaitForPresentation(c,r,entry)end
+    return E.L[mode=='recap'and'Preparing this recap and its source records...'or"Preparing this day's diary from recorded history..."],entry
 end
+function P.Pending(entry)return entry and not entry.ready and valid(entry)end
 function P.Daily(c,r)return request(c,r,'daily')end
 function P.Recap(r)return request(E.Book.Character(),r,'recap')end

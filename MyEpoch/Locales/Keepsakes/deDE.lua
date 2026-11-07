@@ -1,6 +1,7 @@
 local _,E=...
 if E.locale~="deDE" then return end
 E.Localize({
+    ["Choose a writing prompt"]="Eine Schreibidee auswählen",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="EIN KLEINER TRAUM ZEIGT DEN WEG",
     ["A NEW CHAPTER"]="EIN NEUES KAPITEL",
     ["A PERSONAL BEST"]="EINE NEUE BESTLEISTUNG",
