@@ -102,6 +102,48 @@ F.Evidence(c,conflictGold.ts,{amount=-50,source="trade",session=C.session},"merc
 eq(conflictGold.source,"unknown"); eq(conflictGold.quality,"unknown"); assert(#conflictGold.attributionHistory>=2)
 -- Closing, clock gaps, restricted fields and ownership changes cannot finish a pending purchase.
 fresh(); hooks.BuyMerchantItem(1); M.Close(); eq(receipt().status,"unverified")
+-- A native window close keeps a quoted purchase long enough for delayed bags
+-- and wallet observations, even when merchant APIs become unavailable at once.
+fresh();offers[2]=offer(21099,450,1);offers[2].isUsable=false;M.Dirty();tick(1)
+hooks.BuyMerchantItem(2);local closing=receipt();eq(closing.attempts[1].amount,-450)
+C.handlers.MERCHANT_CLOSED();assert(not M.open and M.closing and M.owner==c)
+local merchantReads=0;local offerCount,buybackCount=GetMerchantNumItems,GetNumBuybackItems
+GetMerchantNumItems=function()merchantReads=merchantReads+1;error('merchant already closed')end
+GetNumBuybackItems=GetMerchantNumItems
+changeMoney(-450);tick(.6);eq(closing.status,'pending','wallet alone cannot establish a purchased recipe')
+bag(1,21099,1);C.handlers.BAG_UPDATE_DELAYED();hooks.UseContainerItem(0,1)
+eq(#closing.attempts,1,'post-close item use is not a vendor sale request')
+tick(1);eq(closing.status,'matched observations');eq(gold().source,'vendorPurchase')
+eq(closing.postCloseScope,'wallet and carried items');eq(closing.buybackAfter,nil,'unavailable buyback state is never fabricated')
+eq(merchantReads,0);assert(not M.open and not M.closing and not M.owner)
+GetMerchantNumItems=offerCount;GetNumBuybackItems=buybackCount
+-- A cached matching candidate is not accepted blindly; collect two new reads.
+fresh();hooks.BuyMerchantItem(2);bag(1,2,1);changeMoney(-100);tick(.5)
+assert(M.candidate);C.handlers.MERCHANT_CLOSED();eq(receipt().status,'pending');assert(not M.candidate)
+tick(1);eq(receipt().status,'matched observations')
+-- Partial fills, absent items, competing changes and locked reads remain unknown.
+fresh();hooks.BuyMerchantItem(1,10);changeMoney(-100);bag(1,1,5);C.handlers.MERCHANT_CLOSED();tick(3.5)
+eq(receipt().status,'unverified');eq(gold().source,'unknown');assert(not M.closing)
+fresh();hooks.BuyMerchantItem(2);changeMoney(-100);C.handlers.MERCHANT_CLOSED();tick(3.5)
+eq(receipt().status,'unverified');eq(gold().source,'unknown')
+fresh();hooks.BuyMerchantItem(2);bag(1,2,1);bag(2,1,1);changeMoney(-100);C.handlers.MERCHANT_CLOSED();tick(3.5)
+eq(receipt().status,'unverified');eq(gold().source,'unknown')
+fresh();hooks.BuyMerchantItem(2);bag(1,2,1);changeMoney(-100);locked=true;C.handlers.MERCHANT_CLOSED()
+merchantReads=0;GetMerchantNumItems=function()merchantReads=merchantReads+1;error('merchant already closed')end
+GetNumBuybackItems=GetMerchantNumItems;tick(5.5)
+eq(receipt().status,'unverified');eq(gold().source,'unknown');eq(merchantReads,0,'failed carried reads must not fall back to merchant APIs');locked=false
+GetMerchantNumItems=offerCount;GetNumBuybackItems=buybackCount
+fresh();hooks.BuyMerchantItem(2);C.handlers.MERCHANT_CLOSED();missing=true
+GetMerchantNumItems=function()merchantReads=merchantReads+1;error('merchant already closed')end
+GetNumBuybackItems=GetMerchantNumItems;tick(5.5);eq(receipt().status,'unverified');eq(merchantReads,0)
+GetMerchantNumItems=offerCount;GetNumBuybackItems=buybackCount;missing=false
+-- New vendors and explicit interruptions cannot inherit a post-close request.
+fresh();hooks.BuyMerchantItem(2);C.handlers.MERCHANT_CLOSED();local interrupted=receipt();M.Open()
+eq(interrupted.status,'unverified');assert(M.open and not M.closing)
+fresh();hooks.BuyMerchantItem(2);C.handlers.MERCHANT_CLOSED();M.Close('Logging out before merchant verification completed.')
+eq(receipt().status,'unverified');assert(not M.closing and not M.owner)
+fresh();hooks.BuyMerchantItem(2);C.handlers.MERCHANT_CLOSED();local switched=S.Character('merchant-close-other',{name='Other'});E.current=switched;M.Process(.1)
+eq(receipt().status,'unverified');eq(#Q.Kind(switched,'merchant'),0);assert(not M.closing);E.current=c
 fresh(); hooks.BuyMerchantItem(1); clock=clock-20; TEST_NOW(math.floor(clock)); M.Process(0.1); eq(receipt().status,"unverified")
 fresh(); hooks.BuyMerchantItem(1); clock=clock+20; TEST_NOW(math.floor(clock)); M.Process(0.1); eq(receipt().status,"unverified")
 fresh(); hooks.BuyMerchantItem(1); locked=true; bag(1,1,5); changeMoney(-50); tick(5.5); eq(receipt().status,"unverified"); locked=false
@@ -177,6 +219,15 @@ hooks.BuybackItem(#backs);table.remove(backs,#backs);bag(1,1,20);changeMoney(-20
 for i=1,15 do clock=clock+0.1;TEST_NOW(math.floor(clock));E.Inventory.Process(0.1);M.Process(0.1)end
 eq(receipt().source,'buyback');assert(E.BuybackCosts.Plan(c,receipt()));eq(E.Buyback.Origins(c,receipt())[1].receipt,returnSource.id)
 local afterReturn=F.Replay(c,A.Now()+1);eq(afterReturn.inventoryQuantity,beforeReturn.inventoryQuantity);eq(afterReturn.inventoryKnownCost,beforeReturn.inventoryKnownCost,'live buyback restores original basis without duplicate stock')
+-- Post-close purchase proof can reconcile actual inventory observations without
+-- inventing a buyback snapshot or duplicating stock/cost.
+M.Close();c=S.Character('merchant-close-fifo',{name='Closing Buyer'});bindWallet(c,'merchant-close-fifo')
+fresh();E.Inventory.Start(c);E.Inventory.Process(.3);E.Inventory.Process(.3)
+hooks.BuyMerchantItem(2);bag(1,2,1);changeMoney(-100);C.handlers.BAG_UPDATE_DELAYED();C.handlers.MERCHANT_CLOSED()
+for i=1,20 do clock=clock+.1;TEST_NOW(math.floor(clock));E.Inventory.Process(.1);M.Process(.1)end
+eq(receipt().source,'vendorPurchase');eq(receipt().buybackAfter,nil);assert(E.CostMatch.Plan(c,receipt()))
+local closingFIFO=F.Replay(c,A.Now()+1);eq(closingFIFO.inventoryQuantity,1);eq(closingFIFO.inventoryKnownCost,100);eq(closingFIFO.inventoryUnknownQuantity,0)
+eq(#Q.Kind(c,'cost_lot'),1,'the post-close purchase reuses the original count increase')
 M.Close(); E.Inventory.live=savedInventory
 E.current=oldCurrent; A.Item=oldItem; A.Roster=oldRoster; C.session=oldSession
 for _,name in ipairs(names)do _G[name]=saved[name]end

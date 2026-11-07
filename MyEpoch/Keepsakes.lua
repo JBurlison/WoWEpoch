@@ -55,40 +55,59 @@ end
 -- Cooperatively prepare a projection, then publish only if its source revision
 -- is still current. Each caller coalesces work under an owner/key pair.
 local queues=setmetatable({},{__mode='k'});local owners={};local cursor=0
-function K.Queue(c,key,prepare,publish,generation)
+function K.Queue(c,key,prepare,publish,generation,ready)
     if not K.Owned(c)then return end
     local queue=queues[c]
     if not queue then queue={keys={},jobs={}};queues[c]=queue;owners[#owners+1]=c end
     local old=queue.jobs[key]
-    if old then old.again={prepare=prepare,publish=publish,generation=generation};return end
-    queue.keys[#queue.keys+1]=key;queue.jobs[key]={prepare=prepare,publish=publish,generation=generation}
+    if old then old.again={prepare=prepare,publish=publish,generation=generation,ready=ready};return end
+    queue.keys[#queue.keys+1]=key;queue.jobs[key]={prepare=prepare,publish=publish,generation=generation,ready=ready}
+end
+function K.Cancel(c,key)
+    local queue=queues[c];if not queue or not queue.jobs[key]then return false end
+    queue.jobs[key]=nil
+    for i,value in ipairs(queue.keys)do if value==key then table.remove(queue.keys,i);break end end
+    return true
 end
 function K.Pending(c,key)
     local queue=queues[c];return queue and (key and queue.jobs[key]~=nil or not key and #queue.keys>0)or false
 end
 function K.Process(budget)
-    if #owners==0 then return end
-    cursor=cursor%#owners+1;local c=owners[cursor];local queue=queues[c]
-    if not K.Owned(c)or not queue or #queue.keys==0 then
-        queues[c]=nil;table.remove(owners,cursor);cursor=cursor-1;return
+    local c,queue,key,job
+    for attempt=1,#owners do
+        if #owners==0 then return end
+        cursor=cursor%#owners+1;c=owners[cursor];queue=queues[c]
+        if not K.Owned(c)or not queue or #queue.keys==0 then
+            queues[c]=nil;table.remove(owners,cursor);cursor=cursor-1
+        else
+            -- Deferred work stays visibly pending without blocking ready
+            -- work for this character or another character's next slice.
+            for i,candidate in ipairs(queue.keys)do
+                local candidateJob=queue.jobs[candidate]
+                if candidateJob.work or not candidateJob.ready or candidateJob.ready()then
+                    key,job=candidate,candidateJob;break
+                end
+            end
+            if job then break end
+        end
     end
-    local key=queue.keys[1];local job=queue.jobs[key]
+    if not job then return end
     if not job.work then
         job.revision=job.generation and job.generation()or c.revision
         job.work=E.RetentionWork.Start(function(work)return job.prepare(work)end)
         if not job.work then
-            queue.jobs[key]=nil;table.remove(queue.keys,1)
+            K.Cancel(c,key)
             E.Emit('KEEPSAKE_JOB_FAILED',c,key,'Background preparation is unavailable.')
             return
         end
     end
     local status,value=E.RetentionWork.Step(job.work,budget or 500)
     if not status then return end
-    queue.jobs[key]=nil;table.remove(queue.keys,1)
+    K.Cancel(c,key)
     local valid=K.Owned(c)and(job.generation and job.generation()or c.revision)==job.revision
     if status=='done'and valid then job.publish(value)
     elseif status=='failed'then E.Emit('KEEPSAKE_JOB_FAILED',c,key,value)end
     local again=job.again
-    if again then K.Queue(c,key,again.prepare,again.publish,again.generation)
-    elseif status=='done'and not valid and K.Owned(c)then K.Queue(c,key,job.prepare,job.publish,job.generation)end
+    if again then K.Queue(c,key,again.prepare,again.publish,again.generation,again.ready)
+    elseif status=='done'and not valid and K.Owned(c)then K.Queue(c,key,job.prepare,job.publish,job.generation,job.ready)end
 end

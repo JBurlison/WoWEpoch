@@ -12,10 +12,25 @@ for _,row in ipairs({{B.illustrations,680},{B.memoryButton,808},{B.captureButton
  local f,x=row[1],row[2];assert(f.parent==B.frame and f.point[1]=='TOPLEFT'and f.point[2]==x and f.point[3]==-73)
  assert(x>previousRight and x+f:GetWidth()<1434,'header controls overlap each other or the character picker');previousRight=x+f:GetWidth()
 end
+local focusButton=B.controllerButton
+assert(focusButton.parent==B.frame and focusButton.point[1]=='TOPLEFT'and focusButton.point[2]==1180 and focusButton.point[3]==-69)
+assert(focusButton:GetWidth()==38 and focusButton:GetHeight()==38 and not focusButton.text and focusButton.icon and #focusButton.fallback==8,
+ 'controller focus must use a compact glyph with an atlas-independent fallback')
+assert(focusButton.point[2]>previousRight and focusButton.point[2]+focusButton:GetWidth()<1434)
 for _,page in ipairs({B.left,B.right})do
  assert(page.panel.point[3]==-152 and page.panel:GetHeight()==756,'the removed strip must become page content')
  assert(page.scroll:GetHeight()==732 and page.panel.paper and page.panel.paper.texCoords[3]==211/940)
 end
+E.Controller.UpdateLegend()
+local legend=E.Controller.legend;local legendTop=-legend.point[5]
+assert(legend.parent==B.frame and legend.point[1]=='TOPLEFT'and legend.point[2]==B.frame and legend.point[3]=='TOPLEFT',
+ 'controller prompts must belong to the book header')
+assert(legendTop>=40 and legendTop+legend:GetHeight()<=-B.characterButton.point[3]-4,
+ 'header prompts must clear the title and end above header actions and character metadata')
+assert(legendTop+legend:GetHeight()<=-B.left.panel.point[3]-4,
+ 'header prompts must finish above the parchment pages')
+assert(legend.point[4]>=B.left.panel.point[2] and legend.point[4]+legend:GetWidth()<=B.right.panel.point[2]+B.right.panel:GetWidth(),
+ 'header prompts must fit between the page edges without entering the sidebar')
 assert(B.Width(B.left)==684 and B.Width(B.right)==684 and B.Width(B.nav)==196)
 assert(B.nav.panel:GetWidth()==232 and B.nav.panel:GetHeight()==778)
 assert(B.nav.panel.point[2]+B.nav.panel:GetWidth()==236 and B.left.panel.point[2]==262 and B.right.panel.point[2]==994,
@@ -27,12 +42,12 @@ B.inCombat=false;B.dragBar.scripts.OnDragStart();assert(B.frame.moving)
 B.dragBar.scripts.OnDragStop();assert(not B.frame.moving)
 B.inCombat=true;B.dragBar.scripts.OnDragStart();assert(not B.frame.moving)
 B.inCombat=false;B.dragBar.scripts.OnDragStart();B.frame.scripts.OnHide();assert(not B.frame.moving)
-local calls={};local art,memory,capture,picker=E.ArtDialog.OpenForPage,E.MemoryView.Create,MyEpoch_Capture,E.CharacterView.Toggle
+local calls={};local art,memory,capture,picker,focus=E.ArtDialog.OpenForPage,E.MemoryView.Create,MyEpoch_Capture,E.CharacterView.Toggle,E.Controller.ToggleFocus
 E.ArtDialog.OpenForPage=function()calls.art=true end;E.MemoryView.Create=function()calls.memory=true end
-MyEpoch_Capture=function()calls.capture=true end;E.CharacterView.Toggle=function()calls.picker=true end
-B.illustrations:Click();B.memoryButton:Click();B.captureButton:Click();B.characterButton:Click()
-E.ArtDialog.OpenForPage=art;E.MemoryView.Create=memory;MyEpoch_Capture=capture;E.CharacterView.Toggle=picker
-assert(calls.art and calls.memory and calls.capture and calls.picker and B.chapter==chapter,'header controls must retain their actions')
+MyEpoch_Capture=function()calls.capture=true end;E.CharacterView.Toggle=function()calls.picker=true end;E.Controller.ToggleFocus=function()calls.focus=true end
+B.illustrations:Click();B.memoryButton:Click();B.captureButton:Click();B.characterButton:Click();B.controllerButton:Click()
+E.ArtDialog.OpenForPage=art;E.MemoryView.Create=memory;MyEpoch_Capture=capture;E.CharacterView.Toggle=picker;E.Controller.ToggleFocus=focus
+assert(calls.art and calls.memory and calls.capture and calls.picker and calls.focus and B.chapter==chapter,'header controls must retain their actions')
 for _,size in ipairs({{1920,1080},{2560,1440},{3840,2160}})do
  UIParent:SetSize(size[1],size[2]);B.Fit()
  assert(B.frame:GetWidth()==1760 and B.frame:GetHeight()==940)

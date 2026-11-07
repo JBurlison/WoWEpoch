@@ -14,12 +14,10 @@ local function quote(index)
     info.itemID=itemID(A.Call("merchantItemLink",GetMerchantItemLink,index))
     return info
 end
-function M.Snapshot()
-    local out={ts=A.Now(),wallet=A.Call("merchantWallet",GetMoney),bags={},slots={},offers={},buyback={}}
+local function carriedSnapshot()
+    local out={ts=A.Now(),wallet=A.Call("merchantWallet",GetMoney),bags={},slots={}}
     local last=A.Plain(NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS)
-    local count=A.Call("merchantOfferCount",GetMerchantNumItems)
-    local back=A.Call("merchantBuybackCount",GetNumBuybackItems)
-    if not integer(out.wallet) or not integer(last,0,10) or not integer(count,0,5000) or not integer(back,0,12) then return nil end
+    if not integer(out.wallet) or not integer(last,0,10) then return nil end
     for bag=0,last do
         local n=A.Call("merchantBagSlots",C_Container and C_Container.GetContainerNumSlots,bag)
         if not integer(n,0,200) then return nil end
@@ -34,6 +32,14 @@ function M.Snapshot()
             elseif A.status.merchantBagItemID~="call succeeded; client behavior still needs validation" then return nil end
         end
     end
+    return out
+end
+function M.Snapshot()
+    local out=carriedSnapshot();if not out then return end
+    local count=A.Call("merchantOfferCount",GetMerchantNumItems)
+    local back=A.Call("merchantBuybackCount",GetNumBuybackItems)
+    if not integer(count,0,5000) or not integer(back,0,12) then return nil end
+    out.offers={};out.buyback={}
     for i=1,count do out.offers[i]=quote(i) end
     for i=1,back do
         local name,_,price,quantity=A.Call("merchantBuybackInfo",GetBuybackItemInfo,i)
@@ -47,18 +53,22 @@ end
 local function state(snapshot)
     return snapshot and {wallet=snapshot.wallet,bags=snapshot.bags,buyback=snapshot.buyback,repair=snapshot.repair,canRepair=snapshot.canRepair}
 end
-local function live() return M.open and M.owner==E.current and M.session==C.session end
+local function live() return (M.open or M.closing) and M.owner==E.current and M.session==C.session end
+local function observed(snapshot)
+    if M.closing then return snapshot and {wallet=snapshot.wallet,bags=snapshot.bags}end
+    return state(snapshot)
+end
 local function append(list,value) list[#list+1]=value end
 local function reset(snapshot)
     M.before=snapshot; M.wallets={}; M.pending=nil; M.candidate=nil; M.quiet=0; M.age=0; M.dirty=false
     if not snapshot then M.lastReceipt=nil end
 end
 function M.Open()
-    if M.open then M.Close("A new merchant visit interrupted verification.") end
+    if M.open or M.closing then M.Close("A new merchant visit interrupted verification.") end
     if not E.current then return end
     local snapshot=M.Snapshot()
     if snapshot then E.History.Wallet(E.current,A.Now(),snapshot.wallet,C.session) end
-    M.open=true; M.owner=E.current; M.session=C.session; M.lastNow=A.Now(); M.idle=0; M.visit=nil; M.lastReceipt=nil
+    M.open=true; M.closing=nil; M.owner=E.current; M.session=C.session; M.lastNow=A.Now(); M.idle=0; M.visit=nil; M.lastReceipt=nil
     M.name=A.Call("merchantName",UnitName,"npc")
     reset(snapshot); M.InstallHooks()
 end
@@ -84,7 +94,7 @@ local function begin()
     return M.pending
 end
 function M.Attempt(kind,a,b)
-    if not live() then return end
+    if not M.open or not live() then return end
     local r=begin(); local op={source=kind,requestedAt=A.Now(),observationSequence=S.ReserveObservation(M.owner)}; local before=M.before
     -- Post-hooks observe requests. Only the cached pre-request state can describe their inputs.
     local restricted=A.Secret(a) or A.Secret(b)
@@ -157,7 +167,7 @@ local function finish(after,reason,ownerChanged)
     if not r and not after then reset(nil); return end
     r=r or begin()
     local want,source=expected(M.before,r)
-    local matches=not reason and want and after and E.Same(want,state(after))
+    local matches=not reason and want and after and E.Same(observed(want),observed(after))
     r.status=matches and "matched observations" or "unverified"
     r.quality=matches and "inferred" or "unknown"; r.source=matches and source or "unknown"
     if ownerChanged then
@@ -186,10 +196,26 @@ local function finish(after,reason,ownerChanged)
     end
     reset(after)
     M.lastReceipt=matches and r.id or nil
+    if M.closing then M.closing=nil;M.owner=nil;M.visit=nil;reset(nil);M.lastReceipt=nil end
 end
 function M.Close(reason,ownerChanged)
     if M.owner and (M.pending or live() and M.dirty) then finish(nil,reason or "Merchant closed before verification completed.",ownerChanged) end
-    M.open=false; M.owner=nil; M.visit=nil; reset(nil)
+    M.open=false; M.closing=nil; M.owner=nil; M.visit=nil; reset(nil)
+end
+function M.WindowClosed()
+    local want,source=expected(M.before,M.pending)
+    if live() and M.open and want and source=="vendorPurchase"then
+        -- A shop can close before the bag/wallet events settle. Keep only this
+        -- already quoted gold-only purchase until the original bounded timeout.
+        -- Merchant offers, buyback and repair APIs are no longer read or claimed
+        -- as observed; two fresh carried-item/wallet snapshots must still match.
+        M.open=false;M.closing=true;M.candidate=nil;M.quiet=0;M.dirty=true
+        M.pending.merchantClosedAt=A.Now()
+        M.pending.postCloseScope="wallet and carried items"
+        S.Changed(M.owner,M.pending)
+        return
+    end
+    M.Close()
 end
 function M.Start(c)
     for _,r in ipairs(E.Query.Kind(c,"merchant")) do if r.status=="pending" then
@@ -198,7 +224,7 @@ function M.Start(c)
     M.InstallHooks()
 end
 function M.Process(delta)
-    if not M.open then return end
+    if not M.open and not M.closing then return end
     if not live() then M.Close("Recording character or session changed."); return end
     local now=A.Now()
     if now<M.lastNow or now-M.lastNow>15 then
@@ -211,14 +237,15 @@ function M.Process(delta)
     end
     M.quiet=M.quiet+delta; M.age=M.age+delta
     if M.quiet<0.5 and M.age<5 then return end
-    local after=M.Snapshot()
+    local after
+    if M.closing then after=carriedSnapshot()else after=M.Snapshot()end
     if not after then if M.age>=5 then finish(nil,"Inventory or wallet observations were unavailable.") end; return end
-    if M.age>=5 and (M.quiet<0.5 or not M.candidate or not E.Same(state(M.candidate),state(after))) then
+    if M.age>=5 and (M.quiet<0.5 or not M.candidate or not E.Same(observed(M.candidate),observed(after))) then
         finish(after,"Continuous changes prevented a stable merchant observation."); return
     end
-    if not M.candidate or not E.Same(state(M.candidate),state(after)) then M.candidate=after; M.quiet=0.25; return end
+    if not M.candidate or not E.Same(observed(M.candidate),observed(after)) then M.candidate=after; M.quiet=0.25; return end
     local want=expected(M.before,M.pending)
-    if M.pending and not (want and E.Same(want,state(after))) and M.age<3 then return end
+    if M.pending and not (want and E.Same(observed(want),observed(after))) and M.age<3 then return end
     finish(after)
 end
 function M.InstallHooks()
@@ -243,6 +270,6 @@ local function wrap(event,after)
     local prior=C.handlers[event]
     C.handlers[event]=function(...)if prior then prior(...) end; after(...)end
 end
-wrap("MERCHANT_SHOW",M.Open); wrap("MERCHANT_CLOSED",function()M.Close()end)
+wrap("MERCHANT_SHOW",M.Open); wrap("MERCHANT_CLOSED",M.WindowClosed)
 for _,event in ipairs({"MERCHANT_UPDATE","MERCHANT_FILTER_ITEM_UPDATE","BAG_UPDATE_DELAYED","PLAYER_EQUIPMENT_CHANGED"}) do wrap(event,M.Dirty) end
 wrap("PLAYER_LOGOUT",function()M.Close("Logging out before merchant verification completed.")end)

@@ -162,11 +162,12 @@ local function share(page,c,state)
         if state.shareText then
             B.Text(page,E.L['Select this text and copy it.'],13)
             local edit=field(page,'Shared wishes',state.shareText,function()end,true)
+            edit.controllerLiteral=true
             edit:SetHeight(200);page.y=page.y+80
         end
     else
         B.Text(page,E.L['A friend supplies the inspiration. Your progress and memories start here.'],14)
-        field(page,'Paste your friend’s sharing text',state.importText or'',action(c,state,function(value)state.importText=value;state.preview=nil end),true)
+        field(page,'Paste your friend’s sharing text',state.importText or'',action(c,state,function(value)state.importText=value;state.preview=nil end),true).controllerLiteral=true
         B.Action(page,E.L['Review these wishes'],action(c,state,function()state.preview,state.message=E.WishSharing.Preview(state.importText or'');redraw()end))
         if state.preview then
             local preview=state.preview;local definitions=preview.goals

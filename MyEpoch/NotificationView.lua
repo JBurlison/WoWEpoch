@@ -34,6 +34,7 @@ function V.Toast(batch)
     f.icon:SetTexture(record and record.icon or root..'emblem-small-v1.tga')
     local titleHeight=math.max(20,f.title:GetStringHeight());f.title:SetHeight(titleHeight)
     f:SetHeight(math.max(106,32+titleHeight+42));f:Show()
+    if E.ControllerAdapters then E.ControllerAdapters.RefreshNotifications()end
 end
 N.renderer=V.Toast
 -- Forever 1.60.1.70790, eac30af597e5aaa43a60f6675ef5fdcea100375f:
@@ -45,21 +46,8 @@ N.sound=function()
         E.API.Call('notificationSound',C_Sound.PlaySoundWithOptions,{soundKitID=kit,forceNoDuplicates=true,volumeOverride=.25})
     end
 end
-B.widgetFactories.notificationToggle=function(parent)
-    local f=CreateFrame('Button',nil,parent)
-    f.shade=f:CreateTexture(nil,'BACKGROUND');f.shade:SetColorTexture(.94,.85,.65,.38);f.shade:SetAllPoints()
-    f.rule=f:CreateTexture(nil,'BORDER');f.rule:SetColorTexture(.57,.41,.20,.30);f.rule:SetHeight(1);f.rule:SetPoint('BOTTOMLEFT');f.rule:SetPoint('BOTTOMRIGHT')
-    f.text=font(f,15);f.text:SetPoint('TOPLEFT',12,-12)
-    f.box=f:CreateTexture(nil,'ARTWORK');f.box:SetColorTexture(.40,.29,.14,1);f.box:SetSize(24,24);f.box:SetPoint('RIGHT',-12,0)
-    f.inside=f:CreateTexture(nil,'ARTWORK',nil,1);f.inside:SetColorTexture(.95,.87,.67,1);f.inside:SetSize(20,20);f.inside:SetPoint('CENTER',f.box,'CENTER')
-    f.check=f:CreateTexture(nil,'OVERLAY');f.check:SetColorTexture(.48,.25,.10,1);f.check:SetSize(12,12);f.check:SetPoint('CENTER',f.box,'CENTER')
-    f:SetHighlightTexture('Interface\\Buttons\\WHITE8X8');f:GetHighlightTexture():SetAlpha(.08)
-    return f
-end
 local function toggle(page,label,enabled,callback)
-    local f=B.Acquire(page,'notificationToggle');f:SetWidth(B.Width(page));f.text:SetWidth(B.Width(page)-60);f.text:SetText(E.Text(E.L[label]))
-    f:SetHeight(math.max(44,f.text:GetStringHeight()+24));f.check:SetAlpha(enabled and 1 or 0);f:SetScript('OnClick',callback)
-    page.y=page.y+f:GetHeight()+3
+    return B.Checkbox(page,E.L[label],enabled,callback)
 end
 function V.Render(left,right,c)
     c=c or B.Character();local prefs=N.Preferences(c);if not prefs then return end

@@ -7,7 +7,7 @@ SPECS = (
     'comparison_view_spec.lua', 'item_stories_spec.lua',
     'chapters_spec.lua', 'chapter_view_spec.lua', 'chapters_retention_spec.lua',
     'wishes_spec.lua', 'wish_sharing_spec.lua', 'wish_view_spec.lua',
-    'personal_records_spec.lua', 'notifications_spec.lua',
+    'personal_records_spec.lua', 'personal_records_performance_spec.lua', 'notifications_spec.lua',
     'richer_integration_spec.lua',
 )
 

@@ -26,6 +26,8 @@ The exhaustive suite, including the slow auction and large UI fixtures, is **man
 
 Version-changing PRs and merges still validate generated catalogs, artwork checksums, installable paths, and the ZIP. Those release safeguards are separate from the slow Lua regressions and remain enabled. Both PR and merged commits get the fast checks; an unversioned PR does not upload another large artwork archive.
 
+The manual workflow also runs `python -B -X utf8 tests/shared_ui_host.py`. This loads the full production TOC in a fresh Lua VM for each shared-UI case, preventing previous tests' mocks and navigation state from leaking into the next case. It preserves the data fixtures from `tests/run.py`, explicitly loads the prerequisite crafting archives, and leaves cold-work budget checks unwrapped. Use `--list` to see cases or repeat `--spec filename_spec.lua` to investigate selected failures. This isolated lane complements the sequential full runner; passing it does not imply every non-UI regression passed.
+
 ## CurseForge automatic packaging
 
 The project is [ME: My Epoch, ID 1785036](https://www.curseforge.com/wow/addons/me-my-epoch). Its Source setting uses this GitHub repository and **tagged commits only**. `.pkgmeta` moves the nested source folder into the installable `MyEpoch/` directory and excludes developer tools, fixtures and source evidence. The TOC records the project ID. Finished artwork and bundled licenses remain included.
@@ -49,6 +51,16 @@ The catalogs cover all eleven chapters and their detail views. Shared messages l
 Run `python -B -X utf8 tests/localization_host.py` after locale changes. It checks every supported client locale, aliases, fallback, placeholder preservation, plural forms, UI callbacks, and unchanged player text. It is also part of the fast CI suite. Verify long labels and non-Latin glyphs visually in the target client; host tests cannot prove font rendering.
 
 ## Running local checks
+
+### Controller validation
+
+The controller implementation owns My Epoch's navigation and input frames. It does not replace Blizzard's focus manager or require ImprovedForever. Keep raw input capture, semantic focus, exceptional-control adapters, and text composition separate. Every new interactive widget needs a focus descriptor or an adapter, including hover-only information; decorative widgets must not receive focus. Pooled controls must invalidate old render/owner identities.
+
+Run `.tools/venv/Scripts/python.exe -B -X utf8 tests/controller_host.py` (or your configured Python environment), `tests/controller_unicode_host.py`, and `python -m unittest discover -s tests -p test_controller_unicode_data.py` for focused checks. The controller suites join the manual full runner; ordinary CI retains its small gate. Unicode checks include the official Unicode 17 grapheme-break cases. These are Lua/host behavior checks, not controller hardware emulation.
+
+`python tools/build_controller_unicode.py --check` validates the generated data without network access. To regenerate, run the same tool without `--check`; it downloads missing source files to the ignored `.tools/unicode17` cache and rejects sources whose hashes differ from the pinned manifest. Ship the generated runtime modules and `MyEpoch/Licenses/Unicode.txt`, not the source archive or test fixtures.
+
+UIForever validates layout and synthetic interactions separately from real-client behavior. Hardware acceptance must cover Xbox/Steam Deck, PlayStation, and Switch Pro, including device glyphs and the local Confirm/Back swap; bound/unbound input consumption; held opening/closing buttons; disconnect/reconnect; native windows/chat; combat; screenshots; and ImprovedForever overlays. Simulated input or function presence does not establish taint-free operation. Keep unrun cases explicit. Controller dictionaries preserve Unicode text, but font availability and mixed-script rendering still need target-client visual checks.
 
 Use Python 3.13 or newer and Git. Create a virtual environment, then run:
 

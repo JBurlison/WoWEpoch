@@ -39,6 +39,7 @@ function V.SelectLocation(key)
     B.journeyMap=key; B.journeyBucket=nil; B.journeyRecordsPage=1; B.journeyChooser=false; B.selected=nil; B.Render(true)
 end
 function V.RefreshMap(frame)
+    local wasReady=frame.ready
     local ready=frame.art~=nil and not frame.rejected
     if ready then for i=1,#frame.art.tiles do
         if A.Call("journeyTextureReady",frame.tiles[i].IsObjectLoaded,frame.tiles[i])~=true then ready=false; break end
@@ -54,6 +55,7 @@ function V.RefreshMap(frame)
     for i,pin in ipairs(frame.pins) do if ready and i<=frame.clusterCount then pin:Show() else pin:Hide() end end
     if ready then frame.message:Hide();if explored or frame.overlayRejected then frame:SetScript("OnUpdate",nil)end
     else frame.message:SetText(frame.art and E.L["Map artwork is loading or unavailable. Open Map details to retry."] or E.L["No map artwork is available for these records."]); frame.message:Show() end
+    if ready~=wasReady and E.ControllerAdapters then E.ControllerAdapters.RefreshMap(frame)end
 end
 local function exploredTextures(frame,art)
     for _,texture in ipairs(frame.overlayTextures or{})do texture:Hide()end
@@ -128,6 +130,7 @@ function V.Draw(page,art,clusters,options)
             pin:ClearAllPoints(); pin:SetPoint("CENTER",frame,"TOPLEFT",left+cluster.x*w,-top-cluster.y*h)
             pin.fill:SetColorTexture(selected and 0.65 or 0.25,0.10,0.04,many and 0.65 or 0.9)
             pin.text:SetText(tostring(#cluster.records)); pin.key=cluster.key; pin.recordCount=#cluster.records
+            pin.controllerLabel=E.Format('{count} recorded events',{count=#cluster.records})
             if not pin.dot then pin.dot=T.Texture(pin,"location-pin-v1","ARTWORK");pin.dot:SetAllPoints()end
             pin.dot:Hide()
             pin:EnableMouse(not options)

@@ -1,4 +1,10 @@
 <Bindings>
+    <Binding name="MYEPOCH_FOCUS" category="My Epoch">
+        MyEpoch_Focus();
+    </Binding>
+    <Binding name="MYEPOCH_TOGGLE" category="My Epoch">
+        MyEpoch_Toggle();
+    </Binding>
     <Binding name="MYEPOCH_CAPTURE" category="My Epoch">
         MyEpoch_Capture();
     </Binding>

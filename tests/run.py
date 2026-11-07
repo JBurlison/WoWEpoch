@@ -67,9 +67,11 @@ lua.execute((ROOT / 'tests/company_spec.lua').read_text(encoding='utf-8'))
 lua.execute((ROOT / 'tests/company_index_spec.lua').read_text(encoding='utf-8'))
 bindings = ElementTree.parse(ROOT / 'MyEpoch/Bindings.xml').getroot()
 assert bindings.tag == 'Bindings'
+expected_bindings = {'MYEPOCH_CAPTURE', 'MYEPOCH_TOGGLE', 'MYEPOCH_FOCUS'}
+assert len(bindings) == len(expected_bindings)
+assert {binding.get('name') for binding in bindings} == expected_bindings
 for binding in bindings:
-    assert binding.tag == 'Binding' and not binding.get('default'), 'Capture must never replace an existing user binding'
-    assert binding.get('name') == 'MYEPOCH_CAPTURE'
+    assert binding.tag == 'Binding' and not binding.get('default'), 'My Epoch must never replace an existing user binding'
     lua.execute('assert(loadstring(...))', binding.text)
 lua.execute((ROOT / 'tests/memories_spec.lua').read_text(encoding='utf-8'))
 lua.execute((ROOT / 'tests/progress_spec.lua').read_text(encoding='utf-8'))
@@ -401,3 +403,6 @@ runpy.run_path(str(ROOT / 'tests/run_milestone_snapshot.py'), run_name='__main__
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/richer_memories_host.py')], check=True)
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/calendar_editing_host.py')], check=True)
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/pull_details_host.py')], check=True)
+subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/controller_host.py')], check=True)
+runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('search_cache_release_spec.lua',))
+runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('query_location_memory_spec.lua','journal_boundary_clock_spec.lua','idle_workers_spec.lua'))

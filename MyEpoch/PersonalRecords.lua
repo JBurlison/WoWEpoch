@@ -23,7 +23,15 @@ for kind in pairs(financialKinds)do interested[kind]=true end
 local busy=setmetatable({},{__mode='k'});local completed=setmetatable({},{__mode='k'})
 local generations=setmetatable({},{__mode='k'});local playVersions=setmetatable({},{__mode='k'})
 local requested=setmetatable({},{__mode='k'})
+local deferred=setmetatable({},{__mode='k'})
 local financialGeneration=0
+local function ready(c)
+ local waiting=deferred[c];if not waiting then return true end
+ local now=A.Now()
+ if now<waiting.first or now<waiting.changed then waiting.first=now;waiting.changed=now end
+ if now-waiting.changed<5 and now-waiting.first<30 then return false end
+ deferred[c]=nil;return true
+end
 local function finite(v)return K.Number(v,-9007199254740991,9007199254740991)end
 local function positive(v)return finite(v)and v>0 and v end
 local function state(c)
@@ -44,10 +52,18 @@ end
 
 -- A private checkpointed financial environment is also used by item stories.
 -- It never installs live collectors, shares caches or writes into saved history.
-function P.ReadEngine(work)
+function P.ReadEngine(work,owner)
  work=work or function()end
  local generation=financialGeneration;local liveDB=E.db
- local db=W.Copy(E.db,work)
+ -- Reuse the financial reader's audited snapshot. A whole-account deep copy
+ -- also duplicated every milestone, pull, note and journal payload on each
+ -- financial invalidation. The snapshot keeps all dates and account owners,
+ -- plus the full transitive closure of referenced non-financial evidence.
+ local history=E.AuctionHistory
+ owner=owner or E.current
+ if not K.Owned(owner)then owner=nil;for _,c in pairs(liveDB.characters)do owner=c;break end end
+ local audit=owner and history.Start(owner)
+ local db=audit and history.Snapshot(audit,work,true)or{characters={},settings={},schema=liveDB.schema,bankOrder=liveDB.bankOrder}
  local shadow=setmetatable({db=db,On=function()end,Emit=function()error('Personal record preparation is read-only')end,
   Collectors=setmetatable({handlers={}},{__index=E.Collectors})},{__index=E})
  shadow.PreparationWork=work;shadow.PreparationState={phase='Personal records'}
@@ -61,7 +77,7 @@ function P.ReadEngine(work)
  shadow.db=false
  for _,c in pairs(db.characters)do work();shadow.Query.WarmSnapshot(c,work)end
  shadow.db=db
- shadow.PreparationValid=function()return liveDB==E.db and generation==financialGeneration end
+ shadow.PreparationValid=function()return liveDB==E.db and generation==financialGeneration and(not audit or history.Valid(audit))end
  return shadow
 end
 local function references(c,set,work)
@@ -96,7 +112,7 @@ local function craftOrigin(shadow,c,allocation,work)
  end
 end
 local function financial(c,through,days,work)
- local shadow=P.ReadEngine(work);local owner=shadow.db.characters[c.id]
+ local shadow=P.ReadEngine(work,c);local owner=shadow.db.characters[c.id]
  local replay=shadow.Economy.Replay(owner,through)
  for _,info in ipairs(replay.order)do work()
   local r=info.record;local at=r.ts
@@ -128,6 +144,7 @@ local function financial(c,through,days,work)
   local coverage=shadow.Economy.WalletCoverage(owner,day,A.ShiftDay(day,1))
   bucket.net_gold.incomplete=not(coverage and coverage.complete)
  end end
+ return shadow.PreparationValid
 end
 
 -- Boundary sweep counts overlapping active intervals once, AFK never, and
@@ -214,7 +231,7 @@ function P.Build(c,through,work)
   local report=E.MobDrops.Report(c,{through=through},work)
   for _,r in ipairs(report.kills)do work();local day=A.DayStart(r.ts);days[day]=days[day]or{};add(days[day],'mobs',1,r)end
  end
- if hasEconomy then financial(c,through,days,work)end
+ local financialValid=hasEconomy and financial(c,through,days,work)
  local candidates={};for day,bucket in pairs(days)do work();for key,row in pairs(bucket)do work()
   if positive(row.value)and(not row.known or row.known>0)then
    candidates[#candidates+1]={recordType=key,value=row.value,from=day,through=A.ShiftDay(day,1),refs=references(c,row.refs,work),
@@ -235,7 +252,7 @@ function P.Build(c,through,work)
    if row.quiet then desired['baseline:'..key]=row else desired[row.key]=row end
   end
  end
- local result={desired={},best={},ids={},through=through,operations={},financialGeneration=generation}
+ local result={desired={},best={},ids={},through=through,operations={},financialGeneration=generation,financialValid=financialValid}
  for key,row in pairs(desired)do work()
   row.recordKey=key;row.unit=definitions[row.recordType].unit;result.desired[key]=row
  end
@@ -259,7 +276,7 @@ end
 local function publish(c,result)
  if not result or not K.Owned(c)then return end
  if requested[c]and result.through~=requested[c]then completed[c]=nil;P.Ensure(c,requested[c]);return end
- if result.financialGeneration~=financialGeneration then completed[c]=nil;P.Ensure(c,result.through);return end
+ if result.financialGeneration~=financialGeneration or result.financialValid and not result.financialValid()then completed[c]=nil;P.Ensure(c,result.through,true);return end
  local s=state(c);busy[c]=true
  s.baselineThrough=s.baselineThrough or result.through;s.through=result.through;s.ids=result.ids
  local changed=false
@@ -286,18 +303,21 @@ local function publish(c,result)
  if #result.operations>16 then completed[c]=nil;P.Ensure(c,result.through)
  else s.publishedThrough=math.max(s.publishedThrough or 0,result.through)end
 end
-function P.Ensure(c,through)
+function P.Ensure(c,through,automatic)
  local s=state(c);if not s then return end
  through=through or c.state.recapLoginThrough
  if not finite(through)then return end
  through=math.min(A.DayStart(through),A.DayStart(A.Now()))
+ if automatic then
+  local now=A.Now();local waiting=deferred[c]or{first=now};waiting.changed=now;deferred[c]=waiting
+ else deferred[c]=nil end
  if completed[c]==through or K.Pending(c,'personal-records')and requested[c]==through then return end
  requested[c]=through
  -- Persist the first-use quiet horizon before background work starts; reloads
  -- cannot turn a half-finished historical baseline into a burst of new wins.
  s.baselineThrough=s.baselineThrough or through
  K.Queue(c,'personal-records',function(work)return P.Build(c,through,work)end,function(result)publish(c,result)end,
-  function()return tostring(generations[c]or 0)..':'..financialGeneration..':'..tostring(requested[c])end)
+  function()return tostring(generations[c]or 0)..':'..financialGeneration..':'..tostring(requested[c])end,function()return ready(c)end)
 end
 function P.Login(c,now)
  if not K.Owned(c)then return end
@@ -328,16 +348,22 @@ local function changed(c,r,_,receipt)
    local old=playVersions[r];playVersions[r]=fingerprint
    if old==fingerprint then return end
   end
-  if financialKinds[r.kind]or financialKinds[prior]then financialGeneration=financialGeneration+1 end
+  local financial=financialKinds[r.kind]or financialKinds[prior]
+  if financial then financialGeneration=financialGeneration+1 end
   completed[c]=nil
-  if through and(r.ts<through or economic[r.kind]or economic[prior])then generations[c]=(generations[c]or 0)+1;P.Ensure(c,through)end
-  if financialKinds[r.kind]or financialKinds[prior]then
-   for _,owner in pairs(E.db.characters)do if owner~=c and K.State(owner).personalRecords then completed[owner]=nil;P.Ensure(owner)end end
+  if through and(r.ts<through or economic[r.kind]or economic[prior])then
+   generations[c]=(generations[c]or 0)+1
+   if not financial then K.Cancel(c,'personal-records');P.Ensure(c,through,true)end
+  end
+  if financial then
+   for _,owner in pairs(E.db.characters)do if owner.state.keepsakes and owner.state.keepsakes.personalRecords then
+    completed[owner]=nil;K.Cancel(owner,'personal-records');P.Ensure(owner,requested[owner],true)
+   end end
   end
  end
 end
 E.On('RECORD_ADDED',changed);E.On('RECORD_CHANGED',changed)
-E.On('RECORDS_REMOVED',function(c)if not busy[c]then financialGeneration=financialGeneration+1;generations[c]=(generations[c]or 0)+1;for _,owner in pairs(E.db.characters)do if K.State(owner).personalRecords then completed[owner]=nil;P.Ensure(owner)end end end end)
+E.On('RECORDS_REMOVED',function(c)if not busy[c]then financialGeneration=financialGeneration+1;generations[c]=(generations[c]or 0)+1;for _,owner in pairs(E.db.characters)do if owner.state.keepsakes and owner.state.keepsakes.personalRecords then completed[owner]=nil;K.Cancel(owner,'personal-records');P.Ensure(owner,requested[owner],true)end end end end)
 -- Installed after JournalJobs and Collectors. Their existing verified-login
 -- contract supplies the next-day publication cutoff.
 local login=E.JournalJobs.Login

@@ -126,6 +126,7 @@ local months={'January','February','March','April','May','June','July','August',
 function N.CloseCombo()
     if N.comboOverlay then N.comboOverlay:Hide()end
     N.comboContext=nil
+    if E.ControllerAdapters and E.ControllerAdapters.RefreshCombo then E.ControllerAdapters.RefreshCombo()end
 end
 local function comboText(parent,value,size,x,y,w)
     local text=parent:CreateFontString(nil,'OVERLAY');text:SetFont(E.Font(),size,'')
@@ -168,6 +169,7 @@ function N.UpdateComboFilter()
     end
     local height=math.min(8,#options)*28
     N.comboFilterPanel:SetHeight(height+16);syncScroll(N.comboFilterScroll,#options,8,ctx.filterOffset,height)
+    if E.ControllerAdapters and E.ControllerAdapters.RefreshCombo then E.ControllerAdapters.RefreshCombo()end
 end
 function N.OpenComboFilter(kind,anchor)
     local ctx=N.comboContext;if not ctx then return end
@@ -218,6 +220,7 @@ function N.UpdateCombo()
     N.comboCount:SetText(E.Format('Saved recaps: {count}',{count=E.Number(count)}))
     if count==0 then N.comboEmpty:Show()else N.comboEmpty:Hide()end
     syncScroll(N.comboScroll,count,8,ctx.offset,height-4)
+    if E.ControllerAdapters and E.ControllerAdapters.RefreshCombo then E.ControllerAdapters.RefreshCombo()end
 end
 function N.Combo(page,label,items)
     local f=N.Disclosure(N.Button(page,label,function()end,true),false);f.expandArrow:SetText('v')
@@ -233,7 +236,7 @@ function N.Combo(page,label,items)
             popup:EnableMouse(true);popup:EnableMouseWheel(true);T.DialogPaper(popup)
             local ribbon=popup:CreateTexture(nil,'ARTWORK');ribbon:SetPoint('TOPLEFT',3,-3);ribbon:SetPoint('TOPRIGHT',-3,-3);ribbon:SetHeight(38);ribbon:SetColorTexture(.36,.13,.085,1)
             local title=comboText(popup,E.L['Choose a recap'],18,18,12,390);title:SetTextColor(.98,.88,.65)
-            local close=comboButton(popup,'x',28,26,N.CloseCombo);close:SetPoint('TOPRIGHT',-10,-8)
+            local close=comboButton(popup,'x',28,26,N.CloseCombo);N.comboClose=close;close:SetPoint('TOPRIGHT',-10,-8)
             close.text:ClearAllPoints();close.text:SetPoint('CENTER');close.text:SetWidth(20);close.text:SetJustifyH('CENTER')
             comboText(popup,E.L['YEAR'],10,18,52,220);comboText(popup,E.L['MONTH'],10,258,52,220)
             N.comboYear=comboButton(popup,E.L['All years']..'  v',224,30,function()N.OpenComboFilter('year',N.comboYear)end);N.comboYear:SetPoint('TOPLEFT',16,-68)
@@ -256,6 +259,7 @@ function N.Combo(page,label,items)
             popup:SetScript('OnMouseWheel',scroll);N.comboScroll:EnableMouseWheel(true);N.comboScroll:SetScript('OnMouseWheel',scroll)
             for _,row in ipairs(N.comboButtons)do row:EnableMouseWheel(true);row:SetScript('OnMouseWheel',scroll)end
             local filter=CreateFrame('Frame',nil,popup);N.comboFilterPanel=filter;filter:SetWidth(224);filter:SetFrameLevel(popup:GetFrameLevel()+10)
+            filter:SetScript('OnHide',function()if E.ControllerAdapters and E.ControllerAdapters.RefreshCombo then E.ControllerAdapters.RefreshCombo()end end)
             filter:SetClampedToScreen(true);filter:EnableMouse(true);filter:EnableMouseWheel(true);T.DialogPaper(filter)
             N.comboFilterButtons={}
             for i=1,8 do local row=comboButton(filter,'',192,27);row:SetPoint('TOPLEFT',6,-8-(i-1)*28);N.comboFilterButtons[i]=row end
@@ -349,7 +353,7 @@ function N.Render(c)
         local chapter=name;local active=chapter==B.chapter
         if active then activeY=page.y end
         local f=N.Button(page,E.L[chapter],function()N.open=nil;B.SetChapter(chapter)end,active)
-        f.isChapter=true
+        f.isChapter=true;f.controllerID='chapter:'..chapter
         f.navigationShade:Hide()
         f:SetHeight(32);page.y=page.y+5;B.tabs[chapter]=f
         if not f.bookmark then f.bookmark=T.Texture(f,"bookmark-v2","ARTWORK");f.bookmark:SetAllPoints();f.chapterIcon=T.Texture(f,"icon-chronicle-v2","OVERLAY");f.chapterIcon:SetSize(20,20);f.chapterIcon:SetPoint("LEFT",9,0)end

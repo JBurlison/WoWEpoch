@@ -13,11 +13,35 @@ function methods:GetStringHeight() return math.max(20,math.ceil(#self:GetText()/
 function methods:SetMaxLines(lines) self.maxLines=lines end
 function methods:SetSpacing(spacing) self.spacing=spacing end
 function methods:SetClipsChildren(clips) self.clipsChildren=clips end
-function methods:SetScript(event,fn) self.scripts[event]=fn end
+function methods:SetScript(event,fn)
+ self.scriptHandlers=self.scriptHandlers or{};self.scriptHandlers[event]=fn
+ local hooks=self.scriptHooks and self.scriptHooks[event]
+ if hooks then
+  self.scripts[event]=function(...)if fn then fn(...)end;for _,hook in ipairs(hooks)do hook(...)end end
+ else self.scripts[event]=fn end
+end
+function methods:GetScript(event)if self.scriptHandlers then return self.scriptHandlers[event]end;return self.scripts[event]end
+function methods:HookScript(event,fn)
+ local previous=self:GetScript(event)
+ self.scriptHooks=self.scriptHooks or{};self.scriptHooks[event]=self.scriptHooks[event]or{}
+ self.scriptHooks[event][#self.scriptHooks[event]+1]=fn;self:SetScript(event,previous)
+end
 function methods:RegisterEvent(event) self.events[event]=true end
+function methods:UnregisterEvent(event) self.events[event]=nil end
+function methods:IsEventRegistered(event) return self.events[event]==true end
 function methods:Show() self.shown=true; if self.scripts.OnShow then self.scripts.OnShow(self) end end
 function methods:Hide() self.shown=false; if self.scripts.OnHide then self.scripts.OnHide(self) end end
 function methods:IsShown() return self.shown end
+function methods:IsVisible()
+ if not self:IsShown()then return false end
+ return not self.parent or self.parent:IsVisible()
+end
+function methods:GetParent()return self.parent end
+function methods:GetChildren()return unpack(self.children or{})end
+function methods:GetNumChildren()return #(self.children or{})end
+function methods:GetName()return self.name end
+function methods:GetObjectType()return self.kind or 'Frame'end
+function methods:IsObjectType(kind)return self:GetObjectType()==kind or kind=='Region'or(kind=='Frame'and self.kind~='Texture'and self.kind~='FontString'and self.kind~='Line')end
 function methods:SetShown(value) if value then self:Show() else self:Hide() end end
 function methods:SetEnabled(value) self.enabled=value end
 function methods:IsEnabled() return self.enabled~=false end
@@ -36,7 +60,39 @@ function methods:StartMoving() self.moving=true end
 function methods:StopMovingOrSizing() self.moving=false end
 function methods:Click() if self:IsEnabled() and self.scripts.OnClick then self.scripts.OnClick(self) end end
 for _,name in ipairs({"SetPoint","ClearAllPoints","SetAllPoints","SetColorTexture","SetFont","SetTextColor","SetJustifyH","SetJustifyV","SetFrameStrata","EnableMouse","EnableMouseWheel","SetHighlightTexture","SetAlpha","SetMultiLine","SetAutoFocus","SetTextInsets","ClearFocus","SetTexture"}) do methods[name]=function()end end
-local function object() return setmetatable({scripts={},events={},shown=true},{__index=methods}) end
+local function object() return setmetatable({scripts={},events={},shown=true,children={},regions={}},{__index=methods}) end
+function methods:SetParent(parent)
+ if self.parent then for i,child in ipairs(self.parent.children or{})do if child==self then table.remove(self.parent.children,i);break end end end
+ self.parent=parent
+ if parent then parent.children=parent.children or{};parent.children[#parent.children+1]=self end
+end
+function methods:SetFrameStrata(value)self.strata=value end
+function methods:GetFrameStrata()return self.strata or self.parent and self.parent:GetFrameStrata()or'MEDIUM'end
+function methods:SetAlpha(value)self.alpha=value end
+function methods:GetAlpha()return self.alpha or 1 end
+function methods:EnableMouse(value)self.mouseEnabled=value end
+function methods:IsMouseEnabled()return self.mouseEnabled==true end
+function methods:EnableMouseWheel(value)self.mouseWheelEnabled=value end
+function methods:EnableKeyboard(value)self.keyboardEnabled=value end
+function methods:IsKeyboardEnabled()return self.keyboardEnabled==true end
+function methods:EnableGamePadButton(value)self.gamePadButtonEnabled=value end
+function methods:IsGamePadButtonEnabled()return self.gamePadButtonEnabled==true end
+function methods:EnableGamePadStick(value)self.gamePadStickEnabled=value end
+function methods:IsGamePadStickEnabled()return self.gamePadStickEnabled==true end
+function methods:SetPropagateKeyboardInput(value)self.propagateKeyboardInput=value end
+function methods:GetPropagateKeyboardInput()return self.propagateKeyboardInput==true end
+function methods:RegisterForClicks(...)self.clickButtons={...}end
+function methods:IsProtected()return self.protected==true end
+function methods:SetMultiLine(value)self.multiline=value end
+function methods:IsMultiLine()return self.multiline==true end
+function methods:SetAutoFocus(value)self.autoFocus=value end
+function methods:SetCursorPosition(value)self.cursor=math.max(0,math.min(#self:GetText(),value))end
+function methods:GetCursorPosition()return self.cursor or 0 end
+function methods:HighlightText(first,last)self.selectionStart=first or 0;self.selectionEnd=last or #self:GetText()end
+function methods:SetMaxLetters(value)self.maxLetters=value end
+function methods:GetMaxLetters()return self.maxLetters or 0 end
+function methods:SetMaxBytes(value)self.maxBytes=value end
+function methods:GetMaxBytes()return self.maxBytes or 0 end
 function methods:HasFocus() return self.focused==true end
 function methods:SetFocus() self.focused=true;if self.scripts.OnEditFocusGained then self.scripts.OnEditFocusGained(self)end end
 function methods:ClearFocus() self.focused=false;if self.scripts.OnEditFocusLost then self.scripts.OnEditFocusLost(self)end end
@@ -59,14 +115,22 @@ function methods:SetThumbTexture(value) self.thumb=self.thumb or self:CreateText
 function methods:GetThumbTexture() return self.thumb end
 function methods:IsObjectLoaded() return self.loaded~=false end
 function methods:SetPoint(...) self.point={...} end
-function methods:CreateTexture() return object() end
-function methods:CreateLine() return object() end
+function methods:GetPoint(index)if not index or index==1 then return unpack(self.point or{})end end
+function methods:GetNumPoints()return self.point and 1 or 0 end
+function methods:ClearAllPoints()self.point=nil;self.allPoints=nil end
+function methods:SetAllPoints(relative)self.allPoints=relative or self.parent end
+local function region(parent,kind)
+ local f=object();f.parent=parent;f.kind=kind;parent.regions[#parent.regions+1]=f;return f
+end
+function methods:GetRegions()return unpack(self.regions or{})end
+function methods:CreateTexture() return region(self,'Texture') end
+function methods:CreateLine() return region(self,'Line') end
 function methods:SetStartPoint(...) self.startPoint={...} end
 function methods:SetEndPoint(...) self.endPoint={...} end
 function methods:SetThickness(value) self.thickness=value end
-function methods:CreateFontString() return object() end
-function methods:GetHighlightTexture() return object() end
-CreateFrame=function(kind,name,parent) local f=object(); f.kind=kind; f.parent=parent; if name then _G[name]=f end; return f end
+function methods:CreateFontString() return region(self,'FontString') end
+function methods:GetHighlightTexture()self.highlight=self.highlight or region(self,'Texture');return self.highlight end
+CreateFrame=function(kind,name,parent)local f=object();f.kind=kind;f.name=name;f:SetParent(parent);if name then _G[name]=f end;return f end
 UIParent=object(); UIParent:SetSize(1920,1080)
 UISpecialFrames={}; SlashCmdList={}; DEFAULT_CHAT_FRAME={AddMessage=function()end}
 MyEpochDB=nil

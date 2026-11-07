@@ -66,7 +66,7 @@ def main():
     current = version(ROOT)
     if (ROOT / 'design/art-matrix.json').is_file():
         subprocess.run([sys.executable, str(ROOT / 'tools/build-art-catalog.py'), '--check'], check=True)
-    for tool in ('build-quest-catalog.py', 'build_auction_readers.py', 'build_craft_projection_readers.py'):
+    for tool in ('build-quest-catalog.py', 'build_auction_readers.py', 'build_craft_projection_readers.py', 'build_controller_unicode.py'):
         subprocess.run([sys.executable, str(ROOT / 'tools' / tool), '--check'], check=True)
     active_art = active_paths(load_release_manifest(ROOT))
     actual_art = {p.relative_to(ROOT / 'MyEpoch').as_posix()

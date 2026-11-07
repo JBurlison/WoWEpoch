@@ -57,6 +57,17 @@ local function checkReceiptLinks()
  local icon=draw(first,true).itemIcon;hover(icon);assert(GameTooltip.link=='item:711900:7:0:0:0:0:-19:22')
  B.Clear(B.right);E.LootView.Record(B.right,other);local item=B.right.pool.ledgerItem[1]
  hover(item.icon);assert(GameTooltip.link=='item:711900:7:0:0:0:0:-20:22' and item.text:GetText()==other.title)
+ -- A malformed or foreign saved link cannot supply the visible item's name.
+ -- Without a validated label, ordinary cards still prefer client metadata.
+ for _,link in ipairs({'item:711900',exact:gsub('item:711900:','item:42:'),'|Hquest:711900|h[Wrong name]|h'})do
+  B.Clear(B.right);item=L.Item(B.right,itemID,'Captured fallback',1,nil,link)
+  hover(item.icon);assert(GameTooltip.link=='item:711900' and item.text:GetText()=='Explorer Staff')
+ end
+ B.Clear(B.right);item=L.Item(B.right,itemID,'Captured fallback',1)
+ assert(item.text:GetText()=='Explorer Staff','Unlinked items retain current-client names')
+ local translated='Bâton de l’aigle / 鷹之杖'
+ B.Clear(B.right);item=L.Item(B.right,itemID,'Captured fallback',1,nil,exact:gsub('Explorer Staff of the Eagle',translated))
+ assert(item.text:GetText()==translated,'Validated Unicode link labels remain byte-for-byte intact')
  L.SetIcon(item.icon,42,exact);hover(item.icon);assert(GameTooltip.link=='item:42','An unrelated link cannot leak into a reused icon')
  L.SetIcon(item.icon,42,'|Hquest:42|h[Quest]|h');hover(item.icon);assert(GameTooltip.link=='item:42')
  C_Item.GetItemInfo,LOOT_ITEM_SELF=oldInfo,oldFormat

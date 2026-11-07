@@ -712,6 +712,7 @@ function T.Process(delta)
         local selected=book.Character()
         if selected and selected~=c then T.ProcessSeries(selected) end
     end
+    if not w.priority and w.head>#w.queue then return end
     local changed=false; local requested=false;local checked={}
     for count=1,2 do
         local id=w.priority; w.priority=nil

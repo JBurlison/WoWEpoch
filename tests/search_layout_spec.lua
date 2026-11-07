@@ -6,10 +6,40 @@ end
 local function click(text)local f=find(B.left,text)or find(B.right,text);if not f then return TEST_UI_CLICK(text)end;f:Click();return f end
 local function has(page,text)for i=1,page.used.label or 0 do if page.pool.label[i]:GetText():find(text,1,true)then return true end end end
 local function input(value)local f=B.left.pool.edit[1];f:SetText(value);f.scripts.OnEnterPressed(f)end
+local request=X.Request;local requests=0
+X.Request=function(...)requests=requests+1;return request(...)end
 B.ChangeCharacter(c.id);B.SetChapter('Search')
-assert(V.lastResult.total==11 and B.right.used.searchRow==8 and not B.left.used.searchRow)
-assert(has(B.left,'Find a thread')and has(B.right,'11 matching records'))
-click('More results');assert(B.searchPage==2 and B.right.used.searchRow==3);click('Previous results')
+assert(not V.lastResult and not V.pending and not V.freshness and (B.right.used.searchRow or 0)==0 and requests==0,
+ 'Opening Search must not request or display every recorded entry')
+assert(has(B.left,'Find a thread')and not has(B.right,'matching records'))
+local edit=B.left.pool.edit[1];edit:SetText('Bramble');edit.scripts.OnTextChanged(edit,true);B.Render()
+assert(B.searchDraft=='Bramble'and not B.search and not V.lastResult and requests==0,'Typing does not submit')
+click('Record type: Everything');click('Saved notes')
+assert(B.searchDraft=='Bramble'and B.left.pool.edit[1]:GetText()=='Bramble'and not V.lastResult and requests==0,
+ 'Choosing a filter must retain an unsubmitted draft without searching it')
+click('Record type: Saved notes');click('Everything')
+input(' \t ');assert(not V.lastResult and requests==0,'Whitespace-only input leaves results idle')
+X.Request=request
+input('Westfall');assert(V.lastResult.total==9 and B.right.used.searchRow==8 and not B.left.used.searchRow)
+click('More results');assert(B.searchPage==2 and B.right.used.searchRow==1);click('Previous results')
+-- Narrowing a previously fixed-height label must measure its unrestricted text.
+local measured=false;local body
+for i=1,B.left.used.label or 0 do
+ local f=B.left.pool.label[i]
+ if f:GetText():find('Find recorded quests',1,true)then body=f;break end
+end
+assert(body,'Search help body exists')
+local measure=body.GetStringHeight
+body.GetStringHeight=function(self)
+ if self:GetWidth()==B.Width(B.left)-48 then
+  assert(self:GetHeight()==0 and self.maxLines==0,'Help text is remeasured without the old height or line limit')
+  measured=true;return 80
+ end
+ return measure(self)
+end
+B.Render();assert(measured and body:GetHeight()==80)
+assert(B.left.pool.searchPaper[1]:GetHeight()>=body:GetHeight()+50,'Help panel expands around all lines')
+body.GetStringHeight=measure
 input('Bramble');assert(V.lastResult.total==4 and B.right.used.searchRow==4)
 local before=E.Copy(c.records);local seq=c.seq
 click('A keepsake of a very good afternoon');assert(B.chapter=='Memories' and not B.memoryEditing and B.selected==c.id..':8')
@@ -17,7 +47,8 @@ click('Back to search results');assert(B.search=='Bramble' and B.searchHit==c.id
 click('Record type: Everything');assert(B.searchFiltersOpen)
 click('Saved notes');assert(not B.searchFiltersOpen and V.lastResult.total==2)
 input('100% [literal]');assert(V.lastResult.total==1)
-click('Clear search');assert(B.search=='' and B.searchFilter=='notes' and V.lastResult.total==3)
+click('Clear search');assert(B.search=='' and B.searchFilter=='notes' and not V.lastResult and not V.freshness and (B.right.used.searchRow or 0)==0)
+input('words survived');assert(V.lastResult.total==1)
 click('Saved notes (source unavailable)');assert(B.searchNoteKey=='record:missing-source' and not B.selected)
 assert(has(B.right,'Saved notes'));click('Back to search results')
 input('nothing matches this');assert(V.lastResult.total==0 and has(B.right,'No matching pages')and not has(B.right,'0 matching'))
@@ -41,4 +72,4 @@ assert(X.Find(c,'Unambiguous old keepsake').total==1)
 V.Return();input('');click('Record type: Everything')
 local other=S.Character('search-layout-other',{name='Other'});B.ChangeCharacter(other.id);B.SetChapter('Search');assert(not B.searchFiltersOpen and not B.searchHit)
 B.ChangeCharacter(c.id);assert(B.searchFiltersOpen and B.search=='')
-print('PASS Search layout: two-page results, literal filters, pagination, source/return routes, orphan notes, legacy note preservation and character isolation')
+print('PASS Search layout: idle until submitted, preserved filter drafts, wrapped help, literal filters, pagination, source/return routes, orphan notes, legacy note preservation and character isolation')

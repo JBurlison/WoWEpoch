@@ -102,8 +102,10 @@ end
 function L.Item(page,id,name,quantity,meta,link)
     local f=B.Acquire(page,'ledgerItem');f:SetWidth(width(page));f.text:SetWidth(width(page)-220);f.meta:SetWidth(width(page)-220)
     L.SetIcon(f.icon,id,link);f.icon:Show()
-    if f.icon.itemPayload then name=link:match('|h%[([^|%]]+)%]|h') or name end
-    f.text:SetText(E.Text(L.Name(id,name)))
+    -- An ID lookup identifies the base item, not the exact received variant.
+    -- Keep the label belonging to the validated tooltip link when available.
+    local linkedName=f.icon.itemPayload and link:match('|h%[([^|%]]+)%]|h')
+    f.text:SetText(E.Text(linkedName or L.Name(id,name)))
     f.quantity:SetText(quantity and quantity>0 and('x'..quantity)or'');f.meta:SetText(E.Text(meta or(id and E.Format('Item {id}',{id=id}) or E.L['Item identity unavailable'])))
     local h=math.max(24,f.text:GetStringHeight());f.meta:ClearAllPoints();f.meta:SetPoint('TOPLEFT',78,-h-20)
     f:SetHeight(math.max(78,h+f.meta:GetStringHeight()+34));page.y=page.y+f:GetHeight()+10;return f

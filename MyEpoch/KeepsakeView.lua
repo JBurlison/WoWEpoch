@@ -139,6 +139,7 @@ local function openPromptDropdown(anchor,state)
         V.promptButtons={}
         overlay:SetScript('OnHide',function(self)
             V.promptContext=nil
+            if E.ControllerAdapters then E.ControllerAdapters.Hide('writing-prompts')end
             -- Hiding the book must also dismiss the popup's own shown state,
             -- so reopening after combat cannot reveal an obsolete menu.
             if self:IsShown()then self:Hide()end
@@ -161,6 +162,7 @@ local function openPromptDropdown(anchor,state)
             f.text:SetJustifyH('LEFT');f.text:SetJustifyV('TOP');f.text:SetPoint('TOPLEFT',12,-10)
         end
         f:SetWidth(width-20);f.text:SetWidth(width-44);f.text:SetText(E.Text(choice.label))
+        f.controllerPromptKey=choice.key
         local height=math.max(42,f.text:GetStringHeight()+20);f:SetHeight(height)
         f:ClearAllPoints();f:SetPoint('TOPLEFT',10,-y);f:Show();E.BookTheme.ButtonStyle(f,choice.selected and'filter'or nil)
         f:SetScript('OnClick',function()
@@ -172,6 +174,7 @@ local function openPromptDropdown(anchor,state)
     end
     for index=#choices+1,#V.promptButtons do local f=V.promptButtons[index];f:Hide();f:SetScript('OnClick',nil)end
     panel:SetHeight(y+6);V.promptOverlay:Show()
+    if E.ControllerAdapters then E.ControllerAdapters.RefreshPrompts()end
 end
 function V.Prompt(page,key,context)
     local c=B.Character();local P=E.MemoryPrompts;if not P then return end

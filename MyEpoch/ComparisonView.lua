@@ -93,6 +93,7 @@ function V.UpdateMenu()
     end
     for i,f in ipairs(V.menuButtons)do
         local r=i<=visible and rows[count-ctx.offset-i+1]
+        f.controllerRecordID=r and r.id or nil
         if r then
             f:Show();f:SetWidth(ctx.width-24);f.text:SetWidth(ctx.width-44)
             f:ClearAllPoints();f:SetPoint('TOPLEFT',12,-12-filterHeight-(i-1)*34)
@@ -116,6 +117,8 @@ function V.UpdateMenu()
     V.menuCount:SetText(count==0 and E.Format('{count} matching records',{count=0})or E.Format('{first}–{last} of {count}',{first=ctx.offset+1,last=math.min(count,ctx.offset+8),count=count}))
     V.menuUp:EnableMouse(ctx.offset>0);V.menuUp:SetAlpha(ctx.offset>0 and 1 or .4)
     V.menuDown:EnableMouse(ctx.offset+8<count);V.menuDown:SetAlpha(ctx.offset+8<count and 1 or .4)
+    V.controllerMore=ctx.offset+8<count
+    if E.ControllerAdapters then E.ControllerAdapters.RefreshComparison()end
 end
 local function buildMenu()
     if V.menu then return end
@@ -134,7 +137,7 @@ local function buildMenu()
     V.menuUp=menuButton(panel,E.L['Up'],function()scroll(-8)end);V.menuUp:SetWidth(66);V.menuUp:SetPoint('BOTTOMRIGHT',-82,6)
     V.menuDown=menuButton(panel,E.L['Down'],function()scroll(8)end);V.menuDown:SetWidth(66);V.menuDown:SetPoint('BOTTOMRIGHT',-12,6)
     panel:SetScript('OnMouseWheel',function(_,d)scroll(-d*3)end)
-    menu:SetScript('OnHide',function()V.menuContext=nil end)
+    menu:SetScript('OnHide',function()V.menuContext=nil;if E.ControllerAdapters then E.ControllerAdapters.Hide('milestones')end end)
     menu:SetScript('OnUpdate',function()if V.menuContext and not menuValid(V.menuContext)then V.CloseMenu()end end);menu:Hide()
     UISpecialFrames=UISpecialFrames or{};UISpecialFrames[#UISpecialFrames+1]='MyEpochMilestoneDropdown'
 end

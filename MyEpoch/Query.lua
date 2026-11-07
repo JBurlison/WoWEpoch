@@ -255,8 +255,30 @@ local function indexRecord(index,r,work,detail)
     if (r.kind=="quest_reward" or old and old.reward) and rawget(E,"QuestRewards") then
         reward=E.QuestRewards.Index(index,r,old and old.reward)
     end
-    index.locations[r.id]={calendarSlot=calendarSlot,calendarBucket=calendarBucket,screenshotIndexed=screenshotIndexed,encounterLoot=encounterLoot,reward=reward,bucket=bucket,kind=r.kind,previousKind=old and old.kind,major=major,window=window,previousWindow=old and old.window,actionRefs=actionRefs,groups=groups,auction=auction,companyCounter=counted,chatSlot=chatSlot,killBlock=killBlock,creditAttempt=creditAttempt,
-        unanchoredOffer=r.kind=='trade_offer' and r.inventoryAnchor==nil or nil}
+    -- Lua 5.1 reserves hash space for every keyed constructor field, even
+    -- when most values are nil. Most records need only two to four fields;
+    -- add optional memberships only when present, preserving false values.
+    local location={bucket=bucket,kind=r.kind}
+    if calendarSlot~=nil then location.calendarSlot=calendarSlot end
+    if calendarBucket~=nil then location.calendarBucket=calendarBucket end
+    if screenshotIndexed~=nil then location.screenshotIndexed=screenshotIndexed end
+    if encounterLoot~=nil then location.encounterLoot=encounterLoot end
+    if reward~=nil then location.reward=reward end
+    if old then
+        location.previousKind=old.kind
+        if old.window~=nil then location.previousWindow=old.window end
+    end
+    if major~=nil then location.major=major end
+    if window~=nil then location.window=window end
+    if actionRefs~=nil then location.actionRefs=actionRefs end
+    if groups~=nil then location.groups=groups end
+    if auction~=nil then location.auction=auction end
+    if counted~=nil then location.companyCounter=counted end
+    if chatSlot~=nil then location.chatSlot=chatSlot end
+    if killBlock~=nil then location.killBlock=killBlock end
+    if creditAttempt~=nil then location.creditAttempt=creditAttempt end
+    if r.kind=='trade_offer' and r.inventoryAnchor==nil then location.unanchoredOffer=true end
+    index.locations[r.id]=location
     if watch then
         local token=index.locations[r.id]
         token.calendarStamp=stamp;token.calendarSequence=S.Sequence(r);token.calendarTie=r.sequence

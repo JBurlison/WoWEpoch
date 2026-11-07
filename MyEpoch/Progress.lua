@@ -208,6 +208,7 @@ function P.Process(c,now,limit)
     if c~=E.current then return end
     P.ScanAchievements(c,20)
     local st=state(c); local work=0
+    if not next(st.pending) and not next(st.metadata) then return end
     for _,key in ipairs(E.SortedKeys(st.pending)) do local p=st.pending[key]
         if p.due<=now or now<p.ts then
             if now-p.ts>30 or now<p.ts then

@@ -72,7 +72,7 @@ function I.Build(c,work)
         -- The shared reader owns its own FIFO/projection caches and yields in
         -- nested matching loops. It must never mutate the live cost ledger.
         assert(E.PersonalRecords and E.PersonalRecords.ReadEngine,'Bounded accounting reader is unavailable')
-        local engine=E.PersonalRecords.ReadEngine(work);local owner=engine.db.characters[c.id]
+        local engine=E.PersonalRecords.ReadEngine(work,c);local owner=engine.db.characters[c.id]
         out.financialValid=engine.PreparationValid
         local replay=engine.Economy.Replay(owner,math.huge)
         for _,info in ipairs(replay.order or{})do work();local projected=info.record;local r=c.records[projected.id]

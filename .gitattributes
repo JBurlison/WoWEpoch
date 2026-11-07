@@ -1,2 +1,7 @@
 # Preserve byte-pinned upstream evidence on every platform. Its checksums include line endings.
 vendor/** -text
+# Unicode outputs and conformance evidence are verified byte-for-byte.
+MyEpoch/ControllerChinese.lua -text
+MyEpoch/ControllerUnicodeData.lua -text
+MyEpoch/Licenses/Unicode.txt -text
+tests/fixtures/Unicode17-GraphemeBreakTest.txt -text -whitespace

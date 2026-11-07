@@ -1,4 +1,5 @@
 local T,A,C,S,H,F,Q=E.TrainerLearning,E.API,E.Collectors,E.Store,E.History,E.Economy,E.Query
+local savedNow=A.Now
 local now,cash,rows,kind,guid=1793900000,1000,{},0,'Creature-Trainer'
 A.Now=function()return now end
 Enum={TrainerType={General=0,Tradeskills=2,Pet=3}}
@@ -51,4 +52,5 @@ c=setup();request();learn(c);w=debit(c);C.session='other';settle();assert(w.sour
 c=setup();request();learn(c);w=debit(c);T.visit.closed=true;settle();assert(w.source=='training')
 -- Waiting at the trainer is supported; cached prices still require the exact debit.
 c=setup();for i=1,4 do now=now+5;H.Wallet(c,now,cash,C.session)end;rows={};T.Refresh();request();learn(c);w=debit(c);settle();assert(w.source=='training')
+A.Now=savedNow
 print('PASS trainer learning: removed/reordered rows, synchronous callbacks, exact quotes and debits, recipe/spell learning, corrections, ownership and ambiguity')

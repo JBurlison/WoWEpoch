@@ -46,6 +46,7 @@ local function modelScript(m,name)
 end
 local function stopModel(f)
     f.token=nil;f.layoutToken=nil;f.dragX=nil
+    f.controllerRotate=nil;f.controllerCanRotate=nil
     f:SetScript('OnUpdate',nil)
     local m=f.model;if not m then return end
     for _,script in ipairs({'OnUpdate','OnModelLoaded','OnModelCleared','OnDressModel','OnMouseDown','OnMouseUp'})do if modelScript(m,script)then pcall(m.SetScript,m,script,nil)end end
@@ -94,6 +95,15 @@ local function modelPreview(page,c,r,s,state,area,context)
     table.sort(items,function(a,b)return a.slot<b.slot end)
     local token={};f.token=token;local busy=false;local bodyLoaded=false;local loadedFileID;local loadedWhileDressing=false;local dirty=true;local settle=false;local elapsed,retry=0,0
     local function current()return f.token==token and state.preview and state.tab=='Equipment'and B.chapter==chapter and equipmentValid(c,r,s,state,context)and loggedIn(c)end
+    if type(m.SetFacing)=='function'then
+        f.controllerCanRotate=function()return current()and not dirty and not settle end
+        f.controllerRotate=function(delta)
+            if not f.controllerCanRotate or not f.controllerCanRotate()or type(delta)~='number'then return false end
+            local facing=((state.previewFacing or 0)+delta)%(2*math.pi)
+            if pcall(m.SetFacing,m,facing)then state.previewFacing=facing;return true end
+            return false
+        end
+    end
     local rotatable=type(m.SetFacing)=='function'and type(m.GetFacing)=='function'and type(m.GetEffectiveScale)=='function'
         and type(GetCursorPosition)=='function'and type(IsMouseButtonDown)=='function'
         and modelScript(m,'OnMouseDown')and modelScript(m,'OnMouseUp')

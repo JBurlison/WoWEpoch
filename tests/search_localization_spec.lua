@@ -8,16 +8,21 @@ local oldQuest,oldItem=E.Display.Quest,E.Display.Item
 E.Display.Quest=function(id,fallback)return id==990097 and 'Current client quest name' or oldQuest(id,fallback)end
 E.Display.Item=function(id,fallback)return id==990098 and 'Current client item name' or oldItem(id,fallback)end
 B.ChangeCharacter(c.id);B.SetChapter('Search');TEST_PREPARE_BOOK()
+assert(not V.lastResult,'An untranslated or translated idle search has no matches')
+local function search(text)local edit=B.left.pool.edit[1];edit:SetText(text);edit.scripts.OnEnterPressed(edit);TEST_PREPARE_BOOK()end
 local function has(page,value)
     for _,pool in pairs(page.pool)do for _,f in ipairs(pool)do
         if f.GetText and f:GetText()==value or f.text and f.text:GetText()==value then return true end
     end end
 end
 assert(has(B.left,E.L['Find a thread']))
+search('Find a thread')
 assert(has(B.right,'Find a thread'),'player-authored title is not translated')
+search('Captured')
 assert(has(B.right,'Current client quest name')and has(B.right,'Current client item name'),'IDs resolve display names without rewriting records')
 TEST_UI_CLICK(E.Format('Record type: {type}',{type=E.L.Everything}))
 TEST_UI_CLICK(E.L['Saved notes']);assert(B.searchFilter=='notes')
+search('These words belong to me')
 assert(has(B.right,E.L['Saved notes (source unavailable)']))
 assert(quest.title=='Captured quest name'and item.title=='Captured item name')
 assert(memory.title=='Find a thread'and memory.text=='My own words')
