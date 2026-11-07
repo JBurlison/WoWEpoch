@@ -87,7 +87,34 @@ local function encounter(page,c,r,entry,report)
         end
     end
 end
+function V.Receipt(page,c,r)
+    if r.kind~='loot'or not valid(c,r)then return end
+    local report=L.Get(c)
+    if not report then
+        waiting={owner=c,record=r,pass=page.used,chapter=B.chapter,page=page}
+        return
+    end
+    local source,link=report.receiptSources[r.id],report.receiptLinks[r.id]
+    if source then
+        local section=B.Section(page,E.L['Dropped by'])
+        row(page,source.name or E.Format('NPC {id}',{id=source.npcID}),
+            E.L[source.basis=='exact'and'Recorded creature source'or'Approximate loot match'],nil,nil,function()
+                if valid(c,r)and B.selected==r.id then open(c,source.record)end
+            end)
+        if link and link.inferred then B.Action(page,E.L['Dismiss approximate match'],function()
+            if valid(c,r)and B.selected==r.id and L.DismissReceipt(c,r,link.window)then B.Render()end
+        end)end
+        B.EndSection(page,section)
+    elseif link and link.rejected then
+        B.Action(page,E.L['Restore dismissed source match'],function()
+            if valid(c,r)and B.selected==r.id and L.RestoreReceipt(c,r)then B.Render()end
+        end)
+    elseif r.npcID then
+        B.Text(page,E.L['Dropped by']..' · '..(r.npcName or E.Format('NPC {id}',{id=r.npcID})),16)
+    end
+end
 function V.Record(page,c,r)
+    if r.kind=='loot'then return V.Receipt(page,c,r)end
     if not supported[r.kind]or not valid(c,r)then return end
     if B.killLootRecord~=r.id then
         B.killLootRecord=r.id;B.killLootItems=1;B.killLootWindows=1;B.killLootReceipts=1;B.killLootLinks=1;B.killLootDetails=false

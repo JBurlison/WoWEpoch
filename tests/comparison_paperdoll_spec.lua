@@ -45,6 +45,19 @@ end
 local left,right=tick(B.left),tick(B.right)
 assert(created==2 and left~=right and left.alpha==1 and right.alpha==1,'Both sides have independent saved-gear models')
 assert(#left.gear==1 and left.gear[1]=='item:25:7'and #right.gear==1 and right.gear[1]=='item:26:7','Neither model retains currently equipped gear')
+-- Wide comparison cards must not widen the camera canvas: the native model
+-- projection otherwise clips a full-body character to its torso.
+local widths={B.left.width,B.right.width};local modelWidth,modelHeight=left:GetWidth(),left:GetHeight()
+for _,width in ipairs({690,760,1000})do
+ B.left.width=width;B.right.width=width;B.Render();left=tick(B.left);right=tick(B.right)
+ for _,pair in ipairs({{B.left,left},{B.right,right}})do
+  local panel=pair[1].pool.milestoneModel[1];local m=pair[2]
+  assert(m:GetWidth()==modelWidth and m:GetHeight()==modelHeight and m:GetWidth()<m:GetHeight(),'Growing the equipment card preserves a portrait model viewport')
+  assert(m.point[1]=='TOP'and m.point[2]==panel and m.point[3]=='TOP'and m.point[4]==0,'Both model canvases stay centered between equipment columns')
+  assert(m:GetWidth()<=panel:GetWidth()-16 and m:GetHeight()<panel:GetHeight()-60,'Model stays within the card and leaves room for its caption')
+ end
+end
+B.left.width=widths[1];B.right.width=widths[2];B.Render();left=tick(B.left);right=tick(B.right)
 local oldTick=left.scripts.OnUpdate
 button(B.left,'Hide gear preview'):Click();oldTick(left,.3);right=tick(B.right)
 assert(left.alpha==0 and #left.gear==0 and right.alpha==1,'Hiding one preview leaves the other available; old callbacks stay invalid')

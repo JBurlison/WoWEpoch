@@ -1,6 +1,10 @@
 local _,E=...
 if E.locale~="frFR" then return end
 E.Localize({
+    ["Dropped by"]="Butin de",
+    ["Recorded creature source"]="Créature source enregistrée",
+    ["Approximate loot match"]="Lien de butin approximatif",
+    ["Restore dismissed source match"]="Rétablir le lien de source écarté",
     ["Loot from this defeat"]="Butin de cette victoire",
     ["Looking for loot from this defeat…"]="Recherche du butin de cette victoire…",
     ["No loot encounter has been linked yet."]="Aucune découverte de butin n'a encore été reliée.",

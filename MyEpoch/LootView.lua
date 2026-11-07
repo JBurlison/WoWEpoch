@@ -50,7 +50,7 @@ function V.Record(page,r)
     if recipient then subtitle=subtitle.." / "..recipient end
     E.LedgerStyle.Item(page,r.itemID,E.LedgerStyle.Name(r.itemID,r.title),r.quantity,subtitle,r.itemLink)
     if r.itemID then B.Action(page,E.L['Item story'],function()E.ItemStoryView.Open(c,r.itemID)end)end
-    if r.npcID then local _,mob=L.Dimension(c,r,"mob");B.Text(page,mob,16)end
+    if E.KillLootView then E.KillLootView.Receipt(page,c,r)end
     if r.vendorUnitValue and r.vendorUnitValue>0 then
         E.LedgerStyle.Amount(page,E.L["Vendor estimate"],r.vendorUnitValue*(r.quantity or 1))
     end

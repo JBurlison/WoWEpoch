@@ -115,7 +115,12 @@ local function modelPreview(page,c,r,s,state,area,context)
         if busy then return end
         f.dragX=nil;m:SetAlpha(0);dirty=true;settle=false;retry=0;f.brand:Show();f.brandTitle:Show();f.status:SetText(E.L['Loading saved gear...'])
     end
-    m:SetAlpha(0);m:ClearAllPoints();m:SetPoint('TOPLEFT',8,-8);m:SetSize(area.width-16,area.height-76)
+    -- DressUpModel's default camera expands the character with a wide viewport.
+    -- Keep a portrait-shaped canvas inside the wider paper doll so comparisons
+    -- do not crop the head and feet. Captions still use the full center column.
+    local modelHeight=area.height-76
+    local modelWidth=math.min(area.width-16,modelHeight*.8)
+    m:SetAlpha(0);m:ClearAllPoints();m:SetPoint('TOP',f,'TOP',0,-8);m:SetSize(modelWidth,modelHeight)
     local ok=pcall(function()
         if not modelScript(m,'OnModelLoaded')then error('Model load callback unavailable')end
         m:SetScript('OnModelLoaded',function()if f.token~=token then return end;bodyLoaded=true;loadedFileID=nil;if busy then loadedWhileDressing=true else invalidate()end end)

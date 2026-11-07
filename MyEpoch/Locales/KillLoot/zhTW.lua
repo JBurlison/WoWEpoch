@@ -1,6 +1,10 @@
 local _,E=...
 if E.locale~="zhTW" then return end
 E.Localize({
+    ["Dropped by"]="掉落自",
+    ["Recorded creature source"]="已記錄的來源生物",
+    ["Approximate loot match"]="推測的戰利品關聯",
+    ["Restore dismissed source match"]="還原已忽略的來源關聯",
     ["Loot from this defeat"]="本次擊殺的戰利品",
     ["Looking for loot from this defeat…"]="正在尋找本次擊殺的戰利品……",
     ["No loot encounter has been linked yet."]="尚未關聯任何戰利品發現記錄。",

@@ -1,6 +1,10 @@
 local _,E=...
 if E.locale~="deDE" then return end
 E.Localize({
+    ["Dropped by"]="Beute von",
+    ["Recorded creature source"]="Aufgezeichnete Beutequelle",
+    ["Approximate loot match"]="Vermutete Beutezuordnung",
+    ["Restore dismissed source match"]="Verworfene Quellenzuordnung wiederherstellen",
     ["Loot from this defeat"]="Beute aus diesem Sieg",
     ["Looking for loot from this defeat…"]="Beute aus diesem Sieg wird gesucht…",
     ["No loot encounter has been linked yet."]="Noch kein Beutefund zugeordnet.",

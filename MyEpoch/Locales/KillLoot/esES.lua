@@ -1,6 +1,10 @@
 local _,E=...
 if E.locale~="esES" then return end
 E.Localize({
+    ["Dropped by"]="Botín de",
+    ["Recorded creature source"]="Criatura de origen registrada",
+    ["Approximate loot match"]="Vínculo aproximado del botín",
+    ["Restore dismissed source match"]="Restaurar vínculo de origen descartado",
     ["Loot from this defeat"]="Botín de esta victoria",
     ["Looking for loot from this defeat…"]="Buscando el botín de esta victoria…",
     ["No loot encounter has been linked yet."]="Todavía no se ha vinculado ningún hallazgo de botín.",

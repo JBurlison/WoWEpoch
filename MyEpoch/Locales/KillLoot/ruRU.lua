@@ -1,6 +1,10 @@
 local _,E=...
 if E.locale~="ruRU" then return end
 E.Localize({
+    ["Dropped by"]="Добыча с",
+    ["Recorded creature source"]="Источник добычи записан",
+    ["Approximate loot match"]="Предполагаемый источник добычи",
+    ["Restore dismissed source match"]="Восстановить отклонённую связь с источником",
     ["Loot from this defeat"]="Добыча за эту победу",
     ["Looking for loot from this defeat…"]="Поиск добычи за эту победу…",
     ["No loot encounter has been linked yet."]="Пока не связано ни одной находки добычи.",

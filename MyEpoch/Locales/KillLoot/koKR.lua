@@ -1,6 +1,10 @@
 local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
+    ["Dropped by"]="전리품 출처",
+    ["Recorded creature source"]="기록된 출처 생물",
+    ["Approximate loot match"]="추정 전리품 연결",
+    ["Restore dismissed source match"]="제외한 출처 연결 복원",
     ["Loot from this defeat"]="이 처치의 전리품",
     ["Looking for loot from this defeat…"]="이 처치의 전리품을 찾고 있어요…",
     ["No loot encounter has been linked yet."]="아직 연결된 전리품 발견 기록이 없어요.",

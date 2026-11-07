@@ -1,6 +1,10 @@
 local _,E=...
 if E.locale~="ptBR" then return end
 E.Localize({
+    ["Dropped by"]="Saque de",
+    ["Recorded creature source"]="Criatura de origem registrada",
+    ["Approximate loot match"]="Vínculo aproximado do saque",
+    ["Restore dismissed source match"]="Restaurar vínculo de origem descartado",
     ["Loot from this defeat"]="Saque desta vitória",
     ["Looking for loot from this defeat…"]="Procurando o saque desta vitória…",
     ["No loot encounter has been linked yet."]="Nenhum saque encontrado foi vinculado ainda.",

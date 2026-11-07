@@ -355,7 +355,7 @@ function B.Record(page,r)
     if E.LootView then E.LootView.Record(page,r) end
     if E.ProductionView then E.ProductionView.Record(page,r) end
     if E.DropView then E.DropView.Record(page,r) end
-    if E.KillLootView then E.KillLootView.Record(page,c,r)end
+    if E.KillLootView and not itemReceipt then E.KillLootView.Record(page,c,r)end
     if contextSection then B.EndSection(page,contextSection)end
     if E.MemoryView and not itemReceipt then E.MemoryView.Record(page,r) end
     if r.partialBoundary then B.Text(page,E.L["The previous milestone was not observed. This recap covers available history only."]) end

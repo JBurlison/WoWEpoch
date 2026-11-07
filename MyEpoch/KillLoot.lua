@@ -7,7 +7,7 @@ local function integer(v)return K.Number(v,1,9007199254740991)and v%1==0 and v o
 local function text(v)return type(v)=='string'and v~=''and v or nil end
 local function ordered(r)return integer(r.sequence)end
 local function owned(c,r,kind)return K.Record(c,r,kind)end
-local function empty()return {byKill={},byRecord={},windows={},unmatched={},evidence={}}end
+local function empty()return {byKill={},byRecord={},windows={},unmatched={},evidence={},receiptLinks={},receiptSources={}}end
 local function values(set,work)
  local rows={};for id in pairs(set or{})do work();rows[#rows+1]=id end
  W.Sort(rows,function(a,b)return tostring(a)<tostring(b)end,work);return rows
@@ -55,6 +55,51 @@ local function receipt(r)
  return r.kind=='loot'and(not r.source or r.source=='unknown'or r.source=='CHAT_MSG_LOOT'or r.source=='loot')
   and not r.gathering and not r.gatheringOriginal and not r.purchase and not r.merchant and not r.craft
 end
+function L.DismissReceipt(c,r,window)
+ if not owned(c,r,'loot')then return false end
+ local report=L.Get(c);local link=report and report.receiptLinks[r.id]
+ if not link or not link.inferred or window and link.window~=window then return false end
+ local state=K.State(c);state.lootReceiptDismissed=state.lootReceiptDismissed or{}
+ local rows=state.lootReceiptDismissed[r.id]or{};state.lootReceiptDismissed[r.id]=rows
+ rows[link.window.id]=true;S.Touch(c,'killLoot',{record=r});return true
+end
+function L.RestoreReceipt(c,r)
+ if not owned(c,r,'loot')then return false end
+ local state=K.State(c)
+ if state.lootReceiptDismissed then state.lootReceiptDismissed[r.id]=nil;S.Touch(c,'killLoot',{record=r})end
+ return true
+end
+function L.ReceiptSource(c,r)
+ if not owned(c,r,'loot')then return end
+ local report=L.Get(c);return report and report.receiptSources[r.id],report and report.receiptLinks[r.id]
+end
+local function variant(r)return type(r.itemLink)=='string'and r.itemLink:match('|H(item:[^|]+)|h')end
+-- A receipt may arrive just after auto-loot closes the window. Reconstruct
+-- that association from retained item observations, without rewriting history.
+local function receiptItem(info,r,work)
+ local slots,source,sourceDrop,conflict={},nil,nil,false
+ for _,d in ipairs(info.drops)do work()
+  if d.itemID==r.itemID and(not variant(r)or not variant(d)or variant(r)==variant(d))then
+   for _,sample in ipairs(type(d.snapshots)=='table'and d.snapshots or{})do work();local data=type(sample)=='table'and sample.data
+    if type(data)=='table'and integer(sample.sequence)and sample.sequence>=(ordered(d)or math.huge)
+     and sample.sequence>=(ordered(info.window)or math.huge)and data.itemID==r.itemID
+     and not data.cleared and data.itemPresent~=false then
+     if integer(d.slot)and integer(data.visibleQuantity)then slots[d.slot]=math.max(slots[d.slot]or 0,data.visibleQuantity)end
+     if data.slotSources~=nil then
+      local sources=data.slotSources;local s=type(sources)=='table'and #sources==1 and sources[1]
+      if type(s)~='table'or not text(s.guid)or not integer(s.npcID)
+       or(s.kind~='Creature'and s.kind~='Vehicle')or not s.guid:match('^'..s.kind..'%-')
+       or s.quantity~=nil and(not integer(s.quantity)or data.visibleQuantity~=nil and s.quantity~=data.visibleQuantity)
+       or source and source.guid~=s.guid then conflict=true
+      else source=source or s;sourceDrop=sourceDrop or d end
+     end
+    end
+   end
+  end
+ end
+ local quantity=0;for _,value in pairs(slots)do work();quantity=quantity+value end
+ return quantity,not conflict and source or nil,not conflict and sourceDrop or nil
+end
 local function groupMatches(a,b)
  return a.group and a.group==b.group or not a.group and not b.group and a.groupState=='solo'and b.groupState=='solo'
 end
@@ -95,7 +140,7 @@ function L.Build(c,work)
    records[id]=r
    if r.kind=='loot_window'then windows[id]={window=r,drops={},receipts={},items={},candidates={},encounters={},last=r.ts}
    elseif r.kind=='drop'and r.source=='loot_window'then drops[#drops+1]=r
-   elseif r.observedLootWindow and(r.kind=='loot'or r.kind=='crafted'or r.kind=='gathered')then receipts[#receipts+1]=r end
+   elseif r.kind=='loot'or r.observedLootWindow and(r.kind=='crafted'or r.kind=='gathered')then receipts[#receipts+1]=r end
    if(r.kind=='kill'or r.kind=='kill_observation')and text(r.victimGUID)then
     local rows=byGUID[r.victimGUID]or{};byGUID[r.victimGUID]=rows;rows[#rows+1]=r
    elseif r.kind=='gap'then
@@ -162,6 +207,54 @@ function L.Build(c,work)
   orderedWindows[#orderedWindows+1]=info
  end
  W.Sort(orderedWindows,function(a,b)local aa,bb=ordered(a.window)or 0,ordered(b.window)or 0;return aa==bb and a.window.id<b.window.id or aa<bb end,work)
+ -- Index visible items by login and time. Missing window IDs must not turn
+ -- every receipt into a scan of the whole character's history.
+ local receiptIndex={}
+ for _,info in ipairs(orderedWindows)do work();local w=info.window
+  if text(w.session)and S.Timestamp(w)then
+   local session=receiptIndex[w.session]or{};receiptIndex[w.session]=session
+   for item in pairs(info.items)do work();local rows=session[item]or{};session[item]=rows;rows[#rows+1]=info end
+  end
+ end
+ for _,session in pairs(receiptIndex)do for _,rows in pairs(session)do
+  W.Sort(rows,function(a,b)return a.window.ts==b.window.ts and(ordered(a.window)or 0)<(ordered(b.window)or 0)or a.window.ts<b.window.ts end,work)
+ end end
+ for _,r in ipairs(receipts)do work()
+  if receipt(r)and integer(r.itemID)and integer(r.quantity)and S.Timestamp(r)and ordered(r)then
+   local chosen,inferred
+   if r.observedLootWindow then chosen=windows[r.observedLootWindow]
+   elseif text(r.session)and integer(r.mapID)then
+    local rows=receiptIndex[r.session]and receiptIndex[r.session][r.itemID]or{}
+    local low,high=1,#rows+1
+    while low<high do work();local mid=math.floor((low+high)/2);if rows[mid].window.ts<r.ts-L.seconds then low=mid+1 else high=mid end end
+    local ambiguous=false
+    for i=low,#rows do work();local info=rows[i];local w=info.window;if w.ts>r.ts then break end
+     local close=w.closedAt or info.last or w.ts
+     if ordered(w)and w.sequence<r.sequence and w.mapID==r.mapID and groupMatches(w,r)
+      and r.ts<=close+2 and not info.excluded and not info.invalidOrder then
+      local d=distance(w,r);local quantity=receiptItem(info,r,work)
+      local missing=false
+      for _,gap in ipairs(gaps)do work();if gap.from<=r.ts and gap.through>=w.ts then missing=true;edge(r.id,gap.record.id)end end
+      if not missing and d~=false and(not d or d<=L.distance)and quantity>=r.quantity then
+       edge(r.id,w.id);if chosen then ambiguous=true end;chosen=info
+      end
+     end
+    end
+    if ambiguous then chosen=nil end;inferred=chosen~=nil
+   end
+   if chosen then
+    local w=chosen.window;local quantity,source,drop=receiptItem(chosen,r,work)
+    if not chosen.excluded and not chosen.invalidOrder and r.session==w.session and ordered(w)and w.sequence<r.sequence
+     and S.Timestamp(w)and r.ts>=w.ts and r.ts<=math.max(chosen.last or w.ts,w.closedAt or w.ts)+2 and quantity>=r.quantity then
+     local state=c.state and c.state.keepsakes;local rejected=state and state.lootReceiptDismissed
+     rejected=inferred and rejected and rejected[r.id]and rejected[r.id][w.id]or false
+     out.receiptLinks[r.id]={window=w,inferred=inferred==true,rejected=rejected,source=source,drop=drop}
+     edge(r.id,w.id)
+     if inferred and not rejected then chosen.receipts[#chosen.receipts+1]=r end
+    end
+   end
+  end
+ end
  local view={id=c.id,records=records}
  local exact=E.MobDrops.Report(view,nil,work)
  local used,knownItems,lastWindow,killIndex={},{},{},{}
@@ -276,10 +369,26 @@ function L.Build(c,work)
     for id in pairs(receiptTargets[w.id]and receiptTargets[w.id][r.itemID]or{})do work();if target then ambiguous=true end;target=id end
     local found=not ambiguous and target and out.byKill[target];local association
     if found then for _,a in ipairs(found.windows)do work();if a.window==w then association=a;break end end end
-    if found and association then found.receipts[#found.receipts+1]=r;association.receipts[#association.receipts+1]=r;map(r.id,found);edge(found.kill.id,r.id)end
+    local link=out.receiptLinks[r.id]
+    if found and association and not(link and link.rejected)then
+     found.receipts[#found.receipts+1]=r;association.receipts[#association.receipts+1]=r;map(r.id,found);edge(found.kill.id,r.id)
+     local name=link and link.source and link.source.guid==found.kill.victimGUID and link.source.name
+     out.receiptSources[r.id]={npcID=found.kill.npcID,name=name or found.kill.npcName or found.kill.title,kill=found.kill,record=found.kill,window=w,
+      basis=link and link.inferred and 'inferred'or association.basis}
+    end
    end
   end
   if #info.encounters==0 then out.unmatched[#out.unmatched+1]={record=w.id,window=w,reason=info.reason or 'No retained item quantities could be associated.'}end
+ end
+ -- The client can identify a corpse even when its kill was not recorded.
+ -- Show that recorded creature source and link the slot, never another kill
+ -- of the same species merely because it happened nearby.
+ for id,link in pairs(out.receiptLinks)do work()
+  if not link.rejected and not out.receiptSources[id]and link.source then
+   out.receiptSources[id]={npcID=link.source.npcID,name=link.source.name,record=link.drop,window=link.window,
+    basis=link.inferred and 'inferred'or'exact'}
+   edge(id,link.drop.id)
+  end
  end
  for _,rows in pairs(byGUID)do for _,raw in ipairs(rows)do work();local kill=L.ResolveKill(c,raw);local e=kill and out.byKill[kill.id]
   if e then map(raw.id,e);edge(raw.id,kill.id)end
