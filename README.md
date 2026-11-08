@@ -55,6 +55,7 @@ Click the **My Epoch minimap button** or type `/myepoch` to open the book. Recor
 - Use the left-hand bookmarks to choose a chapter and its filters.
 - Select an entry to read its details on the facing page. Hover over item icons for tooltips.
 - Choose **Write a memory** to add your own story, or add notes to an existing entry.
+- Milestone notes offer thirteen optional writing prompts. The menu scrolls with the mouse wheel or controller, and choosing a prompt leaves your writing untouched.
 - Use **Illustrations** to browse the artwork. You can set a location’s default or choose a different illustration for an individual memory or milestone.
 - Open **Archive** to adjust scale or enable combat auto-close. It is off by default; when enabled, the book reopens after combat if combat closed it.
 
@@ -95,7 +96,7 @@ All dates use **your local time**. Weeks run **Tuesday through Monday**. Daily r
 
 Generated summaries stay separate from your editable notes. Recorded active-play time excludes recorded AFK time.
 
-The Calendar holds its page steady while you read or write. Activity keeps recording in the background; select a day again or reopen the book to see the latest entries.
+The Calendar holds its page steady while you read or write. Its daily summary includes distance traveled in estimated yards when travel was recorded. Activity keeps recording in the background; select a day again or reopen the book to see the latest entries.
 
 ## Chapters, wishes, and little celebrations
 
@@ -140,6 +141,8 @@ _forever_/WTF/Account/<your-account>/SavedVariables/MyEpoch.lua
 Keep your backups outside the addon folder. Updating the addon does not require deleting your saved journal.
 
 Closing the book releases temporary browsing catalogs, page data, and controller-editor buffers. Milestone recording, automatic recaps and notifications continue with the book closed; completed writing keeps its saved result and releases temporary compilation data. Saved history, unfinished writing, and the internal clipboard are preserved. Some pages briefly prepare their contents again when reopened. WoW reclaims released memory during its normal garbage collection, so the memory counter may not drop immediately; saved history still uses memory while the addon is loaded.
+
+Wallet recording pauses during logout and world transitions, when the client may report an unavailable balance as zero. The Gold balance chart leaves a gap with a notice for older session-ending zero readings that cannot be verified. These gaps do not rewrite saved transactions or cash-flow totals; genuine observed zero balances remain valid.
 
 ## Commands
 

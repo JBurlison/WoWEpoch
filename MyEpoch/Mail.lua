@@ -194,7 +194,7 @@ function M.InstallHooks()
 end
 function M.Finish()
  local b=M.pending;if not b then return end
- local amount=A.Call('mailWallet',GetMoney);if integer(amount)then E.History.Wallet(M.owner,A.Now(),amount,M.session);b.walletAfter=amount end
+ local amount=A.Wallet('mailWallet');if integer(amount)then E.History.Wallet(M.owner,A.Now(),amount,M.session);b.walletAfter=amount end
  b.settledAt=A.Now();S.Changed(M.owner,b)
  local plan,reason=E.MailMoney.Plan(M.owner,b);local receipt=E.MailCosts and E.MailCosts.Plan(M.owner,b)
  local sent,sentReason=E.SentMailCosts.Resolve(M.owner,b)
@@ -211,7 +211,7 @@ function M.Tick(delta)
  M.elapsed=(M.elapsed or 0)+(delta or 0);M.idle=(M.idle or 0)+(delta or 0);M.quiet=(M.quiet or 0)+(delta or 0)
  if M.elapsed<.1 then return end;M.elapsed=0
  if not M.pending then
-  local amount=A.Call('mailWallet',GetMoney)
+  local amount=A.Wallet('mailWallet')
   if integer(amount)then
    local last=M.owner.state.wallet
    if not last or last.amount~=amount or last.session~=M.session or now-last.ts>=1 then E.History.Wallet(M.owner,now,amount,M.session)end

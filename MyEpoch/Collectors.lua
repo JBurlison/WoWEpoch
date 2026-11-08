@@ -348,7 +348,7 @@ local function readWallet(c,session,ts,context,startingGUID)
             and c.state.walletWindow==window and (not window or c.records[window]==canonical)
     end
     if not current()then return end
-    local amount=A.Call("wallet",GetMoney)
+    local amount=A.Wallet("wallet")
     if type(amount)~="number" or amount<0 or amount%1~=0 or not current()then return end
     if startingGUID then
         -- Only this explicit bind can publish the new owner's opening balance.

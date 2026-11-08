@@ -147,7 +147,7 @@ function S.OpenWalletWindow(c,ts,amount,session,previous,current)
     local baseline,_,priorBalance=insert(c,"balance",ts,{title="Observed wallet balance",balance=amount,session=session,
         priorObservation=previous and previous.ts or nil,unobservedChange=previous and amount-previous.amount or nil},nil,nil,clock)
     local window,_,priorKind=insert(c,"wallet_window",ts,{title="Wallet observation interval",ended=ts,opening=amount,closing=amount,
-        transactionCount=0,session=session,refs={baseline.id}},nil,nil,clock)
+        transactionCount=0,session=session,refs={baseline.id},walletReadGuard=1},nil,nil,clock)
     c.state.wallet={amount=amount,ts=ts,session=session}
     c.state.walletWindow=window.id;baseline.window=window.id
     local ok,err=pcall(added,c,baseline,priorBalance)
@@ -692,7 +692,7 @@ end
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Store",create=create}
-E.AuctionReaderSources["Store.lua"]="55c95d20066dca6d43a77dcc04a8304e603fe4d5f41c37764fee7100a9af2926"
+E.AuctionReaderSources["Store.lua"]="bd58b6039f0fbafa6998c14694c823e9fe47c6a0b6c564c9a3f30a31c12ede9f"
 end
 
 -- Query.lua
@@ -1180,10 +1180,14 @@ function Q.CalendarChange(c,r)
 end
 function Q.CalendarCut(c,from,through)
     local i=indexes[c];if not i then return end
-    local cut={}
+    local cut={travel={}}
     for bucket=math.floor(from/86400),math.ceil(through/86400)-1 do _auctionTick();
         local ids=i.calendarDays and i.calendarDays[bucket]
         if ids then cut[#cut+1]={ids=ids,last=#ids}end
+        -- Reuse the recording directory rather than retain a second Calendar
+        -- index for high-volume movement samples. Each reader has a finite cut.
+        local log=i.dayLogs[bucket]and i.dayLogs[bucket].travel
+        if log then cut.travel[#cut.travel+1]={ids=log.ids,last=#log.ids,bucket=bucket}end
     end
     return cut
 end
@@ -1538,7 +1542,7 @@ end
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Query",create=create}
-E.AuctionReaderSources["Query.lua"]="9215baa503f6bf90b68efac3e13945403e2e9828311098f5839dfc0ca562ac0f"
+E.AuctionReaderSources["Query.lua"]="600edf473aea75ab39b64a571a26f58af7f49aa8d74fb9b4de7d4d501819944c"
 end
 
 -- Economy.lua
@@ -2110,13 +2114,29 @@ function F.WalletCoverage(c,from,through)
     local windows=Q.Kind(c,"wallet_window"); local byWindow=walletIndex(c)
     local out={windows={},points={},knownSeconds=0,complete=false,opening=nil,closing=nil,gaps=0}
     local coveredTo,lastEnd=from,from
-    for _,w in ipairs(windows) do _auctionTick(); if w.ended>=from and w.ts<through then
+    local uncertain={}
+    for index,w in ipairs(windows) do _auctionTick(); if w.ended>=from and w.ts<through then
         local list=byWindow[w.id] or {}; local sum,chain=w.opening,true
         for _,r in ipairs(list) do _auctionTick();
             if r.before~=sum or r.after-r.before~=r.amount or r.ts<w.ts or r.ts>w.ended then chain=false end
             sum=sum+r.amount
         end
         local intact=chain and #list==w.transactionCount and sum==w.closing
+        -- Old builds sampled GetMoney during teardown, when the client could
+        -- return zero while its player GUID was still readable. This pattern
+        -- cannot prove the real closing balance: flag the display only, never
+        -- rewrite the debit or silently substitute a reconstructed amount.
+        local last,nextWindow=list[#list],windows[index+1]
+        if w.walletReadGuard~=1 and intact and type(w.session)=='string'and w.closing==0 and last and last.before>0
+            and last.after==0 and last.ts==w.ended and last.amount==-last.before
+            and (last.source==nil or last.source=='unknown')and(last.quality==nil or last.quality=='unknown')
+            and not last.evidence and not last.context and last.automaticAttribution==nil
+            and (last.evidenceRefs==nil or type(last.evidenceRefs)=='table'and next(last.evidenceRefs)==nil)
+            and (last.attributionHistory==nil or type(last.attributionHistory)=='table'and next(last.attributionHistory)==nil)
+            and nextWindow and type(nextWindow.session)=='string'and nextWindow.session~=w.session and nextWindow.ts>=w.ended and nextWindow.opening>0 then
+            uncertain[w.session]=uncertain[w.session]or{}
+            uncertain[w.session][w.id]={ended=w.ended}
+        end
         local start,finish=math.max(from,w.ts),math.min(through,w.ended)
         local opening,closing=w.opening,w.opening
         for _,r in ipairs(list) do _auctionTick(); if r.ts<from then opening=r.after end; if r.ts<through then closing=r.after end end
@@ -2138,6 +2158,18 @@ function F.WalletCoverage(c,from,through)
         end end
         if finish>start then out.points[#out.points+1]={ts=finish,balance=closing,window=w.id,observed=intact} end
     end end
+    if next(uncertain)then
+        local endings={}
+        for _,play in ipairs(Q.Kind(c,'play'))do _auctionTick(); if uncertain[play.session]and type(play.ended)=='number'then
+            endings[play.session]=math.max(endings[play.session]or 0,play.ended)
+        end end
+        for _,point in ipairs(out.points)do _auctionTick();
+            local r=c.records[point.window];local suspect=r and uncertain[r.session]and uncertain[r.session][r.id]
+            if suspect and endings[r.session]==suspect.ended and point.ts==suspect.ended and point.balance==0 then
+                point.closingUnverified=true
+            end
+        end
+    end
     if lastEnd<through then out.gaps=out.gaps+1 end
     out.complete=coveredTo>=through and out.gaps==0 and not out.overlapConflict
     if out.overlapConflict then out.opening,out.closing=nil,nil end
@@ -2297,7 +2329,7 @@ end
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Economy",create=create}
-E.AuctionReaderSources["Economy.lua"]="8ab6288bca92335779e116a1dd42bb8f0b6d89a15dd9be4082558167bda6b68c"
+E.AuctionReaderSources["Economy.lua"]="232ed4e75c6af891fd33f41c0dd3b9268b23c225c7bc8d70f7e0c06fb8fee34c"
 end
 
 -- Trades.lua
@@ -2396,7 +2428,7 @@ function T.Open()
     if old then old.ambiguous=true;T.Interrupt('Another trade opened before the earlier observations settled.')end
     local partner,realm=A.Call('tradePartner',UnitName,'npc')
     partner=text(partner);if partner and text(realm)then partner=partner..'-'..realm end
-    local balance=A.Call('tradeWallet',GetMoney)
+    local balance=A.Wallet('tradeWallet')
     if integer(balance)then E.History.Wallet(T.owner,A.Now(),balance,T.session)end
     local r=S.Add(T.owner,'trade',A.Now(),C.Context({title='Trade with '..(partner or'unknown player'),partner=partner,
         partnerGUID=text(A.Call('tradePartnerGUID',UnitGUID,'npc')),session=T.session,status='Open',offers={},wallets={},notices={},refs={},
@@ -2486,7 +2518,7 @@ function T.ValidProof(c,proof)
     return false
 end
 function T.Finish(r)
-    local c=T.owner;local after=A.Call('tradeWalletAfter',GetMoney);r.walletAfter=integer(after)and after or nil
+    local c=T.owner;local after=A.Wallet('tradeWalletAfter');r.walletAfter=integer(after)and after or nil
     local plan,reason=T.Plan(c,r);r.matchReason=reason;r.settledAt=A.Now();S.Changed(c,r)
     if plan then for _,w in ipairs(plan.wallets)do _auctionTick();
         local proof=E.Economy.Evidence(c,w.ts,{title='Trade gold match (inferred)',source='trade',amount=w.amount,walletID=w.id,
@@ -2546,7 +2578,7 @@ wrap('PLAYER_LOGOUT',function()T.Interrupt('Recording ended before reconciliatio
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Trades",create=create}
-E.AuctionReaderSources["Trades.lua"]="e69aa92b2e8900406ef0234a54b065ad0dd17d720374907670d2681781c4c63d"
+E.AuctionReaderSources["Trades.lua"]="b297f15936c66a1112ab7e49fbfb4510c18600c7d906c76b8e26e4750c700c5e"
 end
 
 -- Mail.lua
@@ -2755,7 +2787,7 @@ function M.InstallHooks()
 end
 function M.Finish()
  local b=M.pending;if not b then return end
- local amount=A.Call('mailWallet',GetMoney);if integer(amount)then E.History.Wallet(M.owner,A.Now(),amount,M.session);b.walletAfter=amount end
+ local amount=A.Wallet('mailWallet');if integer(amount)then E.History.Wallet(M.owner,A.Now(),amount,M.session);b.walletAfter=amount end
  b.settledAt=A.Now();S.Changed(M.owner,b)
  local plan,reason=E.MailMoney.Plan(M.owner,b);local receipt=E.MailCosts and E.MailCosts.Plan(M.owner,b)
  local sent,sentReason=E.SentMailCosts.Resolve(M.owner,b)
@@ -2772,7 +2804,7 @@ function M.Tick(delta)
  M.elapsed=(M.elapsed or 0)+(delta or 0);M.idle=(M.idle or 0)+(delta or 0);M.quiet=(M.quiet or 0)+(delta or 0)
  if M.elapsed<.1 then return end;M.elapsed=0
  if not M.pending then
-  local amount=A.Call('mailWallet',GetMoney)
+  local amount=A.Wallet('mailWallet')
   if integer(amount)then
    local last=M.owner.state.wallet
    if not last or last.amount~=amount or last.session~=M.session or now-last.ts>=1 then E.History.Wallet(M.owner,now,amount,M.session)end
@@ -2812,7 +2844,7 @@ wrap('PLAYER_LOGOUT',function()M.Close('Recording ended');M.owner=nil end)
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Mail",create=create}
-E.AuctionReaderSources["Mail.lua"]="cea7f719ffa567b69eaf046d3bc5a5937fa4eed8a3e7db919a196ab96cf08024"
+E.AuctionReaderSources["Mail.lua"]="d2b97e9626f9f8d47f1c38f80f875b65ad0aca4f54e4785ee7d64dfd7361e0ad"
 end
 
 -- Buyback.lua

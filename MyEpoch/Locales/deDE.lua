@@ -176,6 +176,7 @@ E.Localize({
     ["Exact location not recorded"]="Genauer Standort nicht aufgezeichnet",
     ["Open group"]="Gruppe öffnen",
     ["Last recorded balance each day. Days without records stay blank."]="Der zuletzt erfasste Kontostand pro Tag. Tage ohne Aufzeichnungen bleiben leer.",
+    ["Some daily closing balances are unverified after an unexplained zero at the end of a session."]="Einige Tagesendsalden sind unbestätigt, da am Ende einer Spielsitzung unerklärlicherweise ein Kontostand von null aufgezeichnet wurde.",
     ["Daily totals from recorded wallet changes. Days without records stay blank."]="Tagessummen der erfassten Goldbewegungen. Tage ohne Aufzeichnungen bleiben leer.",
     ["Showing a selection of days. Choose a shorter date range for every day."]="Eine Auswahl von Tagen wird gezeigt. Wähle einen kürzeren Zeitraum, um jeden Tag zu sehen.",
 })

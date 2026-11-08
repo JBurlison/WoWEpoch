@@ -176,6 +176,7 @@ E.Localize({
     ["Exact location not recorded"]="未记录确切位置",
     ["Open group"]="查看队伍",
     ["Last recorded balance each day. Days without records stay blank."]="每天最后记录的余额。没有记录的日期留空。",
+    ["Some daily closing balances are unverified after an unexplained zero at the end of a session."]="由于一次登录结束时记录了原因不明的零余额，部分日期的日终余额尚未核实。",
     ["Daily totals from recorded wallet changes. Days without records stay blank."]="已记录的每日收支合计。没有记录的日期留空。",
     ["Showing a selection of days. Choose a shorter date range for every day."]="当前仅显示部分日期。缩短日期范围即可查看每一天。",
 })

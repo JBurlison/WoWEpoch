@@ -171,7 +171,9 @@ function V.Graph(page,report,range,mode)
     if mode=="balance" then
         for _,p in ipairs(report.wallet.points)do if p.observed and p.ts>=range.from and p.ts<range.through then
             local row=day(p.ts)
-            if not row.lastTS or p.ts>=row.lastTS then row.balance=p.balance;row.lastTS=p.ts end
+            if not row.lastTS or p.ts>=row.lastTS then
+                row.balance=p.balance;row.lastTS=p.ts;row.closingUnverified=p.closingUnverified
+            end
         end end
     else
         for _,r in ipairs(report.transactions)do if r.ts>=range.from and r.ts<range.through then
@@ -181,6 +183,17 @@ function V.Graph(page,report,range,mode)
         end end
     end
     table.sort(ordered,function(a,b)return a.ts<b.ts end)
+    local chartFrom=ordered[1]and ordered[1].ts or range.from
+    local chartThrough=ordered[#ordered]and A.ShiftDay(ordered[#ordered].ts,1)or range.through
+    local unverified=0
+    if mode=='balance'then
+        local verified={}
+        for _,row in ipairs(ordered)do
+            if row.closingUnverified then unverified=unverified+1 else verified[#verified+1]=row end
+        end
+        ordered=verified
+    end
+    plot.unverifiedDays=unverified
     local bins,minValue,maxValue={},nil,nil
     local run=0
     for i,row in ipairs(ordered)do
@@ -196,8 +209,6 @@ function V.Graph(page,report,range,mode)
     local count=math.min(480,#ordered)
     for i=1,count do bins[i]=ordered[count==1 and 1 or math.floor((i-1)*(#ordered-1)/(count-1))+1]end
     plot.dailyCount=#ordered
-    local chartFrom=ordered[1]and ordered[1].ts or range.from
-    local chartThrough=ordered[#ordered]and A.ShiftDay(ordered[#ordered].ts,1)or range.through
     local span=math.max(1,chartThrough-chartFrom)
     plot.chartFrom,plot.chartThrough=chartFrom,chartThrough
     local ticks=math.max(2,math.min(5,math.floor(chartWidth/105)))
@@ -324,6 +335,7 @@ function V.Graph(page,report,range,mode)
     if minValue~=nil then B.Text(page,E.Format('{low} to {high} | {from} through {through}',{low=money(minValue),high=money(maxValue),from=A.Day(chartFrom),through=A.Day(chartThrough-1)}),12) end
     if #ordered>480 then B.Text(page,E.L["Showing a selection of days. Choose a shorter date range for every day."],12)end
     B.Text(page,mode=="balance" and E.L["Last recorded balance each day. Days without records stay blank."] or E.L["Daily totals from recorded wallet changes. Days without records stay blank."],12)
+    if unverified>0 then B.Text(page,E.L["Some daily closing balances are unverified after an unexplained zero at the end of a session."],12)end
 end
 function V.Render(left,right)
     local c=B.Character(); B.goldPreset=B.goldPreset or "last30"; B.goldGraph=B.goldGraph or "balance"

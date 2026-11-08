@@ -110,8 +110,17 @@ frame:SetScript("OnEvent",function(_,event,...)
         return
     end
     if openFailure then return end
-    if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_LOGIN" then ownerLoggingOut=false end
-    if event=="PLAYER_LOGOUT" then ownerLoggingOut=true end
+    if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_LOGIN" then
+        ownerLoggingOut=false
+        E.walletObservationSuspended=nil
+        E.walletObservationGeneration=(E.walletObservationGeneration or 0)+1
+    elseif event=="PLAYER_LEAVING_WORLD" or event=="PLAYER_LOGOUT" then
+        -- Close pending observations normally, but never sample a teardown
+        -- wallet as zero while the departing player's GUID is still readable.
+        E.walletObservationSuspended=true
+        E.walletObservationGeneration=(E.walletObservationGeneration or 0)+1
+        if event=="PLAYER_LOGOUT" then ownerLoggingOut=true end
+    end
     if E.recordingGUID and not E.RecorderReady() then
         return
     end

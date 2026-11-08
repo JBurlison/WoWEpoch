@@ -84,7 +84,7 @@ function T.Open()
     if old then old.ambiguous=true;T.Interrupt('Another trade opened before the earlier observations settled.')end
     local partner,realm=A.Call('tradePartner',UnitName,'npc')
     partner=text(partner);if partner and text(realm)then partner=partner..'-'..realm end
-    local balance=A.Call('tradeWallet',GetMoney)
+    local balance=A.Wallet('tradeWallet')
     if integer(balance)then E.History.Wallet(T.owner,A.Now(),balance,T.session)end
     local r=S.Add(T.owner,'trade',A.Now(),C.Context({title='Trade with '..(partner or'unknown player'),partner=partner,
         partnerGUID=text(A.Call('tradePartnerGUID',UnitGUID,'npc')),session=T.session,status='Open',offers={},wallets={},notices={},refs={},
@@ -174,7 +174,7 @@ function T.ValidProof(c,proof)
     return false
 end
 function T.Finish(r)
-    local c=T.owner;local after=A.Call('tradeWalletAfter',GetMoney);r.walletAfter=integer(after)and after or nil
+    local c=T.owner;local after=A.Wallet('tradeWalletAfter');r.walletAfter=integer(after)and after or nil
     local plan,reason=T.Plan(c,r);r.matchReason=reason;r.settledAt=A.Now();S.Changed(c,r)
     if plan then for _,w in ipairs(plan.wallets)do
         local proof=E.Economy.Evidence(c,w.ts,{title='Trade gold match (inferred)',source='trade',amount=w.amount,walletID=w.id,

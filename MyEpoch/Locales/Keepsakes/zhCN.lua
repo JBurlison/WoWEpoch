@@ -2,6 +2,16 @@ local _,E=...
 if E.locale~="zhCN" then return end
 E.Localize({
     ["Choose a writing prompt"]="选择写作灵感",
+    ["Which small victory made this milestone possible?"]="是哪一次小小的胜利，让你走到了这个里程碑？",
+    ["What nearly made you turn back?"]="什么事曾让你差点打了退堂鼓？",
+    ["What did you learn that you wish you had known sooner?"]="一路学到的道理中，有什么是你希望早一点明白的？",
+    ["Where were you when you realized how far you had come?"]="当你发现自己已经走了这么远时，你身在何处？",
+    ["Was there a quiet moment worth remembering alongside this achievement?"]="除了这份成就，还有哪个安静的瞬间值得一同珍藏？",
+    ["What mistake became part of the story?"]="哪个失误，也成了这段故事的一部分？",
+    ["What would you tell someone beginning the same journey?"]="你会对刚踏上同一段旅程的人说些什么？",
+    ["Which sight, sound, or detail will bring this moment back?"]="什么景象、声音或小细节，会让你想起这一刻？",
+    ["What was the best decision you made along the way?"]="一路走来，你做过最好的决定是什么？",
+    ["What are you looking forward to now?"]="现在，你最期待什么？",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="一点梦想，一点方向",
     ["A NEW CHAPTER"]="新的一章",
     ["A PERSONAL BEST"]="个人最佳",

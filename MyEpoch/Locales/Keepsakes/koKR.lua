@@ -2,6 +2,16 @@ local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
     ["Choose a writing prompt"]="글감 선택",
+    ["Which small victory made this milestone possible?"]="어떤 작은 승리가 이 발자취를 남길 수 있게 해 주었나요?",
+    ["What nearly made you turn back?"]="어떤 일 때문에 하마터면 발길을 돌릴 뻔했나요?",
+    ["What did you learn that you wish you had known sooner?"]="배운 것 중에, 조금 더 일찍 알았더라면 좋았을 것은 무엇인가요?",
+    ["Where were you when you realized how far you had come?"]="얼마나 멀리 왔는지 깨달았을 때, 어디에 있었나요?",
+    ["Was there a quiet moment worth remembering alongside this achievement?"]="이 성취와 함께 기억하고 싶은 조용한 순간이 있었나요?",
+    ["What mistake became part of the story?"]="어떤 실수가 이 이야기의 한 부분이 되었나요?",
+    ["What would you tell someone beginning the same journey?"]="같은 여정을 시작하는 사람에게 어떤 말을 해 주고 싶나요?",
+    ["Which sight, sound, or detail will bring this moment back?"]="어떤 풍경이나 소리, 사소한 것 하나가 이 순간을 떠올리게 할까요?",
+    ["What was the best decision you made along the way?"]="여정에서 가장 잘했다고 생각하는 결정은 무엇이었나요?",
+    ["What are you looking forward to now?"]="이제 무엇이 가장 기대되나요?",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="작은 꿈, 작은 이정표",
     ["A NEW CHAPTER"]="새로운 장",
     ["A PERSONAL BEST"]="나의 최고 기록",

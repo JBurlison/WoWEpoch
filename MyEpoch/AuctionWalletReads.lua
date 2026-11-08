@@ -2,12 +2,15 @@ local _,E=...
 local R={};E.AuctionWalletReads=R
 -- The generated factories bind these iterator/copy helpers. A changed source
 -- certificate defaults to strict invalidation until its read surface is audited.
+-- 0.2.8 review: wallet provenance and Calendar cuts add no endpoint reads;
+-- legacy closing checks use guarded ordinary access; added loops are checkpointed.
+-- Mail/trade live captures use A.Wallet without changing private read paths.
 R.Expected={
- ["Store.lua"]="55c95d20066dca6d43a77dcc04a8304e603fe4d5f41c37764fee7100a9af2926",
- ["Query.lua"]="9215baa503f6bf90b68efac3e13945403e2e9828311098f5839dfc0ca562ac0f",
- ["Economy.lua"]="8ab6288bca92335779e116a1dd42bb8f0b6d89a15dd9be4082558167bda6b68c",
- ["Trades.lua"]="e69aa92b2e8900406ef0234a54b065ad0dd17d720374907670d2681781c4c63d",
- ["Mail.lua"]="cea7f719ffa567b69eaf046d3bc5a5937fa4eed8a3e7db919a196ab96cf08024",
+ ["Store.lua"]="bd58b6039f0fbafa6998c14694c823e9fe47c6a0b6c564c9a3f30a31c12ede9f",
+ ["Query.lua"]="600edf473aea75ab39b64a571a26f58af7f49aa8d74fb9b4de7d4d501819944c",
+ ["Economy.lua"]="232ed4e75c6af891fd33f41c0dd3b9268b23c225c7bc8d70f7e0c06fb8fee34c",
+ ["Trades.lua"]="b297f15936c66a1112ab7e49fbfb4510c18600c7d906c76b8e26e4750c700c5e",
+ ["Mail.lua"]="d2b97e9626f9f8d47f1c38f80f875b65ad0aca4f54e4785ee7d64dfd7361e0ad",
  ["Buyback.lua"]="cf90d6bc8f2390ae67b497e3847c0fbc45c90cfe4c81b7bcda72c004b8135cff",
  ["AuctionCosts.lua"]="14aeeff45425c0c0c7f287193eca2ee3321e301156d2a504edeec7c47ba914fc",
  ["CostMatch.lua"]="34c5aa062cab36522bb6cde97c033a7dc623e596eca6d71948c08741d4228c82",
