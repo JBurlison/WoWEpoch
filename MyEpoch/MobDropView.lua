@@ -2,6 +2,7 @@ local _,E=...
 local V,B,A,W={},E.Book,E.API,E.RetentionWork;E.MobDropView=V
 local epochs=setmetatable({},{__mode='k'})
 local relevant={kill=true,kill_observation=true,drop=true,loot_window=true}
+function V.ReleaseView()V.job=nil;V.lastReport=nil;V.lastError=nil end
 local function changed(c,r)if r and relevant[r.kind]then epochs[c]=(epochs[c]or 0)+1 end end
 E.On('RECORD_ADDED',changed);E.On('RECORD_CHANGED',changed)
 E.On('RECORDS_REMOVED',function(c)epochs[c]=(epochs[c]or 0)+1 end)
@@ -22,11 +23,14 @@ function V.Request(c,options)
 end
 function V.Tick()
     local j=V.job;if not j then return end
-    if B.chapter~='Loot' or context()~=j.context or B.Character()~=j.owner or j.owner.records~=j.records or (epochs[j.owner]or 0)~=j.epoch then V.job=nil;if B.chapter=='Loot'then B.Render()end;return end
-    if B.frame and not B.frame:IsShown()then return end
+    -- A temporary hide keeps the staged view, but neither polls its context
+    -- nor redraws hidden pages. A real close releases it through the book.
+    if not B.frame or not B.frame:IsShown()then return end
+    if B.chapter~='Loot' or context()~=j.context or B.Character()~=j.owner or j.owner.records~=j.records or (epochs[j.owner]or 0)~=j.epoch then V.ReleaseView();if B.chapter=='Loot'then B.Render()end;return end
     if not j.work or j.model or j.error then return end
     local status,result=W.Step(j.work,600)
     if status=='done'then j.model=result elseif status=='failed'then j.error=E.L['Could not prepare drop rates.'];V.lastError=result else return end
+    j.work=nil
     B.Navigation.KeepDrafts();B.Render()
 end
 local function pages(page,key,count,size)
@@ -41,7 +45,7 @@ end
 function V.Panel(page,c,npcID,name,range)
     B.Text(page,name or E.Format('Creature {id}',{id=npcID}),26)
     local model,err=V.Request(c,{npcID=npcID,from=range.from,through=range.through,allHistory=range.preset=='all',query=B.mobDropItemQuery})
-    if not model then B.Text(page,err or E.L['Counting recorded kills and matching observed drops...'],14);return end
+    if not model then if not err then B.viewPreparing=true end;B.Text(page,err or E.L['Counting recorded kills and matching observed drops...'],14);return end
     local report=model.report;V.lastReport=report
     E.LootLayout.Stats(page,{{report.killCount,E.L['Recorded kills']}})
     B.Text(page,E.L['Observed drops / recorded kills · includes group loot'],13)
@@ -66,7 +70,7 @@ function V.Render(left,right)
         B.Input(page,B.mobDropQuery or'',function(value)B.mobDropQuery=value;B.mobDropPage=1;B.Render()end)
     end)
     local model,err=V.Request(c,{npcID=B.mobDropNPC,from=range.from,through=range.through,allHistory=range.preset=='all',query=B.mobDropItemQuery})
-    if not model then B.Text(left,err or E.L['Preparing mob history...'],14);return end
+    if not model then if not err then B.viewPreparing=true end;B.Text(left,err or E.L['Preparing mob history...'],14);return end
     local rows={};local query=string.lower(B.mobDropQuery or'')
     for _,row in ipairs(model.mobs)do if query==''or string.find(string.lower(row.name or tostring(row.npcID)),query,1,true)then rows[#rows+1]=row end end
     local first,last=pages(left,'mobDropPage',#rows,8);local name

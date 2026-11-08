@@ -185,6 +185,13 @@ function N.Preview(c,scope)
 end
 function N.Tick(elapsed)
     if not E.db then return end
+    -- Record/recap events populate the queue. An idle notifier has no display
+    -- or combat state to refresh, and must not allocate preferences each frame.
+    if not active then
+        local c=run and run.owner
+        local st=c and c.state.notifications
+        if not st or not st.pending or #st.pending==0 then return end
+    end
     -- A deliberate settings preview also works while recording is paused.
     -- It must still belong to the currently logged-in character.
     local preview=active and active.preview
@@ -196,7 +203,7 @@ function N.Tick(elapsed)
     -- No chart/history scan here: at most the small pending notification queue.
     local combat=A.Call('notificationCombat',UnitAffectingCombat,'player')
     if combat~=false then
-        if active then active.suspended=true;if N.renderer then N.renderer(nil)end end
+        if active and not active.suspended then active.suspended=true;if N.renderer then N.renderer(nil)end end
         quietFor=2;return
     end
     if active then

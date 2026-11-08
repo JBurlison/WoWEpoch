@@ -2,6 +2,10 @@ local _,E=...
 local P={};E.SavedPages=P
 local S,M,W=E.Store,E.Memories,E.RetentionWork
 local active,frame,scheduled
+function P.ReleaseView()
+    active=nil;scheduled=nil
+    if frame then frame:Hide()end
+end
 
 -- S.List delegates to Lua 5.1 table.sort. Its equal-key partitioning changes
 -- the visible IDs. Mirror it with checkpoints rather than imposing a new order.
@@ -303,6 +307,10 @@ function P.Tick()
         local B=E.Book;if B.frame and B.frame:IsShown()and B.chapter=="Memories"and B.memoryMode=="saved"then B.Navigation.KeepDrafts();B.Render()end
         return
     end
+    -- A genuine close calls ReleaseView. Temporary capture/combat hides keep
+    -- this scheduled scan so Show-only restoration can resume the same page.
+    local B=E.Book
+    if B.frame and not B.frame:IsShown()then return end
     if not visible(s)then scheduled=nil;if frame then frame:Hide()end;return end
     if not identity(s)then active=nil;return end
     if s.clearVisible then

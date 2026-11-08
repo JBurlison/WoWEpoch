@@ -4,6 +4,7 @@ J.filters={{"all","All events"},{"discoveries","First visits"},{"milestones","Pr
     {"loot","Loot"},{"production","Craft / gather"},{"memories","Memories"},{"learning","Learning"},{"deaths","Deaths"}}
 local kinds={milestone=true,death=true,spell=true,quest=true,loot=true,drop=true,crafted=true,gathered=true,gather_action=true,memory=true,screenshot=true}
 local cache=setmetatable({},{__mode="k"})
+function J.ReleaseView()cache=setmetatable({},{__mode="k"})end
 local function invalidate(c,r)if not r or kinds[r.kind] then cache[c]=nil end end
 E.On("RECORD_ADDED",invalidate); E.On("RECORD_CHANGED",invalidate); E.On("RECORDS_REMOVED",function(c)invalidate(c)end)
 local function id(n)return type(n)=="number" and n==n and n>0 and n%1==0 and n<=9007199254740991 end

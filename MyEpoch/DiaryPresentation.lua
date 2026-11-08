@@ -110,6 +110,10 @@ local function daily(c,r,work,entry)
 end
 local cache=setmetatable({},{__mode='k'})
 local active
+function P.ReleaseView()
+    for _,entry in pairs(cache)do entry.job=nil;entry.text=nil;entry.dirty=true end
+    active=nil;cache=setmetatable({},{__mode='k'});watchers=setmetatable({},{__mode='k'})
+end
 local function valid(entry)
     local c,r=entry.owner,entry.record
     return c.records[r.id]==r and r.generation==entry.generation and r.variation==entry.variation
@@ -119,10 +123,10 @@ local function valid(entry)
 end
 function P.Tick()
     local entry=active;if not entry then return end
-    if not valid(entry)then active=nil;E.Emit('JOURNAL_WRITTEN',entry.owner);return end
+    if not valid(entry)then active=nil;entry.job=nil;E.Emit('JOURNAL_WRITTEN',entry.owner);return end
     local status,text=E.RetentionWork.Step(entry.job,600)
     if not status then return end
-    active=nil
+    active=nil;entry.job=nil
     if status=='done'and valid(entry)then entry.text=text;entry.ready=true
     else entry.text=entry.savedText;entry.ready=true end
     E.Emit('JOURNAL_WRITTEN',entry.owner)

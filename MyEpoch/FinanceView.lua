@@ -139,6 +139,14 @@ local function graphLabel(plot,text,x,y,width,align,size)
     f:ClearAllPoints();f:SetPoint("BOTTOMLEFT",plot,"BOTTOMLEFT",x,y);f:SetSize(width,16)
     f:SetFont(E.Font(),size or 10,"");f:SetJustifyH(align or "CENTER");f:SetText(text);f:Show()
 end
+B.widgetReleasers.plot=function(plot)
+    plot.bins=nil;plot.samples=nil
+    for _,hit in pairs(plot.hits or {})do
+        hit:SetScript('OnEnter',nil);hit:SetScript('OnLeave',nil)
+        hit.controllerKey=nil;hit.controllerLabel=nil;hit:Hide()
+    end
+    for _,label in ipairs(plot.labels or {})do label:SetText('');label:Hide()end
+end
 function V.Graph(page,report,range,mode)
     local plot=B.Acquire(page,"plot");local width=B.Width(page);plot:SetSize(width,280); plot.textures=plot.textures or {}; plot.used=0
     plot.labels=plot.labels or {};plot.labelsUsed=0;plot.hits=plot.hits or {}

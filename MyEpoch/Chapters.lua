@@ -6,7 +6,10 @@ local internal={travel=true,kill_observation=true,mail_scan=true,mail_request=tr
     trade_notice=true,objective=true,wallet_window=true,money_evidence=true,cost_lot=true,stock_reset=true,stock_move=true}
 local function tick(work)if work then work()end end
 local function state(c)
-    local s=states[c];if not s then s={entries={},projections={},generation=0,versions={},play={}};states[c]=s end;return s
+    local s=states[c];if not s then s={entries={},projections={},requested={},generation=0,versions={},play={}};states[c]=s end;return s
+end
+function C.ReleaseView()
+    for _,s in pairs(states)do s.projections={};s.requested={}end
 end
 local function chapter(c,id)
     local r=type(id)=='table'and id or c and c.records[id]
@@ -194,7 +197,10 @@ local function queue(c,r)
             if r.sealRequested then r.sealed=true;r.sealRequested=nil;r.sealedAt=r.sealRequestedAt;r.sealRequestedAt=nil end
             publishing=r;local ok,err=pcall(S.Changed,c,r);publishing=nil;if not ok then error(err,0)end
         end
-        s.projections[r.id]=result;E.Emit('CHAPTER_READY',c,r)
+        -- Background compilation commits membership/seals above. Its expanded
+        -- display rows are needed only by a reader who requested this chapter.
+        if s.requested[r.id]then s.projections[r.id]=result end
+        E.Emit('CHAPTER_READY',c,r)
     end,function()return tostring(s.generation)..':'..tostring(s.versions[r.id]or 0)end)
 end
 function C.Ensure(c)
@@ -208,6 +214,7 @@ end
 function C.Projection(c,id)
     local r=chapter(c,id);if not r then return end
     C.Ensure(c);local s=state(c)
+    s.requested[r.id]=true
     if not s.projections[r.id]and not K.Pending(c,'chapter:'..r.id)then queue(c,r)end
     local result=s.projections[r.id]
     if result then result.pending=K.Pending(c,'chapter:'..r.id)end
@@ -279,7 +286,7 @@ local function changed(c,r,added)
     if r and r.kind=='chapter'then
         s=state(c);s.versions[r.id]=(s.versions[r.id]or 0)+1;queue(c,r);return
     end
-    if not s then return end
+    if not s or not next(s.entries)then return end
     if r and internal[r.kind]then
         local previous=E.Query.PreviousKind(c,r.id)
         if not previous or previous==r.kind then return end
@@ -300,7 +307,7 @@ local function changed(c,r,added)
     -- They do not repeatedly cancel a long scan. Corrections and removals do.
     if not added and not extension then s.generation=s.generation+1 end
     for id in pairs(s.entries)do local entry=chapter(c,id)
-        if entry then queue(c,entry)else s.entries[id]=nil;s.projections[id]=nil end
+        if entry then queue(c,entry)else s.entries[id]=nil;s.projections[id]=nil;s.requested[id]=nil end
     end
 end
 E.On('RECORD_ADDED',function(c,r)changed(c,r,true)end);E.On('RECORD_CHANGED',function(c,r)changed(c,r,false)end)

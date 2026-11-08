@@ -404,5 +404,6 @@ subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/richer_mem
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/calendar_editing_host.py')], check=True)
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/pull_details_host.py')], check=True)
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/controller_host.py')], check=True)
+subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/journal_memory_host.py')], check=True)
 runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('search_cache_release_spec.lua',))
 runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('query_location_memory_spec.lua','journal_boundary_clock_spec.lua','idle_workers_spec.lua'))

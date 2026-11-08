@@ -1,6 +1,27 @@
 local _,E=...
 local V,J,B,A,S={},E.Journey,E.Book,E.API,E.Store; E.JourneyView=V
 local T=E.BookTheme
+function V.ReleaseView()
+    V.lastLocation=nil;V.lastClusters=nil;V.lastRecords=nil
+end
+B.widgetReleasers=B.widgetReleasers or{}
+B.widgetReleasers.journeyMap=function(frame)
+    frame:SetScript('OnUpdate',nil)
+    frame.art=nil;frame.geometry=nil;frame.clusterCount=0;frame.ready=false
+    frame.controllerPage=nil;frame.controllerRegion=nil;frame.controllerScope=nil
+    for _,pin in ipairs(frame.pins or{})do
+        pin:Hide();pin:SetScript('OnClick',nil)
+        pin.key=nil;pin.recordCount=nil;pin.controllerLabel=nil
+        if pin.text then pin.text:SetText('')end
+    end
+    for _,texture in ipairs(frame.tiles or{})do texture:Hide();texture:SetTexture(nil)end
+    for _,pool in ipairs(frame.overlayPools or{})do
+        for _,texture in ipairs(pool)do texture:Hide();texture:SetTexture(nil)end
+    end
+    frame.overlayTextures=nil
+    if frame.message then frame.message:SetText('')end
+    if frame.caption then frame.caption:SetText('')end
+end
 for _,pair in ipairs({{"journeyControl","calendarControl"},{"journeyStat","calendarStat"},{"journeyRow","questRow"}})do B.widgetFactories[pair[1]]=B.widgetFactories[pair[2]]end
 local function actions(page,rows,columns)
     if B.Navigation.Grid(page,rows,columns)then return end

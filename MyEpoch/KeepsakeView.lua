@@ -5,15 +5,19 @@ local selectors=setmetatable({},{__mode='k'})
 local domains=setmetatable({},{__mode='k'})
 local sourceViews=setmetatable({},{__mode='k'})
 local optionViews=setmetatable({},{__mode='k'})
+-- Never reuse a generation after dropping a view: picker tokens may outlive
+-- their catalog, while the character's canonical records remain unchanged.
+local serial=0
+local function nextGeneration()serial=serial+1;return serial end
 local fields={'id','kind','character','title','ts','sequence','observationSequence','subject','recipient','status',
     'mapID','zone','subzone','itemID','questID','skillID','skillName','name','characterSnapshot','major','inProgress','through',
     'group','observerGroup','refs','progress','archived','completionMemory'}
 local function domain(c)
     if not K.Owned(c)then return end
     local d=domains[c]
-    if not d then d={generation=1,seen={},records=c.records,order=c.order};domains[c]=d end
+    if not d then d={generation=nextGeneration(),seen={},records=c.records,order=c.order};domains[c]=d end
     if d.records~=c.records or d.order~=c.order then
-        d.records,d.order=c.records,c.order;d.generation=d.generation+1;d.seen={}
+        d.records,d.order=c.records,c.order;d.generation=nextGeneration();d.seen={}
     end
     return d
 end
@@ -32,16 +36,27 @@ end
 local function changed(c,r)
     local d=domains[c];if not d or not r then return end
     if relevant(r)then
-        if not same(d.seen[r.id],r)then d.generation=d.generation+1;d.seen[r.id]=fingerprint(r)end
-    elseif d.seen[r.id]then d.seen[r.id]=nil;d.generation=d.generation+1 end
+        if not same(d.seen[r.id],r)then d.generation=nextGeneration();d.seen[r.id]=fingerprint(r)end
+    elseif d.seen[r.id]then d.seen[r.id]=nil;d.generation=nextGeneration()end
 end
 E.On('RECORD_ADDED',changed);E.On('RECORD_CHANGED',changed)
 E.On('RECORDS_REMOVED',function(c,ids)
     local d=domains[c];if not d then return end
-    d.generation=d.generation+1
+    d.generation=nextGeneration()
     for _,id in ipairs(ids or{})do d.seen[id]=nil end
 end)
-E.On('DATA_MIGRATED',function(c)local d=domains[c];if d then d.generation=d.generation+1;d.seen={}end end)
+E.On('DATA_MIGRATED',function(c)local d=domains[c];if d then d.generation=nextGeneration();d.seen={}end end)
+function V.ReleaseView()
+    -- These queue keys belong exclusively to the book. Keepsake recording,
+    -- chapter sealing and automatic wish progress use different jobs.
+    for c in pairs(domains)do K.Cancel(c,'view-catalog')end
+    for c,views in pairs(sourceViews)do for key in pairs(views)do K.Cancel(c,'view-sources:'..key)end end
+    for c,views in pairs(optionViews)do for key in pairs(views)do K.Cancel(c,'view-options:'..key)end end
+    catalogs=setmetatable({},{__mode='k'});domains=setmetatable({},{__mode='k'})
+    sourceViews=setmetatable({},{__mode='k'});optionViews=setmetatable({},{__mode='k'})
+    V.dirty=nil
+    -- selectors contain only the user's open/query/page choices, not records.
+end
 function V.Heading(page,kicker,title)
     B.Text(page,E.L[kicker],11):SetTextColor(.54,.40,.23);B.Text(page,E.L[title],29)
 end
@@ -87,7 +102,7 @@ end
 function V.Sources(page,c,rows,key,pageField)
     if not K.Owned(c)then return end
     local report=V.SourceProjection(c,rows,key)
-    if not report then B.Text(page,E.L['Preparing linked records…'],14);return end
+    if not report then B.viewPreparing=true;B.Text(page,E.L['Preparing linked records…'],14);return end
     local state=E.SourceFilters.State(key)
     B.Action(page,E.L['Filter sources'],V.Guard(c,nil,function()state.open=not state.open;B.Render()end))
     if state.open then
@@ -285,7 +300,7 @@ function V.Select(page,label,values,selected,change,multiple)
     if not s.open then return end
     B.Input(page,s.query,V.Guard(c,nil,function(value)s.query=value;s.page=1;B.Render()end))
     local options=V.Options(c,values,s.query,key)
-    if not options then B.Text(page,E.L['Preparing linked records…'],14);return end
+    if not options then B.viewPreparing=true;B.Text(page,E.L['Preparing linked records…'],14);return end
     local keys=options.keys
     local pages=math.max(1,math.ceil(#keys/8));s.page=math.min(pages,s.page)
     for i=(s.page-1)*8+1,math.min(#keys,s.page*8)do local id=keys[i]

@@ -139,6 +139,8 @@ _forever_/WTF/Account/<your-account>/SavedVariables/MyEpoch.lua
 
 Keep your backups outside the addon folder. Updating the addon does not require deleting your saved journal.
 
+Closing the book releases temporary browsing catalogs, page data, and controller-editor buffers. Milestone recording, automatic recaps and notifications continue with the book closed; completed writing keeps its saved result and releases temporary compilation data. Saved history, unfinished writing, and the internal clipboard are preserved. Some pages briefly prepare their contents again when reopened. WoW reclaims released memory during its normal garbage collection, so the memory counter may not drop immediately; saved history still uses memory while the addon is loaded.
+
 ## Commands
 
 | Command | Action |

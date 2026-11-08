@@ -43,7 +43,9 @@ def main():
     if args.spec:
         run(args.spec, args.locale)
     else:
-        for spec in ('controller_coverage_spec.lua', 'controller_navigation_spec.lua', 'controller_text_spec.lua', 'controller_entry_spec.lua', 'controller_focus_entry_spec.lua'):
+        for spec in ('controller_coverage_spec.lua', 'controller_navigation_spec.lua', 'controller_text_spec.lua',
+                     'controller_memory_spec.lua', 'book_close_memory_spec.lua', 'journal_view_cache_spec.lua',
+                     'controller_entry_spec.lua', 'controller_focus_entry_spec.lua'):
             run(spec, args.locale)
         for host in ('controller_input_host.py', 'controller_focus_host.py', 'controller_adapters_host.py', 'controller_unicode_host.py',
                      'test_controller_unicode_data.py'):

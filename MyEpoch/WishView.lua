@@ -1,6 +1,13 @@
 local _,E=...
 local V,B,K,S,A={},E.Book,E.Keepsakes,E.Store,E.API;E.WishView=V
 local states=setmetatable({},{__mode='k'})
+function V.ReleaseView()
+    for c,state in pairs(states)do
+        K.Cancel(c,'wish-target-picker');K.Cancel(c,'wish-visible-sources')
+        state.catalog=nil;state.catalogPending=nil;state.sources=nil
+    end
+    -- Drafts and literal sharing text are user input, not disposable catalogs.
+end
 local kinds={{'freeform','A wish of my own'},{'level','Character level'},{'skill','Profession or weapon skill'},
     {'acquire','Acquire an item'},{'craft','Craft an item'},{'gather','Gather an item'},{'quests','Complete quests'},{'locations','Visit locations'}}
 local kindLabels={};for _,pair in ipairs(kinds)do kindLabels[pair[1]]=pair[2]end
@@ -111,7 +118,7 @@ local function picker(page,c,state)
         local first,last=pageControls(page,state,'targetPage',#rows,6)
         for i=first,last do local row=rows[i];B.Action(page,row.label,guarded(function()draftTarget(state,row.id);redraw()end))end
         if #rows==0 then B.Text(page,E.L['No recorded targets match. You can enter an ID below.'],13)end
-    else B.Text(page,E.L['Opening the target catalogue…'],13)end
+    else B.viewPreparing=true;B.Text(page,E.L['Opening the target catalogue…'],13)end
     field(page,'Or enter an item, quest, skill or map ID',state.targetID or '',guarded(function(value,typing)
         state.targetID=value;if not typing then draftTarget(state,tonumber(value));state.targetID='';redraw()end
     end))
@@ -216,7 +223,7 @@ local function sources(page,c,r,state)
             end,generation)
         end
         if not cached or cached.id~=r.id then
-            if #(r.refs or{})>0 then B.Text(page,E.L['Opening the supporting pages…'],13)end
+            if #(r.refs or{})>0 then B.viewPreparing=true;B.Text(page,E.L['Opening the supporting pages…'],13)end
             return
         end
     end

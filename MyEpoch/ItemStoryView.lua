@@ -1,6 +1,7 @@
 local _,E=...
 local V,B,I,K={},E.Book,E.ItemStories,E.Keepsakes;E.ItemStoryView=V
 local states=setmetatable({},{__mode='k'})
+function V.ReleaseView()V.lastStory=nil end
 local function state(c)local s=states[c];if not s then s={page=1,eventPage=1,query=''};states[c]=s end;return s end
 local function current(c,s)return K.Owned(c)and B.Character()==c and states[c]==s and B.chapter=='Loot'and B.lootMode=='stories'end
 local function redraw(c,s)if current(c,s)then B.Render()end end
@@ -38,7 +39,7 @@ function V.Render(left,right,c)
     B.Text(left,E.L['Find an item and follow the moments you recorded with it.'],14)
     B.Text(left,E.L['Find an item by name or ID'],12)
     B.Input(left,s.query,function(value)if current(c,s)then s.query=value;s.page=1;redraw(c,s)end end)
-    if not model then B.Text(left,E.L['Gathering the threads of your item stories…'],14);return end
+    if not model then B.viewPreparing=true;B.Text(left,E.L['Gathering the threads of your item stories…'],14);return end
     local rows={};local query=s.query:lower()
     for _,item in ipairs(model.rows)do
         if query==''or tostring(item.itemID)==query or(item.name or''):lower():find(query,1,true)then rows[#rows+1]=item end

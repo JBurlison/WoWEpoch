@@ -28,6 +28,7 @@ local viewFields={"chapter","page","selected","lastDetail","day","search","killM
     "killLootRecord","killLootItems","killLootWindows","killLootReceipts","killLootLinks","killLootDetails"}
 B.views={}
 B.widgetFactories={}
+B.widgetReleasers={}
 function B.Width(page) return page and page.width or 760 end
 local ink={0.24,0.12,0.055}; local gold={0.86,0.70,0.39}
 local function color(frame,r,g,b,a)
@@ -235,7 +236,7 @@ function B.Tabs(page,labels,selected,callback)
     page.y=y+height+10
 end
 function B.UpdateBadges()
-    if not B.tabs or not B.tabs.Recaps then return end
+    if B.viewReleased or not B.tabs or not B.tabs.Recaps then return end
     for name,tab in pairs(B.tabs)do E.BookTheme.ButtonStyle(tab,name==B.chapter and "active" or "tab")end
     local tab=B.tabs.Recaps;B.Navigation.RecapBadge(tab,nil)
     local c=B.Character(); if not c then B.badgesWaiting=nil;return end
@@ -269,6 +270,43 @@ end
 function B.Clear(page)
     for _,pool in pairs(page.pool) do for _,f in ipairs(pool) do f:Hide() end end
     page.used={}; page.y=14;page.controllerUsed=0
+end
+-- WoW keeps native frames for the session. Reuse that bounded pool, but detach
+-- the records, closures and long text belonging to a closed presentation.
+-- Factory-installed handlers (tooltips, model cleanup, edit focus) must survive.
+local controllerFields={'controllerID','controllerRecord','controllerRecordID','controllerBack','controllerAvailable',
+    'controllerLayout','controllerOrder','controllerLiteral','controllerKey','controllerLabel','controllerPromptKey',
+    'controllerRotate','controllerCanRotate'}
+local function releaseControl(f)
+    for _,key in ipairs(controllerFields)do f[key]=nil end
+    f.recordID=nil;f.hitID=nil;f.toggleBinding=nil;f.recapBadgeOwner=nil
+    if type(f.GetObjectType)=='function'and f:GetObjectType()=='Button'then f:SetScript('OnClick',nil)end
+end
+local function releaseItemIcon(icon)
+    if icon and(icon.itemID or icon.itemPayload)and E.LedgerStyle then E.LedgerStyle.SetIcon(icon,nil)end
+end
+function B.ReleasePage(page)
+    if not page then return end
+    for kind,pool in pairs(page.pool)do for _,f in ipairs(pool)do
+        f:Hide();releaseControl(f)
+        if B.Navigation then B.Navigation.ClearBadge(f)end
+        if kind=='edit'then
+            f:SetScript('OnTextChanged',nil);f:SetScript('OnEnterPressed',nil);f:ClearFocus();f:SetText('')
+            f.inputValue=nil;f.inputLabel=nil
+        elseif kind=='label'then f:SetText('')
+        else
+            -- These are populated on every render; leave factory-only captions
+            -- such as calendar TODAY, arrows and the model brand intact.
+            for _,key in ipairs({'text','meta','summary','date','tag'})do
+                local text=f[key];if text and type(text.SetText)=='function'then text:SetText('')end
+            end
+        end
+        for _,key in ipairs({'open','keep'})do if f[key]then releaseControl(f[key])end end
+        releaseItemIcon(f.icon);releaseItemIcon(f.itemIcon)
+        for _,icon in ipairs(f.icons or{})do releaseItemIcon(icon)end
+        if B.widgetReleasers[kind]then B.widgetReleasers[kind](f)end
+    end end
+    page.used={};page.y=14;page.controllerUsed=0
 end
 function B.Finish(page) page.content:SetHeight(math.max(page.y+20,page.scroll:GetHeight())); E.BookTheme.Scroll(page) end
 local milestoneNames={level="Character level-up",skill="Weapon-skill threshold",profession="Profession threshold",achievement="Personal achievement",
@@ -500,7 +538,7 @@ local function draftContextValid(context)
     return B.frame and B.frame:IsShown()and B.Character()==context.owner and B.chapter==context.chapter
         and B.selected==context.selected and(not context.selected or context.owner.records[context.selected]==context.record)
 end
-local function restoreInputDrafts()
+local function restoreInputDrafts(preparing)
     local context=B.pendingInputDrafts;B.pendingInputDrafts=nil
     if not context or not draftContextValid(context)then return end
     local kept={}
@@ -508,9 +546,39 @@ local function restoreInputDrafts()
         local f=draft.page.pool.edit and draft.page.pool.edit[draft.index]
         if f and draft.index<=(draft.page.used.edit or 0)and f.inputValue==draft.value and f.inputLabel==draft.label then
             f:SetText(draft.text);draft.hidden=nil;kept[#kept+1]=draft
-        elseif draft.page==B.nav then draft.hidden=true;kept[#kept+1]=draft end
+        elseif preparing or draft.page==B.nav then draft.hidden=true;kept[#kept+1]=draft end
     end
     if #kept>0 then context.drafts=kept;context.applied=true;B.pendingInputDrafts=context end
+end
+function B.ReleaseClosedView()
+    if B.captureHiding or B.combatHiding or B.viewReleased then return end
+    B.viewReleased=true
+    -- Capture only changed, unsubmitted edits. Autosaved notes already live in
+    -- the journal; neither cleanup nor restoring an edit invokes its submitter.
+    if B.Navigation and B.Navigation.KeepDrafts then B.Navigation.KeepDrafts()end
+    if B.pendingInputDrafts then B.pendingInputDrafts.applied=nil end
+    local c=B.Character()
+    local saved=B.closedScroll
+    if c and B.left and not(saved and saved.owner==c.id and saved.chapter==B.chapter and saved.selected==B.selected)then
+        B.closedScroll={owner=c.id,chapter=B.chapter,selected=B.selected,
+            left=B.left.scroll:GetVerticalScroll(),right=B.right.scroll:GetVerticalScroll(),nav=B.nav.scroll:GetVerticalScroll()}
+    end
+    for _,page in ipairs({B.left,B.right,B.nav})do B.ReleasePage(page)end
+    B.preparingCharacter=nil;B.preparationStatus=nil;B.viewPreparing=nil;B.badgesWaiting=nil;shownQuote=nil
+    if E.Search and E.Search.ReleaseView then E.Search.ReleaseView()end
+    if E.SearchView then E.SearchView.lastResult=nil;E.SearchView.pending=nil;E.SearchView.freshness=nil end
+    if E.ReleaseJournalViewCaches then E.ReleaseJournalViewCaches()end
+    -- Closing modal caches may refresh adapters while their contexts detach.
+    -- Invalidate navigation last so no descriptor can retain a retired frame.
+    if E.ControllerNavigation and E.ControllerNavigation.ReleaseView then E.ControllerNavigation.ReleaseView()end
+end
+local function restoreClosedScroll()
+    local saved=B.closedScroll;B.closedScroll=nil
+    if not saved or saved.owner~=B.character or saved.chapter~=B.chapter or saved.selected~=B.selected then return end
+    for _,key in ipairs({'left','right','nav'})do local page=B[key]
+        page.scroll:SetVerticalScroll(math.max(0,math.min(saved[key],page.scroll:GetVerticalScrollRange())))
+        E.BookTheme.Scroll(page)
+    end
 end
 local function finishController(preparing)
     if E.ControllerNavigation then E.ControllerNavigation.EndRender(preparing)end
@@ -521,6 +589,8 @@ function B.Render(reset)
     if E.ComparisonView then E.ComparisonView.CloseMenu()end
     if E.CompanyLayout then E.CompanyLayout.CheckQuoteJump()end
     if E.ArtDialog and E.ArtDialog.IsOpen()then E.ArtDialog.refreshBook=true;return end
+    B.viewReleased=nil;B.viewPreparing=nil
+    if reset then B.closedScroll=nil end
     if B.frame and E.ControllerNavigation then E.ControllerNavigation.BeginRender()end
     if B.pendingInputDrafts and not draftContextValid(B.pendingInputDrafts)then B.pendingInputDrafts=nil end
     local drafts=B.pendingInputDrafts
@@ -579,7 +649,8 @@ function B.Render(reset)
         if readiness~='preparing'then B.Action(left,E.L['Retry opening this scrapbook'],function()Q.RetryWarm(c);E.Gathering.Retry(c);E.GoldChecks.Retry(c);B.Render()end)end
         B.Finish(left);B.Finish(right)
         if reset then left.scroll:SetVerticalScroll(0);right.scroll:SetVerticalScroll(0)end
-        E.BookTheme.Scroll(left);E.BookTheme.Scroll(right);if B.Navigation then B.Navigation.Render(c)end;B.UpdateBadges();finishController();return
+        E.BookTheme.Scroll(left);E.BookTheme.Scroll(right);if B.Navigation then B.Navigation.Render(c)end
+        B.UpdateBadges();restoreInputDrafts(true);finishController(true);return
     end
     if B.searchOrigin and B.chapter~="Search" then B.Action(left,E.L["Back to search results"],function()E.SearchView.Return()end) end
     local ownPages=B.chapter=='Chronicle'and(B.chronicleMode=='compare'or B.chronicleMode=='records')
@@ -636,10 +707,13 @@ function B.Render(reset)
     E.BookTheme.Scroll(left); E.BookTheme.Scroll(right)
     if B.Navigation then B.Navigation.Render(c)end
     B.UpdateBadges()
-    restoreInputDrafts()
+    -- Partial views can already expose an editable lookup. Restore visible
+    -- fields now, retain absent ones, and wait for final geometry to scroll.
+    restoreInputDrafts(B.viewPreparing)
+    if not B.viewPreparing then restoreClosedScroll()end
     if E.AuctionPreparationView then E.AuctionPreparationView.Finished()end
     if E.CraftProjectionPreparation then E.CraftProjectionPreparation.Finished()end
-    finishController()
+    finishController(B.viewPreparing)
 end
 function B.Fit()
     if not B.frame then return end
@@ -743,15 +817,14 @@ function B.Build()
     frame:SetScript("OnHide",function()
         if E.Controller and E.Controller.OnBookHide then E.Controller.OnBookHide()end
         if E.ControllerNavigation then E.ControllerNavigation.SetVisible(false)end
-        if not B.captureHiding and E.Search and E.Search.ReleaseView then
-            E.Search.ReleaseView()
-            if E.SearchView then E.SearchView.lastResult=nil;E.SearchView.pending=nil;E.SearchView.freshness=nil end
-        end
-        A.Call("bookStopMoving",frame.StopMovingOrSizing,frame);B.pendingInputDrafts=nil
+        A.Call("bookStopMoving",frame.StopMovingOrSizing,frame)
         if E.ComparisonView then E.ComparisonView.CloseMenu()end
         if E.ArtDialog and not B.captureHiding then E.ArtDialog.Hide(true)end
         if E.CharacterView then E.CharacterView.Hide()end
-        if not B.combatHiding and not B.captureHiding then B.reopen=false;if E.Capture then E.Capture.CancelRestore()end end
+        if not B.combatHiding and not B.captureHiding then
+            B.reopen=false;if E.Capture then E.Capture.CancelRestore()end
+            B.ReleaseClosedView()
+        end
     end)
     if UISpecialFrames then table.insert(UISpecialFrames,"MyEpochBook") end
     B.Fit(); frame:Hide()
@@ -781,7 +854,14 @@ function B.PreparationTick()
         if status~=B.preparationStatus then B.Render()end
     end
 end
-function B.Close(manual) if manual then B.reopen=false; if E.Capture then E.Capture.CancelRestore() end end; if B.frame then B.frame:Hide() end end
+function B.Close(manual)
+    if manual then B.reopen=false;if E.Capture then E.Capture.CancelRestore()end end
+    if B.frame then
+        B.frame:Hide()
+        -- A manual close during a temporary hide has no native OnHide event.
+        B.ReleaseClosedView()
+    end
+end
 function B.Toggle() if B.frame and B.frame:IsShown() then B.Close(true) else B.Open() end end
 function B.SyncCombat()
     if not E.db then return end

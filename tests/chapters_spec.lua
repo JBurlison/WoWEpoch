@@ -19,6 +19,7 @@ S.Add(c,'play',day+10,{status='active',ended=day+60,session='one'})
 local diary=S.Add(c,'diary',day,{title='The day, in words',text='A small adventure'})
 local entry=assert(C.Create(c,{title='A day in Elwynn',mode='range',fromDay='2026-11-04',throughDay='2026-11-04',
     kinds={quest=true,loot=true},mapIDs={[1429]=true},groupIDs={[group.id]=true}}))
+C.Projection(c,entry.id)
 flush()
 local result=assert(C.Projection(c,entry.id))
 assert(#result.rows==2 and #result.diaries==1 and result.diaries[1]==diary)
@@ -42,11 +43,11 @@ c.records[loot.id]=nil;S.Touch(c,'test removal');E.Emit('RECORDS_REMOVED',c,{loo
 assert(C.Projection(c,entry.id).missingCount==1 and #entry.members==3,'Frozen membership keeps a missing source reference')
 for _,id in ipairs(entry.refs)do assert(c.records[id]and id~=foreign.id)end
 assert(c.retention.chapters==nil,'A sealed chapter does not change retention')
-local picked=assert(C.Create(c,{title='Two dates',mode='picked',included={quest.id,elsewhere.id}}));flush()
+local picked=assert(C.Create(c,{title='Two dates',mode='picked',included={quest.id,elsewhere.id}}));C.Projection(c,picked.id);flush()
 assert(#C.Projection(c,picked.id).rows==2 and C.Projection(c,picked.id).activeSeconds==90)
 assert(not C.Create(c,{title='Bad',mode='range',fromDay='2026-11-05',throughDay='2026-11-04'}))
 assert(not C.Create(c,{title='Bad',included={foreign.id}}))
-local empty=assert(C.Create(c,{title='Empty',mode='picked'}));flush()
+local empty=assert(C.Create(c,{title='Empty',mode='picked'}));C.Projection(c,empty.id);flush()
 assert(C.Projection(c,empty.id).activeSeconds==nil)
 local before=K.Notes(c,entry)
 local prompt,key=P.Get(c,'group',entry.id);assert(type(prompt)=='string'and key==P.lines.group[1])
@@ -57,7 +58,7 @@ P.Hide(c,false);assert(P.Get(c,'goal','goal')and K.Notes(c,entry)==before)
 -- sealed membership remain canonical, and preparation yields for large books.
 local reloaded=E.Copy(c);E.db.characters[c.id]=reloaded
 C.Ensure(reloaded);K.Process(1);assert(K.Pending(reloaded))
-c=reloaded;flush();assert(#C.List(c)==3 and K.Notes(c,c.records[entry.id])=='My own words')
+c=reloaded;C.Projection(c,entry.id);flush();assert(#C.List(c)==3 and K.Notes(c,c.records[entry.id])=='My own words')
 assert(C.Projection(c,entry.id).missingCount==1)
 -- Typing notes and extending a normal heartbeat must not restart every chunk
 -- of a long chapter scan. Appended sources are collected by a follow-up pass.

@@ -3,6 +3,7 @@ local _,E=...
 -- mouse cursor or Blizzard's protected navigation state.
 local N={generation=0,entries={},byFrame=setmetatable({},{__mode='k'}),scopes={},visible=false}
 E.ControllerNavigation=N
+local rememberedOwner=setmetatable({},{__mode='v'})
 local regions={'header','nav','left','right'}
 local function book()return E.Book end
 local function script(frame,name)
@@ -114,10 +115,11 @@ local function outline(entry)
 end
 function N.Focus(entry)
     if not eligible(entry)then return false end
+    N.awaitingView=nil
     local old=N.focused
     if old~=entry then
         if N.visible then leave(old)end
-        N.focused=entry;N.savedID=entry.id;N.savedRegion=entry.region;N.savedOwner=entry.owner
+        N.focused=entry;N.savedID=entry.id;N.savedRegion=entry.region;rememberedOwner[1]=entry.owner
         if N.visible then
             if entry.enter then entry.enter(entry.frame,entry)
             else local fn=script(entry.frame,'OnEnter');if fn then fn(entry.frame)end end
@@ -222,9 +224,14 @@ end
 function N.BeginRender()
     if N.visible then leave(N.focused)end
     local current=N.focused
-    if current then N.savedID=current.id;N.savedRegion=current.region;N.savedOwner=current.owner end
+    if current and not N.awaitingView then N.savedID=current.id;N.savedRegion=current.region;rememberedOwner[1]=current.owner end
     N.generation=N.generation+1;N.entries={};N.byFrame=setmetatable({},{__mode='k'});N.focused=nil;N.rendering=true
     if N.outline then N.outline:Hide()end
+end
+function N.ReleaseView()
+    N.SetVisible(false);N.BeginRender()
+    N.scopes={};N.rendering=nil;N.refreshing=nil
+    if N.outline then N.outline:ClearAllPoints()end
 end
 local function textOf(frame)
     if frame.text and type(frame.text.GetText)=='function'then return frame.text:GetText()end
@@ -270,9 +277,16 @@ function N.EndRender(preparing)
     N.RegisterHeader();N.RegisterPage(B.nav,'nav')
     if not preparing then N.RegisterPage(B.left,'left');N.RegisterPage(B.right,'right')end
     N.rendering=nil
-    if N.savedOwner~=currentOwner()then N.savedID=nil;N.savedRegion='nav' end
+    if rememberedOwner[1]~=currentOwner()then N.savedID=nil;N.savedRegion='nav' end
+    local savedID,savedRegion,savedOwner=N.savedID,N.savedRegion,rememberedOwner[1]
     if E.ControllerAdapters and E.ControllerAdapters.Refresh then E.ControllerAdapters.Refresh()end
     N.Refresh()
+    if preparing then
+        -- Header/sidebar fallback remains usable while a cold page rebuilds,
+        -- but must not replace the remembered target without user navigation.
+        N.savedID,N.savedRegion,rememberedOwner[1]=savedID,savedRegion,savedOwner
+        N.awaitingView=true
+    else N.awaitingView=nil end
 end
 function N.Move(dx,dy)
     N.Refresh();local current=N.Current();if not current then return false end

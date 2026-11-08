@@ -91,6 +91,9 @@ function I.NormalizePinyin(query)
     return table.concat(out)..(tone and tostring(tone)or '')
 end
 local scriptSets,lastQuery,lastScript,lastCandidates
+function I.ReleaseCache()
+    scriptSets=nil;lastQuery=nil;lastScript=nil;lastCandidates=nil
+end
 local function ensureScripts()
     if scriptSets then return end
     scriptSets={simplified={},traditional={}}

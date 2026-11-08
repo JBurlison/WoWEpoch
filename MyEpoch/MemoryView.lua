@@ -1,5 +1,6 @@
 local _,E=...
 local V,B,M,A,S={},E.Book,E.Memories,E.API,E.Store; E.MemoryView=V
+function V.ReleaseView()V.lastSaved=nil;V.lastReport=nil end
 function V.Create(source)
     local c=B.Character(); local r,err=M.Create(c,A.Now(),source and source.id)
     if not r then B.memoryError=err; B.Render(); return end
@@ -74,7 +75,7 @@ function V.Render(left,right)
         if number then B.memoryPage=number end
         if rows and not B.selected and not B.memoryOverview and #rows>0 then local r=rows[#rows];B.selected=r.id;B.memoryFocus=(r.kind=="memory"or r.kind=="screenshot")and r.id or nil;B.memoryEditing=false end
         if updating then B.Text(left,E.L["Updating for new saved entries…"],13)end
-        if rows then cards(left,rows,excerpts)else B.Text(left,E.L["Preparing saved memories…"],13)end
+        if rows then cards(left,rows,excerpts)else B.viewPreparing=true;B.Text(left,E.L["Preparing saved memories…"],13)end
         if not B.selected then
             title(right,E.L["A PAGE OF YOUR OWN"],E.L["The things worth keeping"])
             paper(right,E.L["Write a memory, capture a moment, or star a recorded event. Your words and tags stay separate from the original facts."])
