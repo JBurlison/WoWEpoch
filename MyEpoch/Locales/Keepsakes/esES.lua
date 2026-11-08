@@ -301,4 +301,11 @@ E.Localize({
     ["{count} wishes ready to bring in"]="Deseos listos para importar: {count}",
     ["Opening your wishes…"]="Abriendo tus deseos…",
     ["Preparing linked records…"]="Preparando las entradas enlazadas…",
+    ["Move notifications in Edit Mode"]="Mover las notificaciones en el modo de edición",
+    ["My Epoch notifications"]="Notificaciones de My Epoch",
+    ["Drag this area to move notifications."]="Arrastra esta zona para mover las notificaciones.",
+    ["Apply position"]="Aplicar posición",
+    ["Cancel position"]="Cancelar cambio de posición",
+    ["Reset position"]="Restablecer posición",
+    ["Apply saves this position. Cancel or leaving Edit Mode discards changes."]="Aplicar guarda esta posición. Cancelar o salir del modo de edición descarta los cambios.",
 })

@@ -23,17 +23,26 @@ function V.BuildToast()
     f:SetScript('OnEnter',function()N.Hover(true)end);f:SetScript('OnLeave',function()N.Hover(false)end)
     f:Hide();return f
 end
+-- Store positions in UIParent units, independent of the toast's display scale.
+-- The Edit Mode preview shares this placement so its outline is the real area.
+function V.PositionFrame(f,prefs)
+    local width,height=math.max(1,UIParent:GetWidth()),math.max(1,UIParent:GetHeight())
+    local scale=math.max(.75,math.min(1.25,width/1920));f:SetScale(scale)
+    local xLimit=math.max(0,math.min(.4,.5-f:GetWidth()*scale/(2*width)))
+    local yLimit=math.max(.02,math.min(.85,1-f:GetHeight()*scale/height))
+    local x=math.max(-xLimit,math.min(xLimit,prefs.x or 0))
+    local y=math.max(.02,math.min(yLimit,prefs.y or .06))
+    f:ClearAllPoints();f:SetPoint('TOP',UIParent,'TOP',x*width/scale,-y*height/scale)
+    return x,y
+end
 function V.Toast(batch)
     if not batch then if V.toast then V.toast:Hide()end;return end
     local f=V.BuildToast();local prefs=N.Preferences(batch.owner,batch.previewScope)
-    local width,height=UIParent:GetWidth(),UIParent:GetHeight()
-    f:SetScale(math.max(.75,math.min(1.25,width/1920)))
-    f:ClearAllPoints();f:SetPoint('TOP',UIParent,'TOP',prefs.x*width,-prefs.y*height)
     f.heading:SetText(E.Text(N.Heading(batch)));f.title:SetText(E.Text(N.Caption(batch)))
     local entry=batch.entries[1];local record=entry and batch.owner.records[entry.id]
     f.icon:SetTexture(record and record.icon or root..'emblem-small-v1.tga')
     local titleHeight=math.max(20,f.title:GetStringHeight());f.title:SetHeight(titleHeight)
-    f:SetHeight(math.max(106,32+titleHeight+42));f:Show()
+    f:SetHeight(math.max(106,32+titleHeight+42));V.PositionFrame(f,prefs);f:Show()
     if E.ControllerAdapters then E.ControllerAdapters.RefreshNotifications()end
 end
 N.renderer=V.Toast
@@ -96,6 +105,9 @@ function V.Render(left,right,c)
             else N.Configure(c,scope,'y',math.min(.85,y+.03))end;B.Render()
         end))
         B.Action(right,E.L['Reset notification position'],guard(function()N.Configure(c,scope,'x',0);N.Configure(c,scope,'y',.06);B.Render()end))
+        if c==E.current and E.NotificationEditMode and E.NotificationEditMode.Available()then
+            B.Action(right,E.L['Move notifications in Edit Mode'],guard(function()E.NotificationEditMode.Open(scope)end))
+        end
         B.EndSection(right,panel)
     end
     local preview=B.Section(right,E.L['Try a notification'])

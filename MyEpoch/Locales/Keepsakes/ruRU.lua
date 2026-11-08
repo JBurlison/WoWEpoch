@@ -301,4 +301,11 @@ E.Localize({
     ["{count} wishes ready to bring in"]="Мечты для добавления: {count}",
     ["Opening your wishes…"]="Открываем ваши мечты…",
     ["Preparing linked records…"]="Подготавливаем связанные записи…",
+    ["Move notifications in Edit Mode"]="Переместить уведомления в режиме редактирования",
+    ["My Epoch notifications"]="Уведомления My Epoch",
+    ["Drag this area to move notifications."]="Перетащите эту область, чтобы переместить уведомления.",
+    ["Apply position"]="Применить положение",
+    ["Cancel position"]="Отменить перемещение",
+    ["Reset position"]="Сбросить положение",
+    ["Apply saves this position. Cancel or leaving Edit Mode discards changes."]="Применение сохраняет это положение. Отмена или выход из режима редактирования отменяют изменения.",
 })

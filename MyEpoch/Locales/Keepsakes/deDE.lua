@@ -1,6 +1,13 @@
 local _,E=...
 if E.locale~="deDE" then return end
 E.Localize({
+    ["Move notifications in Edit Mode"]="Benachrichtigungen im Bearbeitungsmodus verschieben",
+    ["My Epoch notifications"]="Benachrichtigungen von My Epoch",
+    ["Drag this area to move notifications."]="Ziehe diesen Bereich, um Benachrichtigungen zu verschieben.",
+    ["Apply position"]="Position übernehmen",
+    ["Cancel position"]="Verschieben abbrechen",
+    ["Reset position"]="Position zurücksetzen",
+    ["Apply saves this position. Cancel or leaving Edit Mode discards changes."]="„Position übernehmen“ speichert diese Position. „Verschieben abbrechen“ oder das Verlassen des Bearbeitungsmodus verwirft die Änderungen.",
     ["Which small victory made this milestone possible?"]="Welcher kleine Sieg hat diesen Meilenstein möglich gemacht?",
     ["What nearly made you turn back?"]="Was hätte dich beinahe zur Umkehr gebracht?",
     ["What did you learn that you wish you had known sooner?"]="Was hast du gelernt, das du gern früher gewusst hättest?",

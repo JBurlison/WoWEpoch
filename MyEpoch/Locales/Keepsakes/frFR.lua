@@ -1,6 +1,13 @@
 local _,E=...
 if E.locale~="frFR" then return end
 E.Localize({
+    ["Move notifications in Edit Mode"]="Déplacer les notifications en mode Édition",
+    ["My Epoch notifications"]="Notifications de My Epoch",
+    ["Drag this area to move notifications."]="Faites glisser cette zone pour déplacer les notifications.",
+    ["Apply position"]="Appliquer la position",
+    ["Cancel position"]="Annuler le déplacement",
+    ["Reset position"]="Réinitialiser la position",
+    ["Apply saves this position. Cancel or leaving Edit Mode discards changes."]="« Appliquer la position » enregistre cette position. « Annuler le déplacement » ou quitter le mode Édition abandonne les modifications.",
     ["Which small victory made this milestone possible?"]="Quelle petite victoire a rendu cette grande étape possible ?",
     ["What nearly made you turn back?"]="Qu'est-ce qui a failli vous faire rebrousser chemin ?",
     ["What did you learn that you wish you had known sooner?"]="Qu'avez-vous appris que vous auriez aimé savoir plus tôt ?",

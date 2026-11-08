@@ -13,7 +13,7 @@ bind(c,'closed-journal-recording:session')
 local level=20;UnitLevel=function()return level end;UnitAffectingCombat=function()return false end
 local function event(name,...)E.frame:GetScript('OnEvent')(E.frame,name,...)end
 event('PLAYER_ENTERING_WORLD')
-N.Configure(c,'account','master',true);N.Configure(c,'account','levels',true);N.Configure(c,'account','milestone',true)
+N.Configure(c,'account','master',true);N.Configure(c,'account','levels',true)
 N.Start(c);J.Login(c,now)
 B.Combat(false);B.character=c.id;B.chapter='Chronicle';B.Open();B.Close(true)
 assert(not B.frame:IsShown()and B.viewReleased and E.RecorderReady())
@@ -38,12 +38,16 @@ assert(c.state.notifications.seen[key]=='queued','milestone notification is queu
 
 local weak=setmetatable({},{__mode='v'})
 local witnessed,levelToast,recapToast,slices=false,false,false,0
+local lastMilestoneBatch,milestoneBatches=nil,0
 local function observeNotification()
     local active=N.Current()
     if active and active.owner==c then
         assert(E.NotificationView.toast and E.NotificationView.toast:IsShown(),'real toast renderer presents queued notifications')
         for _,entry in ipairs(active.entries)do
-            if entry.id==milestone.id and entry.category=='levels'then levelToast=true end
+            if entry.id==milestone.id and entry.category=='levels'then
+                levelToast=true
+                if active~=lastMilestoneBatch then lastMilestoneBatch=active;milestoneBatches=milestoneBatches+1 end
+            end
             if entry.key=='recap:'..key and entry.category=='milestone'then recapToast=true end
         end
     end
@@ -67,7 +71,7 @@ for i=1,5000 do
     end
     observeNotification()
     recap=c.records[(c.state.recaps or{})[key]]
-    if recap and D.Completed(recap)and levelToast and recapToast and not J.dailyWriters[c]then break end
+    if recap and D.Completed(recap)and levelToast and not N.Current()and N.Pending(c)==0 and not J.dailyWriters[c]then break end
 end
 assert(witnessed and slices<5000,'real automatic milestone compilation makes bounded progress while closed: witnessed='..tostring(witnessed)
     ..' slices='..slices..' phase='..tostring(J.dailyWriters[c]and J.dailyWriters[c].phase)..' recap='..tostring(recap~=nil)
@@ -75,8 +79,8 @@ assert(witnessed and slices<5000,'real automatic milestone compilation makes bou
 assert(recap and D.Completed(recap)and recap.periodKind=='milestone'and recap.read==false)
 assert(recap.facts.counts.levels==1 and recap.facts.counts.looted==1200 and type(recap.text)=='string'and #recap.text>0,
     'automatic recap includes the actual level transition and preceding personal receipts')
-assert(levelToast and recapToast and c.state.notifications.seen[key]=='delivered'
-    and c.state.notifications.seen['recap:'..key]=='delivered','both milestone and completed recap notifications are delivered while closed')
+assert(levelToast and not recapToast and milestoneBatches==1 and c.state.notifications.seen[key]=='delivered'
+    and c.state.notifications.seen['recap:'..key]==nil,'milestone and completed recap share one delivered celebration while closed')
 assert(not J.pending[c][key]and not J.dailyWriters[c]and not A.status.journalWritingError)
 collectgarbage('collect');collectgarbage('collect')
 for _,name in ipairs({'state','snapshot','records','worker','thread'})do
@@ -100,4 +104,4 @@ assert(table.concat(visible,'\n'):find(E.DiaryPresentation.Recap(recap),1,true),
     'completed writing is rendered on the reopened recap page')
 B.Close(true);N.Close();N.Stop()
 UnitLevel=oldLevel;UnitAffectingCombat=oldCombat;LOOT_ITEM_SELF_MULTIPLE=oldLootFormat;restoreRecorder();B.character=oldCharacter
-print('PASS closed-book recording: native loot/level events, automatic milestone recap, real milestone/recap toasts, writer survival, collected compiler scratch and saved recap reopening; slices',slices)
+print('PASS closed-book recording: native loot/level events, automatic milestone recap, one unified milestone toast, writer survival, collected compiler scratch and saved recap reopening; slices',slices)

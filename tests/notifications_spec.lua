@@ -37,6 +37,22 @@ local otherLevel=milestone('level',other);assert(N.Pending(other)==0,'Never toas
 local crossed=milestone('skill',c,{thresholds={25,50}});assert(N.Pending(c)==1,'One record crossing thresholds gives one toast')
 crossed.major=false;S.Changed(c,crossed);assert(N.Pending(c)==0,'Corrections remove invalid queued celebrations')
 N.Configure(c,'character','sound',false);milestone('profession');N.Tick(3);assert(N.Current()and sounds==2);N.Close()
+-- Edit Mode freezes delivery without consuming its queue, current duration or
+-- sound. Only the current editor token may release that suspension.
+local editing=milestone('level');N.Tick(3);local paused=assert(N.Current())
+local beforeSound,beforeRemaining=sounds,paused.remaining
+local token,stale={},{}
+assert(N.SuspendDelivery(token));assert(paused.suspended and renders[#renders]=='hide')
+local renderCount=#renders
+N.Tick(60);assert(N.Current()==paused and paused.remaining==beforeRemaining and sounds==beforeSound)
+assert(not N.Preview(c)and not N.Open(),'positioning cannot open or replace the real notification')
+N.Configure(c,'character','x',.15);N.Configure(c,'character','y',.2)
+assert(#renders==renderCount,'position changes cannot reveal the suspended real toast')
+milestone('achievement');assert(N.Pending(c)==1)
+assert(not N.ResumeDelivery(stale));N.Tick(60);assert(N.Current()==paused and N.Pending(c)==1)
+assert(N.ResumeDelivery(token));N.Tick(0)
+assert(N.Current()==paused and not paused.suspended and paused.remaining==beforeRemaining and sounds==beforeSound)
+N.Close();N.Tick(3);assert(N.Current()and N.Current().entries[1].category=='achievements');N.Close()
 -- A placeholder only becomes eligible once its completed facts and text exist.
 local day=A.ShiftDay(A.DayStart(now),1);TEST_NOW(day+3600);now=day+3600;c.state.recapLoginThrough=day
 local recap=S.Add(c,'recap',now,{periodKind='daily',key='daily:test',from=day-86400,through=day,inProgress=true})

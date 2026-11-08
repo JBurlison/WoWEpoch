@@ -206,6 +206,12 @@ local function claimBook(forcePad)
     C.neutral=true
 end
 function C.CompetingNative()
+    -- Edit Mode remains native-owned even when it temporarily hides its
+    -- manager for a locked sub-dialog. Unlike ordinary panels, an explicit
+    -- book focus request must never reclaim its input or focus shortcut.
+    if shown(EditModeManagerFrame)or method(EditModeManagerFrame,'IsEditModeActive')==true then
+        return blocker('edit-mode',EditModeManagerFrame)
+    end
     local focus=call(GetCurrentKeyBoardFocus)
     if focus and not inside(focus,E.Book and E.Book.frame)and not(editorOpen()and inside(focus,E.ControllerText.frame))then return blocker('external-edit',focus)end
     for i=1,4 do if shown(_G['StaticPopup'..i])then return blocker('popup',_G['StaticPopup'..i])end end
@@ -473,6 +479,11 @@ function C.Start()
     end
     if EventRegistry and type(EventRegistry.RegisterCallback)=='function'then
         local function listen(event,fn)pcall(EventRegistry.RegisterCallback,EventRegistry,event,fn,C)end
+        -- Forever 70790 EditModeManager emits these after changing its active
+        -- state. Release capture immediately and require neutral on return.
+        local function editModeChanged()invalidateClaim();C.neutral=true;C.Refresh()end
+        listen('EditMode.Enter',editModeChanged)
+        listen('EditMode.Exit',editModeChanged)
         listen('UIParentPanelManager.ShowUIPanel',function(_,frame)C.NativeWindowOpened(frame)end)
         listen('UIParentPanelManager.HideUIPanel',function(_,frame)C.NativeWindowClosed(frame)end)
         listen('UIParentPanelManager.ForcePanelHide',function(_,frame)C.NativeWindowClosed(frame)end)

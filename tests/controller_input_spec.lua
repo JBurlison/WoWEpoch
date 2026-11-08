@@ -178,6 +178,24 @@ function TEST_CONTROLLER_INPUT()
     assert(not c.active,'closing one bag must not release another visible bag')
     assert(c.RequestFocus(),'ordinary visible bags may be reclaimed by an explicit user request')
     firstBag:Hide();nativeEvent('ContainerFrame.CloseBag',firstBag)
+    local editModeActive=true
+    EditModeManagerFrame=CreateFrame('Frame','EditModeManagerFrame',UIParent)
+    function EditModeManagerFrame:IsEditModeActive()return editModeActive end
+    EditModeManagerFrame:Show()
+    local beforeEditBack=calls.back
+    c.ButtonDown('PAD2');nativeEvent('EditMode.Enter')
+    assert(not c.active and not c.catcher.shown and c.blocker.kind=='edit-mode',
+        'Edit Mode entry immediately releases book capture without waiting for a native manager focus')
+    assert(not c.RequestFocus(),'explicit book focus must not reclaim native Edit Mode')
+    c.ButtonUp('PAD2');assert(calls.back==beforeEditBack,'held Back must not leak across Edit Mode entry')
+    EditModeManagerFrame:Hide();c.OnBookShow()
+    assert(not c.active and not c.RequestFocus(),'locked Edit Mode remains native-owned while its manager is hidden')
+    editModeActive=false;device.buttons[1]=true;nativeEvent('EditMode.Exit')
+    assert(not c.active and c.neutral,'Edit Mode exit waits for held native input to release')
+    device.buttons[1]=false;c.Tick(.1);assert(c.active,'neutral input restores the book after Edit Mode')
+    EditModeManagerFrame.IsEditModeActive=nil;EditModeManagerFrame:Show()
+    assert(not c.RequestFocus(),'a visible Edit Mode manager blocks even without its optional state query')
+    EditModeManagerFrame:Hide();EditModeManagerFrame=nil;c.Refresh();assert(c.active)
     C_GamePad.GetAllDeviceIDs=function()return{}end
     assert(not c.HasDevice(),'empty physical-device list overrides stale mapped state')
     C_GamePad.GetAllDeviceIDs=function()return{1}end;assert(c.HasDevice())
