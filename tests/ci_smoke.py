@@ -33,6 +33,8 @@ SPECS = (
     'journal_boundary_clock_spec.lua',
     'idle_workers_spec.lua',
     'notification_idle_spec.lua',
+    'notification_identity_spec.lua',
+    'notification_edit_mode_spec.lua',
     'journal_closed_recording_spec.lua',
 )
 HOSTS = (

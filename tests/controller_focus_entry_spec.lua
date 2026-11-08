@@ -51,6 +51,11 @@ assert(B.chapter==chapter and B.Character()==character,'Focus changes preserve t
 StaticPopup1=CreateFrame('Frame',nil,UIParent);StaticPopup1:Show();C.Refresh()
 assert(not C.active and not F.armed and not bindings[F.owner],'Native modal takeover removes the focus override')
 StaticPopup1:Hide();StaticPopup1=nil;H.pad=true;C.Refresh();assert(F.armed)
+EditModeManagerFrame=CreateFrame('Frame','EditModeManagerFrame',UIParent);EditModeManagerFrame:Show()
+C.RequestFocus()
+assert(not C.active and not F.armed and not bindings[F.owner],
+    'Explicit focus cannot steal the native Edit Mode focus shortcut')
+EditModeManagerFrame:Hide();EditModeManagerFrame=nil;C.Refresh();assert(F.armed)
 C.OnEvent('GAME_PAD_DISCONNECTED');assert(not F.armed and not bindings[F.owner],'Disconnect clears the override immediately')
 C.OnEvent('GAME_PAD_CONNECTED');assert(F.armed)
 C.Configure('mode','off');assert(not F.armed and not bindings[F.owner],'Disabled controller support releases the focus key')

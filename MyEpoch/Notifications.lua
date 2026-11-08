@@ -6,11 +6,42 @@ local definitions={
     {'professions','Profession thresholds','milestones'}, {'weapons','Weapon thresholds','milestones'},
     {'goals','Completed goals','goals'}, {'daily','Daily recaps','recaps'},
     {'weekly','Weekly recaps','recaps'}, {'monthly','Monthly recaps','recaps'},
-    {'yearly','Yearly recaps','recaps'}, {'milestone','Milestone recaps','recaps'},
+    {'yearly','Yearly recaps','recaps'},
 }
 N.order=definitions
 for _,row in ipairs(definitions)do N.categories[row[1]]={label=row[2],family=row[3]}end
 local run,active,hovered,quietFor=nil,nil,false,0
+local suspendedDelivery
+local milestoneCategories={level='levels',achievement='achievements',discovery='discoveries',encounter='completions',quest_chain='completions',completion='completions',profession='professions',skill='weapons'}
+local function celebrationKey(key)
+    return type(key)=='string'and(key:match('^recap:(milestone:.+)$')or key)or key
+end
+local function normalizeState(c,st)
+    if st.version==2 then return end
+    -- Only the small delivery ledger is normalized, never the journal history.
+    -- A displayed or deliberately suppressed alias wins over a queued alias.
+    local seen,rank={},{queued=1,suppressed=2,delivered=3}
+    for key,status in pairs(st.seen)do
+        key=celebrationKey(key)
+        if not seen[key]or(rank[status]or 2)>(rank[seen[key]]or 2)then seen[key]=status end
+    end
+    local pending,queued={},{}
+    for _,entry in ipairs(st.pending)do if type(entry)=='table'then
+        local r=c.records[entry.id];local key,source=E.Diary.MilestoneKey(c,r)
+        if key then
+            entry.id,entry.key,entry.category,entry.family=source.id,key,milestoneCategories[source.milestoneType],'milestones'
+        elseif entry.category=='milestone'or r and r.kind=='recap'and r.periodKind=='milestone'then
+            entry=nil
+        else entry.key=celebrationKey(entry.key)end
+        if entry and type(entry.key)=='string'and N.categories[entry.category]and not queued[entry.key]
+            and(seen[entry.key]==nil or seen[entry.key]=='queued')then
+            pending[#pending+1]=entry;queued[entry.key]=true;seen[entry.key]='queued'
+        end
+    end end
+    st.seen,st.pending,st.version=seen,pending,2
+    -- Retain legacy preferences for older builds, but the source milestone's
+    -- category is authoritative. There is no second recap delivery switch.
+end
 local function account()
     if not E.db then return end
     if type(E.db.settings.notifications)~='table'then E.db.settings.notifications={}end
@@ -22,10 +53,11 @@ local function state(c)
     if not K.Owned(c)then return end
     if type(c.state.notifications)~='table'then
         -- Existing history is a quiet baseline, not a backlog of celebrations.
-        c.state.notifications={version=1,baselineSequence=c.seq,baselineAt=A.Now(),seen={},pending={}}
+        c.state.notifications={version=2,baselineSequence=c.seq,baselineAt=A.Now(),seen={},pending={}}
     end
     local st=c.state.notifications
     for _,key in ipairs({'seen','pending','preferences'})do if type(st[key])~='table'then st[key]={}end end
+    normalizeState(c,st)
     st.baselineSequence=K.Number(st.baselineSequence,0,9007199254740991)or c.seq
     st.baselineAt=K.Number(st.baselineAt,0,9007199254740991)or A.Now()
     if type(st.preferences.categories)~='table'then st.preferences.categories={}end
@@ -103,7 +135,21 @@ function N.Start(c)
     return true
 end
 function N.Stop()
-    run=nil;clearActive()
+    run=nil;suspendedDelivery=nil;clearActive()
+end
+function N.SuspendDelivery(token)
+    if token==nil then return false end
+    if suspendedDelivery==token then return true end
+    suspendedDelivery=token
+    if active then active.suspended=true end
+    if N.renderer then N.renderer(nil)end
+    return true
+end
+function N.ResumeDelivery(token)
+    if token==nil or suspendedDelivery~=token then return false end
+    suspendedDelivery=nil
+    -- The next normal Tick rechecks combat/ownership and resumes without sound.
+    return true
 end
 local function enqueue(c,r,category,key,options)
     local st=state(c);if not st or not N.categories[category]or st.seen[key]then return false end
@@ -117,24 +163,24 @@ local function enqueue(c,r,category,key,options)
 end
 function N.Milestone(c,r)
     if not K.Record(c,r,'milestone')or r.subject~=c.id or r.major~=true then return false end
-    local category=({level='levels',achievement='achievements',discovery='discoveries',encounter='completions',quest_chain='completions',completion='completions',profession='professions',skill='weapons'})[r.milestoneType]
+    local category=milestoneCategories[r.milestoneType]
     if not category then return false end
     local st=state(c)
     local quiet=S.Sequence(r)<=(st.baselineSequence or 0)or not run or run.owner~=c
         or S.Sequence(r)<=run.sequence or not S.Timestamp(r)or r.ts<run.startedAt-5
         or r.backfill==true or r.historical==true or r.datePrecision=='day'
-    return enqueue(c,r,category,'milestone:'..r.id,{quiet=quiet})
+    return enqueue(c,r,category,E.Diary.MilestoneKey(c,r),{quiet=quiet})
 end
 function N.Recap(c,r)
-    if not K.Record(c,r,'recap')or not E.Diary.Completed(r)or not E.Diary.Visible(c,r)or not N.categories[r.periodKind]then return false end
+    if not K.Record(c,r,'recap')or not E.Diary.Completed(r)or not E.Diary.Visible(c,r)then return false end
+    if r.periodKind=='milestone'then
+        local _,source=E.Diary.MilestoneKey(c,r)
+        return source and N.Milestone(c,source)or false
+    end
+    if not N.categories[r.periodKind]then return false end
     local st=state(c)
     local quiet=S.Sequence(r)<=(st.baselineSequence or 0)or r.backfill==true
     if r.periodKind~='milestone'and type(r.through)=='number'and r.through<=A.DayStart(st.baselineAt or A.Now())then quiet=true end
-    if r.periodKind=='milestone'then
-        local id=type(r.key)=='string'and r.key:match('^milestone:(.+)$')
-        local milestone=id and c.records[id]
-        if not milestone or S.Sequence(milestone)<=(st.baselineSequence or 0)then quiet=true end
-    end
     return enqueue(c,r,r.periodKind,'recap:'..(r.key or r.id),{quiet=quiet})
 end
 function N.Goal(c,goal,memory,options)
@@ -160,6 +206,7 @@ function N.Heading(batch)
     return E.L[({milestones='A milestone to remember',goals='A wish fulfilled',recaps='Your new recaps are ready'})[batch.family]]
 end
 function N.Open()
+    if suspendedDelivery then return false end
     local batch=active;if not batch then return false end
     if batch.preview then clearActive();return true end
     local c=batch.owner;N.Prune(c);if active~=batch then return false end
@@ -176,6 +223,7 @@ function N.Open()
     B.Render(true);clearActive();return true
 end
 function N.Preview(c,scope)
+    if suspendedDelivery then return false end
     if c~=E.current or not K.Owned(c)then return false end
     if A.Call('notificationCombat',UnitAffectingCombat,'player')~=false then return false end
     clearActive();active={owner=c,preview=true,previewScope=scope,entries={},remaining=6}
@@ -184,7 +232,7 @@ function N.Preview(c,scope)
     return true
 end
 function N.Tick(elapsed)
-    if not E.db then return end
+    if not E.db or suspendedDelivery then return end
     -- Record/recap events populate the queue. An idle notifier has no display
     -- or combat state to refresh, and must not allocate preferences each frame.
     if not active then

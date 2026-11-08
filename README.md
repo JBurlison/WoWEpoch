@@ -110,6 +110,10 @@ Use **Share a wish list** to copy a share code for a friend. Notes are included 
 
 Major milestones, completed wishes, and newly available recaps can show a small parchment notification. Notifications wait until combat ends and never open the book by themselves. **Archive → Notifications** has an account-wide off switch, category controls, optional character overrides, sound, and position settings. Turning notifications off does not stop recording or remove unread indicators.
 
+A major milestone and its written recap share one notification. For example, leveling up alerts you once; finishing or retelling that level's recap does not alert you again. Existing duplicate notification state is reconciled automatically, preserving your saved history and notes. Daily, weekly, monthly, and yearly recaps keep their own notifications.
+
+Open the game's **Edit Mode** to move the **My Epoch notifications** area, or select **Move notifications in Edit Mode** in Archive. Drag the area or use its direction buttons, then choose **Apply position**. **Reset position** previews the default location; Apply saves it. **Cancel position** or leaving Edit Mode discards unapplied changes. The position follows account defaults unless this character uses an override. During positioning, queued notifications and the current toast's remaining time are preserved. Controller users can also use the existing Left/Right/Up/Down position controls in Archive; native Edit Mode keeps ownership of controller input.
+
 ## Capturing a moment
 
 Choose **Capture a moment**, or use the capture action on a memory or milestone. My Epoch briefly hides the scrapbook, requests a screenshot, then restores the book.

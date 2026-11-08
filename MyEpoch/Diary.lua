@@ -14,6 +14,19 @@ local function variationSeed(key)
     local seed=0;for i=1,#key do seed=(seed+key:byte(i)*i)%997 end;return seed
 end
 function D.Family(r) return Q.MilestoneFamily(r) end
+-- A milestone is the source event; its recap is derived writing attached by
+-- the existing milestone:<record ID> foreign key. Keep that relationship in
+-- one place without copying facts or merging the two records' personal notes.
+function D.MilestoneKey(c,r)
+    if not E.Keepsakes.Record(c,r)then return end
+    local source=r
+    if r.kind=='recap'and r.periodKind=='milestone'then
+        local id=type(r.key)=='string'and r.key:match('^milestone:(.+)$')
+        source=id and c.records[id]
+    end
+    if not E.Keepsakes.Record(c,source,'milestone')or source.subject~=c.id then return end
+    return 'milestone:'..source.id,source
+end
 function D.MilestoneWindow(c,event)
     assert(event.kind=="milestone" and recapTypes[event.milestoneType] and event.subject==c.id,"Not a recap milestone")
     local previous=Q.PreviousMajor(c,event)

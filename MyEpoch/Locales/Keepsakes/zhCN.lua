@@ -2,6 +2,13 @@ local _,E=...
 if E.locale~="zhCN" then return end
 E.Localize({
     ["Choose a writing prompt"]="选择写作灵感",
+    ["Move notifications in Edit Mode"]="在编辑模式中移动通知",
+    ["My Epoch notifications"]="My Epoch 通知",
+    ["Drag this area to move notifications."]="拖动此区域即可移动通知。",
+    ["Apply position"]="应用位置",
+    ["Cancel position"]="取消位置更改",
+    ["Reset position"]="重置位置",
+    ["Apply saves this position. Cancel or leaving Edit Mode discards changes."]="应用会保存当前位置。取消或离开编辑模式会放弃更改。",
     ["Which small victory made this milestone possible?"]="是哪一次小小的胜利，让你走到了这个里程碑？",
     ["What nearly made you turn back?"]="什么事曾让你差点打了退堂鼓？",
     ["What did you learn that you wish you had known sooner?"]="一路学到的道理中，有什么是你希望早一点明白的？",

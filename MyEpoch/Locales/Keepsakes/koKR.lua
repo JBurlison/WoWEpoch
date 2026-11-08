@@ -2,6 +2,13 @@ local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
     ["Choose a writing prompt"]="글감 선택",
+    ["Move notifications in Edit Mode"]="편집 모드에서 알림 위치 이동",
+    ["My Epoch notifications"]="My Epoch 알림",
+    ["Drag this area to move notifications."]="이 영역을 드래그하면 알림 위치를 옮길 수 있어요.",
+    ["Apply position"]="위치 적용",
+    ["Cancel position"]="위치 변경 취소",
+    ["Reset position"]="위치 초기화",
+    ["Apply saves this position. Cancel or leaving Edit Mode discards changes."]="적용을 누르면 이 위치를 저장해요. 취소하거나 편집 모드를 나가면 변경 사항을 저장하지 않아요.",
     ["Which small victory made this milestone possible?"]="어떤 작은 승리가 이 발자취를 남길 수 있게 해 주었나요?",
     ["What nearly made you turn back?"]="어떤 일 때문에 하마터면 발길을 돌릴 뻔했나요?",
     ["What did you learn that you wish you had known sooner?"]="배운 것 중에, 조금 더 일찍 알았더라면 좋았을 것은 무엇인가요?",
