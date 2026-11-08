@@ -238,6 +238,19 @@ function T.Back()
     if pending(c)~=''then c.composition:Cancel();c.candidatePage=1;c.candidateIndex=1;T.Render();return true end
     T.Close('back');return true
 end
+function T.ReleaseView()
+    -- A suspended keyboard still owns its draft and composition. Only release
+    -- presentation payloads after that session actually ends.
+    if T.context then return false end
+    for _,key in ipairs(T.keys)do key.spec=nil;key.text:SetText('');key:Hide()end
+    T.order={};T.rows={};T.focus=nil;T.desiredX=nil
+    for _,widget in ipairs({T.preview,T.measure,T.fieldLabel,T.compositionLabel,T.status})do widget:SetText('')end
+    if T.preview then T.preview:SetScript('OnEnterPressed',nil)end
+    if T.ring then T.ring:Hide();T.ring:ClearAllPoints()end
+    if U()and U().ReleaseCache then U().ReleaseCache()end
+    if E.ControllerComposition and E.ControllerComposition.ReleaseCache then E.ControllerComposition.ReleaseCache()end
+    return true
+end
 function T.Close(reason)
     local c=T.context;if not c then return end
     local refresh,reset=T.refreshBook,T.refreshReset;T.refreshBook=nil;T.refreshReset=nil
@@ -246,6 +259,7 @@ function T.Close(reason)
     if c.composition then c.composition:Cancel()end
     if T.preview then T.preview:ClearFocus()end
     if T.frame then T.frame:Hide()end
+    T.ReleaseView()
     if N()then N().PopScope('controller-text')end
     if reason~='hidden'and reason~='stale'and N()and N().IsValid(c.entry)then N().Focus(c.entry)end
     if refresh and(reason=='done'or reason=='back')and B().frame and B().frame:IsShown()then B().Render(reset)end

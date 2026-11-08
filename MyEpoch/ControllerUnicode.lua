@@ -60,6 +60,9 @@ local function properties(n)
     propertyCache[n]={gcb,pictographic,incb};return gcb,pictographic,incb
 end
 local cachedText,cachedBounds
+function U.ReleaseCache()
+    propertyCache={};cachedText=nil;cachedBounds=nil
+end
 -- Unicode 17 UAX #29 default extended grapheme clusters, including GB9c.
 -- Positions are zero-based byte offsets, matching Lua substring boundaries.
 function U.Boundaries(text)

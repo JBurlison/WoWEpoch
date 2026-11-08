@@ -75,6 +75,8 @@ The package command validates version agreement, generated quest/crafting/auctio
 
 The Lua tests exercise behavior outside the game; they do not replace in-game checks for rendering, event timing, combat restrictions, and persistence. The release workflow does not change the client interface or SavedVariables schema.
 
+Journal-close cleanup belongs in `Book.ReleaseClosedView`, with per-widget adapters in `Book.widgetReleasers` and view-cache release in `JournalViewCache.lua`. Keep native frame pools reusable, detach per-render callbacks, and cancel only jobs owned by the view. Preserve drafts and semantic focus through cold preparation; renderers that show a preparation placeholder must set `Book.viewPreparing`. Temporary screenshot/combat hides restore without a render and must retain their presentation. Do not evict shared recording/financial indexes or force whole-client garbage collection. The `controller_host.py` suite includes close/reopen, suspended work, collectible editor sessions, draft preservation, and cache rebuild regressions. Run `tests/journal_memory_host.py` for closed-book milestones, recap/notification delivery, completed-job cleanup and idle UI work. Compare memory using identical workloads and distinguish collected host Lua heap from actual-client addon memory.
+
 Calendar fixtures use New York's daylight-saving boundaries. CI sets `TZ=America/New_York`; use that timezone when running the complete suite locally as well. The addon itself continues to use each player's local time.
 
 Workflow behavior follows GitHub’s [artifact documentation](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflow-artifacts) and [release creation command](https://cli.github.com/manual/gh_release_create).

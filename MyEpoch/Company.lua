@@ -1,6 +1,7 @@
 local _,E=...
 local C,Q,S={},E.Query,E.Store; E.Company=C
 local caches=setmetatable({},{__mode="k"})
+function C.ReleaseView()caches=setmetatable({},{__mode="k"})end
 local function cache(c)
     local saved=caches[c]
     if not saved or saved.revision~=c.revision then saved={revision=c.revision,histories={}}; caches[c]=saved end

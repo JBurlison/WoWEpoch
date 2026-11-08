@@ -4,6 +4,13 @@ local states=setmetatable({},{__mode='k'})
 local function state(c)
     if not states[c]then states[c]={page=1,query='',pickPage=1}end;return states[c]
 end
+function V.ReleaseView()
+    for c,s in pairs(states)do
+        K.Cancel(c,'chapter-picker');K.Cancel(c,'chapter-list')
+        s.picker=nil;s.pickToken=nil;s.chapters=nil;s.chapterRevision=nil
+    end
+    -- Keep unsaved chapter definitions, query/page choices and edit ownership.
+end
 local function guard(c,r,fn)return U.Guard(c,r,fn)end
 local function draft(r)
     local rule=r and r.selection or{}
@@ -46,7 +53,7 @@ local function chooser(page,c,s,d,picker)
     B.Text(page,E.L['Find entries to add or leave out'],15)
     B.Input(page,s.query,draftGuard(c,s,d,function(value)s.query=value;s.pickPage=1;refresh()end))
     local rows=picker and picker.rows
-    if not rows then B.Text(page,E.L['Finding your entries…'],14);return end
+    if not rows then B.viewPreparing=true;B.Text(page,E.L['Finding your entries…'],14);return end
     local pages=math.max(1,math.ceil(#rows/8));s.pickPage=math.min(pages,s.pickPage)
     for i=(s.pickPage-1)*8+1,math.min(#rows,s.pickPage*8)do local r=rows[i]
         if E.Chapters.Source(c,r)then
@@ -114,6 +121,7 @@ function V.Render(left,right,c)
                 return found
             end,function(found)s.chapters=found;s.chapterRevision=c.revision;U.dirty=c end)end
         end
+        if not s.chapters then B.viewPreparing=true end
         chapters=s.chapters or{}
     end
     local pages=math.max(1,math.ceil(#chapters/8));s.page=math.min(s.page,pages)
@@ -146,7 +154,7 @@ function V.Record(page,c,r)
     end
     U.Keep(page,c,r);B.Note(page,'record:'..r.id,function()return K.Record(c,r,'chapter')end)
     B.Text(page,E.L['The chapter’s events'],20)
-    if report then U.Sources(page,c,report.rows or{},'chapter-events:'..r.id,'chapterEventPage')else B.Text(page,E.L['Gathering this chapter’s pages…'],14)end
+    if report then U.Sources(page,c,report.rows or{},'chapter-events:'..r.id,'chapterEventPage')else B.viewPreparing=true;B.Text(page,E.L['Gathering this chapter’s pages…'],14)end
 end
 E.On('CHAPTER_READY',function(c,r)
     if B.Character()==c and(B.selected==r.id or B.chapter=='Memories'and B.memoryMode=='chapters'and not state(c).draft)then U.dirty=c end

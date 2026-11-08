@@ -108,6 +108,12 @@ local function countEvent(c,report,r)
         if r.quantity and r.quantity>0 then report.counts[r.kind]=(report.counts[r.kind] or 0)+r.quantity end
     elseif r.kind=="group" or r.kind=="quest" or r.kind=="loot" or r.kind=="encounter_loot" or r.kind=="recap" or r.kind=="kill" then report.counts[r.kind]=(report.counts[r.kind] or 0)+1 end
 end
+local function countDistance(c,report,r)
+    if r and r.kind=='travel'and r.subject==c.id and r.character==c.id
+        and type(r.amount)=='number'and r.amount>=0 and r.amount<=9007199254740991 then
+        report.distanceYards=(report.distanceYards or 0)+r.amount
+    end
+end
 function V.Report(c,day,work,cut)
     local report={records={},counts={},continuedGroups={}}; local through=A.ShiftDay(day,1)
     for id,ts in pairs(Q.RosterDay(c,day,through,work)) do
@@ -117,7 +123,13 @@ function V.Report(c,day,work,cut)
         if not started or started<day or started>=through then report.continuedGroups[id]={ts=ts,source="roster"} end
     end
     local firstEvent
-    local rows=Q.CalendarRange(c,day,through,cut or Q.CalendarCut(c,day,through),work)
+    cut=cut or Q.CalendarCut(c,day,through)
+    local rows=Q.CalendarRange(c,day,through,cut,work)
+    for _,part in ipairs(cut.travel or{})do for n=1,part.last do
+        if work then work()end
+        local r=c.records[part.ids[n]];local stamp=r and E.Store.Timestamp(r)
+        if stamp and math.floor(stamp/86400)==part.bucket and stamp>=day and stamp<through then countDistance(c,report,r)end
+    end end
     for _,r in ipairs(rows)do if work then work()end;if V.Visible(c,r) then
         firstEvent=firstEvent or r
         -- A session can outlast its opening date. Use only a direct observation
@@ -295,9 +307,12 @@ function V.Daily(right,c,report,prepared)
     if prepared then active=prepared.playDay==B.day and prepared.activeSeconds
     else active=Q.ActiveTime(c,B.day,A.ShiftDay(B.day,1))end
     if active and active>0 then stats[#stats+1]={value=E.LocaleDuration(active),label=E.L["Active play time"]}end
+    if report.distanceYards and report.distanceYards>0 then
+        stats[#stats+1]={value=E.Number(report.distanceYards),label=E.L['Distance (est. yd)']}
+    end
     if #stats>0 then
         local y=right.y+8; rule(right,y-8)
-        local columns=E.locale=='enUS' and 6 or 4
+        local columns=math.min(E.locale=='enUS'and 6 or 4,math.max(1,math.floor(width/110)))
         for i,entry in ipairs(stats)do local f=place(B.Acquire(right,"calendarStat"),right,((i-1)%columns)*(width/columns),y+math.floor((i-1)/columns)*66,width/columns-6,60);f.value:SetWidth(width/columns-8);f.caption:SetWidth(width/columns-8); f.value:SetText(entry.value); f.caption:SetText(E.locale=='enUS' and string.upper(entry.label) or entry.label)end
         right.y=y+math.ceil(#stats/columns)*66; rule(right,right.y); right.y=right.y+18
     end
@@ -415,7 +430,8 @@ local function sameDuration(a,b)
     return (a>0)==(b>0) and E.LocaleDuration(a)==E.LocaleDuration(b)
 end
 local function samePresentation(a,b,work)
-    if not a or a.highlight~=b.highlight or #a.records~=#b.records or not sameDuration(a.activeSeconds,b.activeSeconds)then return false end
+    if not a or a.highlight~=b.highlight or #a.records~=#b.records or not sameDuration(a.activeSeconds,b.activeSeconds)
+        or a.distanceYards~=b.distanceYards then return false end
     for i,r in ipairs(a.records)do work();if b.records[i]~=r then return false end end
     for kind,n in pairs(a.counts)do work();if b.counts[kind]~=n then return false end end
     for kind,n in pairs(b.counts)do work();if a.counts[kind]~=n then return false end end
@@ -565,6 +581,7 @@ E.On("RECORDS_REMOVED",discard)
 -- A normal chronologically appended source updates a settled day immediately.
 -- A first overnight link or out-of-order observation needs the ordered merge.
 local function appendDay(c,report,day,through,r)
+    if r.kind=='travel'then countDistance(c,report,r);return true end
     if not V.Visible(c,r)then return true end
     local last=report.records[#report.records]
     if last then
@@ -597,7 +614,7 @@ E.On("RECORD_ADDED",function(owner,r)
     if r.kind=="play" then refreshPlayDays(state,r);return end
     if r.kind=="group" then discard(owner);return end
     local stamp=V.IndexStamp(r)
-    if not internal[r.kind] and stamp and stamp>=state.start and stamp<state.finish then
+    if (not internal[r.kind]or r.kind=='travel') and stamp and stamp>=state.start and stamp<state.finish then
         local day=A.DayStart(stamp);local report=state.days[day]
         if report and not state.todo[day] and state.jobDay~=day and appendDay(owner,report,day,state.ends[day],r)then
             state.redraw=true
@@ -620,7 +637,8 @@ E.On("RECORD_CHANGED",function(owner,r,_,receipt)
             (detail.rosterStampsUnchanged or r.rosterDaysComplete==true and detail.rosterDay and r.rosterDays and r.rosterDays[detail.rosterDay]==detail.priorRosterStamp)then return end
         discard(owner);return
     end
-    if change.stable and r.kind=="quest_attempt" or internal[r.kind] and prior and internal[prior] then return end
+    if change.stable and r.kind=="quest_attempt" or internal[r.kind] and prior and internal[prior]
+        and r.kind~='travel'and prior~='travel' then return end
     -- A moved observation may swap the last ID into its former UTC bucket slot.
     -- Cancel every intersecting local-day traversal, including a DST boundary.
     for _,day in ipairs(state.dates)do

@@ -5,15 +5,19 @@ local selectors=setmetatable({},{__mode='k'})
 local domains=setmetatable({},{__mode='k'})
 local sourceViews=setmetatable({},{__mode='k'})
 local optionViews=setmetatable({},{__mode='k'})
+-- Never reuse a generation after dropping a view: picker tokens may outlive
+-- their catalog, while the character's canonical records remain unchanged.
+local serial=0
+local function nextGeneration()serial=serial+1;return serial end
 local fields={'id','kind','character','title','ts','sequence','observationSequence','subject','recipient','status',
     'mapID','zone','subzone','itemID','questID','skillID','skillName','name','characterSnapshot','major','inProgress','through',
     'group','observerGroup','refs','progress','archived','completionMemory'}
 local function domain(c)
     if not K.Owned(c)then return end
     local d=domains[c]
-    if not d then d={generation=1,seen={},records=c.records,order=c.order};domains[c]=d end
+    if not d then d={generation=nextGeneration(),seen={},records=c.records,order=c.order};domains[c]=d end
     if d.records~=c.records or d.order~=c.order then
-        d.records,d.order=c.records,c.order;d.generation=d.generation+1;d.seen={}
+        d.records,d.order=c.records,c.order;d.generation=nextGeneration();d.seen={}
     end
     return d
 end
@@ -32,16 +36,27 @@ end
 local function changed(c,r)
     local d=domains[c];if not d or not r then return end
     if relevant(r)then
-        if not same(d.seen[r.id],r)then d.generation=d.generation+1;d.seen[r.id]=fingerprint(r)end
-    elseif d.seen[r.id]then d.seen[r.id]=nil;d.generation=d.generation+1 end
+        if not same(d.seen[r.id],r)then d.generation=nextGeneration();d.seen[r.id]=fingerprint(r)end
+    elseif d.seen[r.id]then d.seen[r.id]=nil;d.generation=nextGeneration()end
 end
 E.On('RECORD_ADDED',changed);E.On('RECORD_CHANGED',changed)
 E.On('RECORDS_REMOVED',function(c,ids)
     local d=domains[c];if not d then return end
-    d.generation=d.generation+1
+    d.generation=nextGeneration()
     for _,id in ipairs(ids or{})do d.seen[id]=nil end
 end)
-E.On('DATA_MIGRATED',function(c)local d=domains[c];if d then d.generation=d.generation+1;d.seen={}end end)
+E.On('DATA_MIGRATED',function(c)local d=domains[c];if d then d.generation=nextGeneration();d.seen={}end end)
+function V.ReleaseView()
+    -- These queue keys belong exclusively to the book. Keepsake recording,
+    -- chapter sealing and automatic wish progress use different jobs.
+    for c in pairs(domains)do K.Cancel(c,'view-catalog')end
+    for c,views in pairs(sourceViews)do for key in pairs(views)do K.Cancel(c,'view-sources:'..key)end end
+    for c,views in pairs(optionViews)do for key in pairs(views)do K.Cancel(c,'view-options:'..key)end end
+    catalogs=setmetatable({},{__mode='k'});domains=setmetatable({},{__mode='k'})
+    sourceViews=setmetatable({},{__mode='k'});optionViews=setmetatable({},{__mode='k'})
+    V.dirty=nil
+    -- selectors contain only the user's open/query/page choices, not records.
+end
 function V.Heading(page,kicker,title)
     B.Text(page,E.L[kicker],11):SetTextColor(.54,.40,.23);B.Text(page,E.L[title],29)
 end
@@ -87,7 +102,7 @@ end
 function V.Sources(page,c,rows,key,pageField)
     if not K.Owned(c)then return end
     local report=V.SourceProjection(c,rows,key)
-    if not report then B.Text(page,E.L['Preparing linked records…'],14);return end
+    if not report then B.viewPreparing=true;B.Text(page,E.L['Preparing linked records…'],14);return end
     local state=E.SourceFilters.State(key)
     B.Action(page,E.L['Filter sources'],V.Guard(c,nil,function()state.open=not state.open;B.Render()end))
     if state.open then
@@ -136,10 +151,23 @@ local function openPromptDropdown(anchor,state)
         dismiss:SetAllPoints();dismiss:SetScript('OnClick',V.ClosePromptDropdown)
         local panel=CreateFrame('Frame',nil,overlay);V.promptPanel=panel
         panel:SetFrameLevel(overlay:GetFrameLevel()+2);panel:SetClampedToScreen(true);panel:EnableMouse(true);E.BookTheme.DialogPaper(panel)
+        E.BookTheme.Paper(panel)
+        local scroll=CreateFrame('ScrollFrame',nil,panel);scroll:SetPoint('TOPLEFT',10,-10);scroll:SetClipsChildren(true)
+        local content=CreateFrame('Frame',nil,scroll);scroll:SetScrollChild(content);scroll:EnableMouseWheel(true)
+        V.promptPage={panel=panel,scroll=scroll,content=content}
+        scroll:SetScript('OnMouseWheel',function(self,delta)
+            self:SetVerticalScroll(math.max(0,math.min(self:GetVerticalScrollRange(),self:GetVerticalScroll()-delta*50)))
+            E.BookTheme.Scroll(V.promptPage)
+        end)
+        scroll:SetScript('OnVerticalScroll',function()E.BookTheme.Scroll(V.promptPage)end)
         V.promptButtons={}
         overlay:SetScript('OnHide',function(self)
             V.promptContext=nil
             if E.ControllerAdapters then E.ControllerAdapters.Hide('writing-prompts')end
+            for _,f in ipairs(V.promptButtons)do
+                f:Hide();f:SetScript('OnClick',nil);f.text:SetText('');f.controllerPromptKey=nil;f.controllerLayout=nil
+            end
+            content:SetHeight(1);scroll:SetVerticalScroll(0);E.BookTheme.Scroll(V.promptPage)
             -- Hiding the book must also dismiss the popup's own shown state,
             -- so reopening after combat cannot reveal an obsolete menu.
             if self:IsShown()then self:Hide()end
@@ -152,19 +180,20 @@ local function openPromptDropdown(anchor,state)
     end
     local active={anchor=anchor,state=state};V.promptContext=active
     local choices=E.MemoryPrompts.Choices(state.owner,state.context,state.key)
-    local panel=V.promptPanel;local width=math.min(560,B.Width(state.page));local y=10
-    panel:SetWidth(width);panel:ClearAllPoints();panel:SetPoint('TOPLEFT',anchor,'BOTTOMLEFT',0,-3)
+    local panel,page=V.promptPanel,V.promptPage;local width=math.min(560,B.Width(state.page));local y=0
+    panel:SetWidth(width);page.scroll:SetWidth(width-26);page.content:SetWidth(width-26)
     for index,choice in ipairs(choices)do
         local f=V.promptButtons[index]
         if not f then
-            f=CreateFrame('Button',nil,panel);V.promptButtons[index]=f;E.BookTheme.Button(f)
+            f=CreateFrame('Button',nil,page.content);V.promptButtons[index]=f;E.BookTheme.Button(f)
             f.text=f:CreateFontString(nil,'OVERLAY');f.text:SetFont(E.Font(),14,'');f.text:SetTextColor(.26,.15,.08)
             f.text:SetJustifyH('LEFT');f.text:SetJustifyV('TOP');f.text:SetPoint('TOPLEFT',12,-10)
         end
-        f:SetWidth(width-20);f.text:SetWidth(width-44);f.text:SetText(E.Text(choice.label))
+        f:SetWidth(width-26);f.text:SetWidth(width-50);f.text:SetText(E.Text(choice.label))
         f.controllerPromptKey=choice.key
         local height=math.max(42,f.text:GetStringHeight()+20);f:SetHeight(height)
-        f:ClearAllPoints();f:SetPoint('TOPLEFT',10,-y);f:Show();E.BookTheme.ButtonStyle(f,choice.selected and'filter'or nil)
+        f.controllerLayout={x=0,y=y,w=width-26,h=height}
+        f:ClearAllPoints();f:SetPoint('TOPLEFT',0,-y);f:Show();E.BookTheme.ButtonStyle(f,choice.selected and'filter'or nil)
         f:SetScript('OnClick',function()
             if V.promptContext~=active or not state.valid()then return end
             if E.MemoryPrompts.Select(state.owner,state.context,state.key,choice.key)then state.update()end
@@ -172,8 +201,24 @@ local function openPromptDropdown(anchor,state)
         end)
         y=y+height+4
     end
-    for index=#choices+1,#V.promptButtons do local f=V.promptButtons[index];f:Hide();f:SetScript('OnClick',nil)end
-    panel:SetHeight(y+6);V.promptOverlay:Show()
+    for index=#choices+1,#V.promptButtons do local f=V.promptButtons[index]
+        f:Hide();f:SetScript('OnClick',nil);f.text:SetText('');f.controllerPromptKey=nil;f.controllerLayout=nil
+    end
+    local viewport=state.page.scroll
+    local height=math.min(y+16,340,viewport:GetHeight())
+    page.content:SetHeight(math.max(1,y-4));page.scroll:SetHeight(height-20);page.scroll:SetVerticalScroll(0)
+    panel:SetHeight(height)
+    -- Keep the menu within its parchment page, including when the editor is
+    -- near the bottom. All rows remain in the scroll child for focus navigation.
+    local top
+    if type(viewport.GetTop)=='function'and type(anchor.GetBottom)=='function'then
+        local pageTop,anchorBottom=viewport:GetTop(),anchor:GetBottom()
+        if pageTop and anchorBottom then top=pageTop-anchorBottom+3 end
+    end
+    if not top then local _,_,_,_,anchorY=anchor:GetPoint();top=-(anchorY or 0)-viewport:GetVerticalScroll()+anchor:GetHeight()+3 end
+    top=math.max(0,math.min(viewport:GetHeight()-height,top))
+    panel:ClearAllPoints();panel:SetPoint('TOPLEFT',viewport,'TOPLEFT',12,-top)
+    V.promptOverlay:Show();E.BookTheme.Scroll(page)
     if E.ControllerAdapters then E.ControllerAdapters.RefreshPrompts()end
 end
 function V.Prompt(page,key,context)
@@ -285,7 +330,7 @@ function V.Select(page,label,values,selected,change,multiple)
     if not s.open then return end
     B.Input(page,s.query,V.Guard(c,nil,function(value)s.query=value;s.page=1;B.Render()end))
     local options=V.Options(c,values,s.query,key)
-    if not options then B.Text(page,E.L['Preparing linked records…'],14);return end
+    if not options then B.viewPreparing=true;B.Text(page,E.L['Preparing linked records…'],14);return end
     local keys=options.keys
     local pages=math.max(1,math.ceil(#keys/8));s.page=math.min(pages,s.page)
     for i=(s.page-1)*8+1,math.min(#keys,s.page*8)do local id=keys[i]

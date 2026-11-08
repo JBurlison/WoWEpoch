@@ -1,6 +1,11 @@
 local _,E=...
 local I,K,S,W={},E.Keepsakes,E.Store,E.RetentionWork;E.ItemStories=I
 local caches=setmetatable({},{__mode='k'});local epoch=0
+local requested=setmetatable({},{__mode='k'})
+function I.ReleaseView()
+    for c in pairs(requested)do K.Cancel(c,'item-stories')end
+    requested=setmetatable({},{__mode='k'});caches=setmetatable({},{__mode='k'})
+end
 -- Financial custody can cross characters. A correction to either side also
 -- invalidates an already prepared story; narrative entries remain owner-local.
 local ignored={play=true,travel=true,quest=true,quest_attempt=true,objective=true,credit=true,kill=true,kill_observation=true,
@@ -128,6 +133,7 @@ function I.Build(c,work)
 end
 function I.Request(c)
     if not K.Owned(c)then return end
+    requested[c]=true
     local saved=caches[c]
     if saved and saved.epoch==epoch then return saved.model end
     if not K.Pending(c,'item-stories')then

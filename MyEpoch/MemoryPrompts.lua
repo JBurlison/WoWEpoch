@@ -14,7 +14,17 @@ P.lines={
     milestone={
         'What surprised you most on the road to this moment?',
         'Who would you thank for helping you get here?',
-        'What would your younger adventuring self think of this?'},
+        'What would your younger adventuring self think of this?',
+        'Which small victory made this milestone possible?',
+        'What nearly made you turn back?',
+        'What did you learn that you wish you had known sooner?',
+        'Where were you when you realized how far you had come?',
+        'Was there a quiet moment worth remembering alongside this achievement?',
+        'What mistake became part of the story?',
+        'What would you tell someone beginning the same journey?',
+        'Which sight, sound, or detail will bring this moment back?',
+        'What was the best decision you made along the way?',
+        'What are you looking forward to now?'},
     goal={
         'How does it feel to turn this wish into a memory?',
         'What made this wish worth chasing?',

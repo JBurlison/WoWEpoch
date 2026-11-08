@@ -473,10 +473,14 @@ function Q.CalendarChange(c,r)
 end
 function Q.CalendarCut(c,from,through)
     local i=indexes[c];if not i then return end
-    local cut={}
+    local cut={travel={}}
     for bucket=math.floor(from/86400),math.ceil(through/86400)-1 do
         local ids=i.calendarDays and i.calendarDays[bucket]
         if ids then cut[#cut+1]={ids=ids,last=#ids}end
+        -- Reuse the recording directory rather than retain a second Calendar
+        -- index for high-volume movement samples. Each reader has a finite cut.
+        local log=i.dayLogs[bucket]and i.dayLogs[bucket].travel
+        if log then cut.travel[#cut.travel+1]={ids=log.ids,last=#log.ids,bucket=bucket}end
     end
     return cut
 end

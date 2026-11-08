@@ -113,7 +113,7 @@ function T.Open()
   return
  end
  T.Reset();T.InstallHooks();if not E.current or not C.session or not T.hooked then return end
- local guid,kind=trainer();local cash=integer(A.Call('trainingWallet',GetMoney));if not guid or not cash then return end
+ local guid,kind=trainer();local cash=integer(A.Wallet('trainingWallet'));if not guid or not cash then return end
  E.History.Wallet(E.current,now,cash,C.session)
  local v={owner=E.current,session=C.session,guid=guid,kind=kind,window=E.current.state.walletWindow,requests={}}
  local rows=snapshot(v);if not rows then return end

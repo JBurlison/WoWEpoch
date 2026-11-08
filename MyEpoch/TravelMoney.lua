@@ -73,7 +73,7 @@ function T.Open()
  T.Reset();T.InstallHooks();local c=E.current
  if not c or not C.session or not T.hooked then return end
  if A.Call('travelInitialState',UnitOnTaxi,'player')~=false then return end
- local wallet=integer(A.Call('travelWallet',GetMoney));if not wallet then return end
+ local wallet=integer(A.Wallet('travelWallet'));if not wallet then return end
  E.History.Wallet(c,now,wallet,C.session)
  local m={owner=c,session=C.session,opened=now,window=c.state.walletWindow,quotes={}}
  if not sample(m)then A.status.travelMoney='Flight map quote unavailable';return end

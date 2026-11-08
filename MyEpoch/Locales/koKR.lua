@@ -176,6 +176,7 @@ E.Localize({
     ["Exact location not recorded"]="정확한 위치가 기록되지 않았습니다",
     ["Open group"]="파티 보기",
     ["Last recorded balance each day. Days without records stay blank."]="날짜별 마지막 기록 잔액입니다. 기록이 없는 날은 비워 둡니다.",
+    ["Some daily closing balances are unverified after an unexplained zero at the end of a session."]="접속 종료 시 원인을 알 수 없는 0이 기록되어, 일부 날짜의 마감 잔액은 확인되지 않았어요.",
     ["Daily totals from recorded wallet changes. Days without records stay blank."]="기록된 소지금 변동의 일별 합계입니다. 기록이 없는 날은 비워 둡니다.",
     ["Showing a selection of days. Choose a shorter date range for every day."]="일부 날짜만 표시됩니다. 모든 날짜를 보려면 기간을 줄여 주세요.",
 })

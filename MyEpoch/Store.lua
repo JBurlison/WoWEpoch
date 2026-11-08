@@ -131,7 +131,7 @@ function S.OpenWalletWindow(c,ts,amount,session,previous,current)
     local baseline,_,priorBalance=insert(c,"balance",ts,{title="Observed wallet balance",balance=amount,session=session,
         priorObservation=previous and previous.ts or nil,unobservedChange=previous and amount-previous.amount or nil},nil,nil,clock)
     local window,_,priorKind=insert(c,"wallet_window",ts,{title="Wallet observation interval",ended=ts,opening=amount,closing=amount,
-        transactionCount=0,session=session,refs={baseline.id}},nil,nil,clock)
+        transactionCount=0,session=session,refs={baseline.id},walletReadGuard=1},nil,nil,clock)
     c.state.wallet={amount=amount,ts=ts,session=session}
     c.state.walletWindow=window.id;baseline.window=window.id
     local ok,err=pcall(added,c,baseline,priorBalance)

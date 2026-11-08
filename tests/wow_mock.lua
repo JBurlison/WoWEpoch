@@ -187,7 +187,8 @@ end
 -- the client player token. Keep that token independent of E.current so the
 -- test can deliberately replace E.current without authorizing another owner.
 function TEST_WALLET_SESSION()
-    local fields={"recordingGUID","recordingCandidate","recordingTransition","recordingStopped","recordingMismatch"}
+    local fields={"recordingGUID","recordingCandidate","recordingTransition","recordingStopped","recordingMismatch",
+        "walletObservationSuspended","walletObservationGeneration"}
     local saved,owner,session,originalGUID={},E.current,E.Collectors.session,UnitGUID
     for _,k in ipairs(fields)do saved[k]=E[k]end
     local token
@@ -198,6 +199,9 @@ function TEST_WALLET_SESSION()
         E.current=c;E.Collectors.session=login;E.recordingGUID=token
         E.recordingCandidate=nil;E.recordingTransition=nil;E.recordingStopped=nil;E.recordingMismatch=nil
         assert(E.RecorderReady() and E.API.RecordingPlayerGUID()==c.id)
+        -- A fresh live-collector fixture enters the world after the preceding
+        -- integration fixture logged out. Exercise the real lifecycle fence.
+        if E.frame then E.frame:GetScript('OnEvent')(E.frame,'PLAYER_ENTERING_WORLD')end
     end
     local function restore()
         UnitGUID=originalGUID;E.current=owner;E.Collectors.session=session

@@ -557,13 +557,29 @@ function F.WalletCoverage(c,from,through)
     local windows=Q.Kind(c,"wallet_window"); local byWindow=walletIndex(c)
     local out={windows={},points={},knownSeconds=0,complete=false,opening=nil,closing=nil,gaps=0}
     local coveredTo,lastEnd=from,from
-    for _,w in ipairs(windows) do if w.ended>=from and w.ts<through then
+    local uncertain={}
+    for index,w in ipairs(windows) do if w.ended>=from and w.ts<through then
         local list=byWindow[w.id] or {}; local sum,chain=w.opening,true
         for _,r in ipairs(list) do
             if r.before~=sum or r.after-r.before~=r.amount or r.ts<w.ts or r.ts>w.ended then chain=false end
             sum=sum+r.amount
         end
         local intact=chain and #list==w.transactionCount and sum==w.closing
+        -- Old builds sampled GetMoney during teardown, when the client could
+        -- return zero while its player GUID was still readable. This pattern
+        -- cannot prove the real closing balance: flag the display only, never
+        -- rewrite the debit or silently substitute a reconstructed amount.
+        local last,nextWindow=list[#list],windows[index+1]
+        if w.walletReadGuard~=1 and intact and type(w.session)=='string'and w.closing==0 and last and last.before>0
+            and last.after==0 and last.ts==w.ended and last.amount==-last.before
+            and (last.source==nil or last.source=='unknown')and(last.quality==nil or last.quality=='unknown')
+            and not last.evidence and not last.context and last.automaticAttribution==nil
+            and (last.evidenceRefs==nil or type(last.evidenceRefs)=='table'and next(last.evidenceRefs)==nil)
+            and (last.attributionHistory==nil or type(last.attributionHistory)=='table'and next(last.attributionHistory)==nil)
+            and nextWindow and type(nextWindow.session)=='string'and nextWindow.session~=w.session and nextWindow.ts>=w.ended and nextWindow.opening>0 then
+            uncertain[w.session]=uncertain[w.session]or{}
+            uncertain[w.session][w.id]={ended=w.ended}
+        end
         local start,finish=math.max(from,w.ts),math.min(through,w.ended)
         local opening,closing=w.opening,w.opening
         for _,r in ipairs(list) do if r.ts<from then opening=r.after end; if r.ts<through then closing=r.after end end
@@ -585,6 +601,18 @@ function F.WalletCoverage(c,from,through)
         end end
         if finish>start then out.points[#out.points+1]={ts=finish,balance=closing,window=w.id,observed=intact} end
     end end
+    if next(uncertain)then
+        local endings={}
+        for _,play in ipairs(Q.Kind(c,'play'))do if uncertain[play.session]and type(play.ended)=='number'then
+            endings[play.session]=math.max(endings[play.session]or 0,play.ended)
+        end end
+        for _,point in ipairs(out.points)do
+            local r=c.records[point.window];local suspect=r and uncertain[r.session]and uncertain[r.session][r.id]
+            if suspect and endings[r.session]==suspect.ended and point.ts==suspect.ended and point.balance==0 then
+                point.closingUnverified=true
+            end
+        end
+    end
     if lastEnd<through then out.gaps=out.gaps+1 end
     out.complete=coveredTo>=through and out.gaps==0 and not out.overlapConflict
     if out.overlapConflict then out.opening,out.closing=nil,nil end

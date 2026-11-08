@@ -32,6 +32,8 @@ SPECS = (
     'query_location_memory_spec.lua',
     'journal_boundary_clock_spec.lua',
     'idle_workers_spec.lua',
+    'notification_idle_spec.lua',
+    'journal_closed_recording_spec.lua',
 )
 HOSTS = (
     'localization_host.py',

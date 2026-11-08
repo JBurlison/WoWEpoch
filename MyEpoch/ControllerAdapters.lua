@@ -145,7 +145,7 @@ function A.RefreshPrompts()
     if not begin('writing-prompts',V.promptOverlay,V.ClosePromptDropdown)then return end
     local ctx=V.promptContext
     local valid=function()return ctx and V.promptContext==ctx and ctx.state.valid()end
-    for _,f in ipairs(V.promptButtons or{})do register(f,'writing-prompts:'..tostring(f.controllerPromptKey),'left','writing-prompts',{available=valid})end
+    for _,f in ipairs(V.promptButtons or{})do register(f,'writing-prompts:'..tostring(f.controllerPromptKey),'left','writing-prompts',{available=valid,page=V.promptPage})end
     refresh()
 end
 

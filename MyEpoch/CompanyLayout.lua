@@ -85,6 +85,7 @@ function L.Records(page,rows,key,sourceGroup)
     pager(page,key,#rows,8, E.L["Previous entries"] , E.L["More entries"] )
 end
 local reports=setmetatable({},{__mode="k"})
+function L.ReleaseView()reports=setmetatable({},{__mode="k"})end
 function L.Report(c,g)
     local saved=reports[c]; if not saved or saved.revision~=c.revision then saved={revision=c.revision,groups={}}; reports[c]=saved end
     if saved.groups[g.id]then return saved.groups[g.id]end

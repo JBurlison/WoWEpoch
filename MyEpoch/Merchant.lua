@@ -15,7 +15,7 @@ local function quote(index)
     return info
 end
 local function carriedSnapshot()
-    local out={ts=A.Now(),wallet=A.Call("merchantWallet",GetMoney),bags={},slots={}}
+    local out={ts=A.Now(),wallet=A.Wallet("merchantWallet"),bags={},slots={}}
     local last=A.Plain(NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS)
     if not integer(out.wallet) or not integer(last,0,10) then return nil end
     for bag=0,last do

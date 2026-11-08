@@ -1,6 +1,16 @@
 local _,E=...
 if E.locale~="deDE" then return end
 E.Localize({
+    ["Which small victory made this milestone possible?"]="Welcher kleine Sieg hat diesen Meilenstein möglich gemacht?",
+    ["What nearly made you turn back?"]="Was hätte dich beinahe zur Umkehr gebracht?",
+    ["What did you learn that you wish you had known sooner?"]="Was hast du gelernt, das du gern früher gewusst hättest?",
+    ["Where were you when you realized how far you had come?"]="Wo warst du, als dir klar wurde, wie weit du gekommen bist?",
+    ["Was there a quiet moment worth remembering alongside this achievement?"]="Gab es neben diesem Erfolg auch einen stillen Moment, den du festhalten möchtest?",
+    ["What mistake became part of the story?"]="Welcher Fehler wurde Teil der Geschichte?",
+    ["What would you tell someone beginning the same journey?"]="Was würdest du jemandem sagen, der gerade dieselbe Reise beginnt?",
+    ["Which sight, sound, or detail will bring this moment back?"]="Welcher Anblick, Klang oder welches Detail wird diesen Moment wieder lebendig machen?",
+    ["What was the best decision you made along the way?"]="Was war deine beste Entscheidung auf dem Weg hierher?",
+    ["What are you looking forward to now?"]="Worauf freust du dich jetzt?",
     ["Choose a writing prompt"]="Eine Schreibidee auswählen",
     ["A LITTLE DREAM, A LITTLE DIRECTION"]="EIN KLEINER TRAUM ZEIGT DEN WEG",
     ["A NEW CHAPTER"]="EIN NEUES KAPITEL",

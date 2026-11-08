@@ -1,5 +1,6 @@
 local T,A,C,S,H,F,Q=E.TrainingMoney,E.API,E.Collectors,E.Store,E.History,E.Economy,E.Query
-local saved={recordingGUID=E.recordingGUID,current=E.current,session=C.session,now=A.Now,visit=T.visit,hooked=T.hooked,lastAttempt=T.lastAttempt}
+local saved={recordingGUID=E.recordingGUID,current=E.current,session=C.session,now=A.Now,visit=T.visit,hooked=T.hooked,lastAttempt=T.lastAttempt,
+ walletObservationSuspended=E.walletObservationSuspended,walletObservationGeneration=E.walletObservationGeneration}
 local names={'Enum','C_Trainer','UnitGUID','GetMoney','GetNumTrainerServices','GetTrainerServiceInfo','GetTrainerServiceCost','GetTrainerServiceTypeFilter','BuyTrainerService','hooksecurefunc','issecretvalue'}
 for _,name in ipairs(names)do saved[name]=_G[name]end
 Enum={TrainerType={General=0,Tradeskills=2,Pet=3,TalentsObsolete=1}}
@@ -19,6 +20,7 @@ local function setup(kind)
  filters={available=true,unavailable=true,used=true}
  rows={{name='Test skill',state='available',level=10,subText='Rank 1',category=1,cost=250}}
  local c=S.Character('training-176-'..serial,{name='Synthetic training'});E.current=c;E.recordingGUID=c.id;C.session='trainer-'..serial
+ event('PLAYER_ENTERING_WORLD') -- This fresh trainer session follows the integration fixture's logout.
  H.Wallet(c,now,cash,C.session);event('TRAINER_SHOW');return c
 end
 local function request(i)hooks.BuyTrainerService(i or 1)end
@@ -90,4 +92,5 @@ F.Attribute(c,w.id,'training','confirmed',{p.id},false);p.quotedCost=999;S.Chang
 for _,name in ipairs(names)do _G[name]=saved[name]end
 E.recordingGUID=saved.recordingGUID
 E.current,C.session,A.Now=saved.current,saved.session,saved.now;T.visit,T.hooked,T.lastAttempt=saved.visit,saved.hooked,saved.lastAttempt
+E.walletObservationSuspended,E.walletObservationGeneration=saved.walletObservationSuspended,saved.walletObservationGeneration
 print('PASS training: actual trainer dispatch, fresh quotes/used transition, type and identity gates, overlapping and aggregate requests, corrections, private readers and raw balances')

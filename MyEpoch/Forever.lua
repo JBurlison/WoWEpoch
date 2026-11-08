@@ -55,6 +55,20 @@ function A.Call(label,fn,...)
     A.status[label]=restricted and restrictedResult or "call succeeded; client behavior still needs validation"
     return unpack(out,1,out.n)
 end
+-- A readable player GUID can outlive wallet availability while leaving the
+-- world. Keep teardown reads separate from a genuine, observed zero balance.
+function A.Wallet(label)
+    label=label or "wallet"
+    local generation=E.walletObservationGeneration
+    if E.walletObservationSuspended then
+        A.status[label]="wallet observation paused during a world transition";return
+    end
+    local amount=A.Call(label,GetMoney)
+    if E.walletObservationSuspended or generation~=E.walletObservationGeneration then
+        A.status[label]="wallet observation changed during the read";return
+    end
+    return amount
+end
 function A.Now() return time() end
 function A.Day(ts) return date("%Y-%m-%d",ts) end
 function A.Date(ts) return E.Display and E.Display.Date(ts)or date("%d %b %Y %H:%M",ts) end

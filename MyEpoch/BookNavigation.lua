@@ -128,6 +128,14 @@ function N.CloseCombo()
     N.comboContext=nil
     if E.ControllerAdapters and E.ControllerAdapters.RefreshCombo then E.ControllerAdapters.RefreshCombo()end
 end
+function N.ReleaseView()
+    N.CloseCombo();N.sections={};N.subviews=nil;N.shown=nil
+    for _,rows in ipairs({N.comboButtons or {},N.comboFilterButtons or {}})do
+        for _,row in ipairs(rows)do
+            N.ClearBadge(row);row:SetScript('OnClick',nil);row.text:SetText('');row:Hide()
+        end
+    end
+end
 local function comboText(parent,value,size,x,y,w)
     local text=parent:CreateFontString(nil,'OVERLAY');text:SetFont(E.Font(),size,'')
     text:SetPoint('TOPLEFT',x,-y);text:SetWidth(w);text:SetJustifyH('LEFT');text:SetTextColor(.29,.19,.11);text:SetText(value)
