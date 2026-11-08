@@ -103,6 +103,7 @@ E.Localize({
     ["Partial details"]="Detalhes parciais",
     ["Player details"]="Detalhes do jogador",
     ["No spell details were recorded."]="Nenhum detalhe de feitiço foi registrado.",
+    ["Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights."]="Os detalhes de feitiços ficam guardados para encontros com chefes, combates marcados ou com notas e os 50 combates mais recentes.",
     ["Related combat"]="Combate relacionado",
     ["Damage, duration and rates use the selected snapshot."]="O dano, a duração e os valores por segundo vêm da leitura selecionada.",
     ["Recorded spells"]="Feitiços registrados",

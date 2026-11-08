@@ -27,6 +27,14 @@ local function gap(l)
     if w and not w.closedAt then w.gatherActionGap=true;S.Changed(l.c,w)end
 end
 function V.Succeeded(unit,castGUID,spellID)
+    -- Other units' casts only advance the clock-rollback check; skip the rest.
+    if A.OtherUnit(unit)then
+        local l=V.live
+        if l and l.c==E.current and l.session==C.session and text(C.session)then
+            local now=A.Now();if now<l.last then live()else l.last=now end
+        end
+        return
+    end
     local l=live();if not l then return end
     unit=A.Plain(unit);castGUID=A.Plain(castGUID);spellID=A.Plain(spellID)
     if unit==nil then gap(l);return end

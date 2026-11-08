@@ -94,11 +94,23 @@ function K.CriteriaUpdate(questID, treeID, description, fulfilled, required)
  return r
 end
 local function rememberToken(live,guid,token)
- if not live.tokens[guid]then
-  if #live.tokenOrder>=64 then local oldest=table.remove(live.tokenOrder,1);live.tokens[oldest]=nil end
-  live.tokenOrder[#live.tokenOrder+1]=guid
+ local tokens=live.tokens
+ if tokens[guid]==nil then
+  -- Fixed 64-entry ring: evict the oldest remembered identity without shifting.
+  local order=live.tokenOrder;local slot=live.tokenSlot or(#order%64+1)
+  local oldest=order[slot];if oldest~=nil then tokens[oldest]=nil end
+  order[slot]=guid;live.tokenSlot=slot%64+1
  end
- live.tokens[guid]=token
+ if tokens[guid]~=token then tokens[guid]=token end
+end
+-- Unit events arrive for every nameplate and group member. Readable strings
+-- skip the guarded copy; anything else still goes through stringValue.
+local function unitText(v)
+ if type(v)=='string'and not A.Secret(v)and(type(canaccessvalue)~='function'or canaccessvalue(v)==true)then
+  if #v>0 and #v<=256 then return v end
+  return
+ end
+ return stringValue(v)
 end
 local function victimName(live,guid)
  if not guid then return end
@@ -202,8 +214,8 @@ function K.Notify(attacker,victim)
 end
 function K.Alive(unit)
  local live=current();if not live then return end
- local token=stringValue(unit);if not token then return end
- local guid=stringValue(call('killAliveGUID',UnitGUID,token));if not guid then return end
+ local token=unitText(unit);if not token then return end
+ local guid=unitText(A.Call1('killAliveGUID',UnitGUID,token));if not guid then return end
  rememberToken(live,guid,token)
  if not live.counting then return end
  local entry=live.state.victims[guid]

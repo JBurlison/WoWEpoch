@@ -68,22 +68,25 @@ for second=0,29 do
  assert(starts==0,'Continuous receipts must coalesce before the maximum retry deadline')
 end
 TEST_NOW(now+30);S.Add(c,'loot',cutoff+31,{itemID=1,quantity=1,recipient=c.id})
-K.Process(20);assert(starts==1,'Continuous receipts must still allow a bounded retry at thirty seconds')
--- Invalidating that partial build cancels it immediately and preserves the
--- queued request; ready work for another key must not wait behind it.
-S.Add(c,'loot',cutoff+32,{itemID=1,quantity=1,recipient=c.id})
+K.Process(20);assert(starts==0,'Continuous receipts wait for quiet instead of starting a rebuild the next receipt cancels')
+-- Ready work for another key must not wait behind the deferred request.
 local independent=false
 K.Queue(c,'ready-work',function()return true end,function()independent=true end)
-K.Process(20);assert(independent and starts==1)
-TEST_NOW(now+34);K.Process(20);assert(starts==1)
-TEST_NOW(now+35);K.Process(20);assert(starts==2,'Five quiet seconds must resume the latest request')
+K.Process(20);assert(independent and starts==0)
+TEST_NOW(now+34);K.Process(20);assert(starts==0)
+TEST_NOW(now+35);K.Process(20);assert(starts==1,'Five quiet seconds must resume the latest request')
+-- Invalidating that partial build cancels it immediately and preserves the
+-- queued request for the next quiet period.
+S.Add(c,'loot',cutoff+36,{itemID=1,quantity=1,recipient=c.id})
+K.Process(20);assert(starts==1 and K.Pending(c,'personal-records'))
+TEST_NOW(now+40);K.Process(20);assert(starts==2,'The cancelled request resumes after the next quiet period')
 drain();assert(not K.Pending(c,'personal-records'))
 -- Explicit page demand and login bypass the delay, even when a deferred job
 -- already exists. A changed historical value is published only when current.
 loot.quantity=3;S.Changed(c,loot)
 local count=starts;P.Ensure(c);K.Process(20);assert(starts==count+1)
 loot.quantity=4;S.Changed(c,loot)
-TEST_NOW(now+40);drain()
+TEST_NOW(now+45);drain()
 local found
 for _,r in ipairs(P.Rows(c))do if r.recordType=='loot_value'and r.valid~=false then found=r end end
 assert(found and found.value==80 and c.notes['record:'..loot.id].text=='Untouched writing')

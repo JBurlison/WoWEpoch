@@ -29,7 +29,9 @@ local function ready(c)
  local waiting=deferred[c];if not waiting then return true end
  local now=A.Now()
  if now<waiting.first or now<waiting.changed then waiting.first=now;waiting.changed=now end
- if now-waiting.changed<5 and now-waiting.first<30 then return false end
+ -- Wait for five quiet seconds. A rebuild started during continuous activity
+ -- is cancelled by the next receipt, so an earlier deadline only wastes work.
+ if now-waiting.changed<5 then return false end
  deferred[c]=nil;return true
 end
 local function finite(v)return K.Number(v,-9007199254740991,9007199254740991)end

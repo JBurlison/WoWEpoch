@@ -145,6 +145,76 @@ local function skills(out)
  table.sort(out.skills,function(a,b)return a.id<b.id end)
  out.coverage.skills=partial and 'Available skill rows recorded; collapsed or unavailable rows may be missing.'or 'Visible skills and known profession/weapon skill IDs checked. Unavailable ranks are not inferred.'
 end
+-- Consecutive snapshots repeat almost every row: the same gear and stats, with
+-- one skill point changed. Saved snapshots are never edited after capture, so
+-- identical rows and parts can share one Lua table. Each record keeps its own
+-- snapshot table; SavedVariables still writes every copy in full.
+local rowKeys={stats='key',equipment='slot',skills='id'}
+local flatParts={'coverage','statCoverage'}
+local sharing=setmetatable({},{__mode='k'})
+local function same(a,b)
+ if a==b then return true end
+ if type(a)~='table'or type(b)~='table'then return false end
+ for k,v in pairs(a)do local w=b[k];if v~=w and(type(v)~='table'or not same(v,w))then return false end end
+ for k in pairs(b)do if a[k]==nil then return false end end
+ return true
+end
+local function sameRows(a,b)
+ if type(a)~='table'or type(b)~='table'or #a~=#b then return false end
+ for k,v in pairs(a)do if b[k]~=v then return false end end
+ for k in pairs(b)do if a[k]==nil then return false end end
+ return true
+end
+function X.Share(c,snap)
+ if type(c)~='table'or type(snap)~='table'or snap.version~=1 then return end
+ local s=sharing[c]
+ if not s then s={rows={stats={},equipment={},skills={}},parts={}};sharing[c]=s end
+ for part,key in pairs(rowKeys)do
+  local list=snap[part]
+  if type(list)=='table'then
+   local rows=s.rows[part]
+   for i,row in ipairs(list)do
+    local id=type(row)=='table'and row[key]
+    if id~=nil then
+     local known=rows[id]
+     if known~=row and same(known,row)then list[i]=known else rows[id]=row end
+    end
+   end
+   local recent=s.parts[part]
+   if recent~=list and sameRows(recent,list)then snap[part]=recent else s.parts[part]=list end
+  end
+ end
+ for _,part in ipairs(flatParts)do
+  local t=snap[part]
+  if type(t)=='table'then
+   local recent=s.parts[part]
+   if recent~=t and same(recent,t)then snap[part]=recent else s.parts[part]=t end
+  end
+ end
+end
+E.On('RECORD_ADDED',function(c,r)if type(r.characterSnapshot)=='table'then X.Share(c,r.characterSnapshot)end end)
+-- Saved journals are shared once after loading, a few records per frame.
+local pass
+function X.StartSharing()
+ if not E.db or type(E.db.characters)~='table'then return end
+ pass={characters={},index=1,position=1}
+ for _,id in ipairs(E.SortedKeys(E.db.characters))do pass.characters[#pass.characters+1]=E.db.characters[id]end
+end
+function X.ShareStep(budget)
+ local p=pass;if not p then return end
+ local remaining=budget or 400
+ while remaining>0 do
+  local c=p.characters[p.index]
+  if not c then pass=nil;return true end
+  local id=E.db.characters[c.id]==c and type(c.order)=='table'and c.order[p.position]
+  if not id then p.index=p.index+1;p.position=1
+  else
+   p.position=p.position+1;remaining=remaining-1
+   local r=c.records[id];local snap=type(r)=='table'and r.characterSnapshot
+   if type(snap)=='table'then X.Share(c,snap);remaining=remaining-40 end
+  end
+ end
+end
 function X.Capture(c)
  if not c or c~=E.current or not E.db or E.db.characters[c.id]~=c then return nil end
  local identity,ok=call('identity',UnitGUID,'player')

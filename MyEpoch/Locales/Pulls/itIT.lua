@@ -102,6 +102,7 @@ E.Localize({
     ["Partial details"]="Dettagli parziali",
     ["Player details"]="Dettagli del giocatore",
     ["No spell details were recorded."]="Non sono stati registrati dettagli sugli incantesimi.",
+    ["Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights."]="I dettagli degli incantesimi restano per gli scontri con i boss, i combattimenti con una stella o con note e i 50 combattimenti più recenti.",
     ["Related combat"]="Combattimento collegato",
     ["Damage, duration and rates use the selected snapshot."]="Danni, durata e valori al secondo si riferiscono all’istantanea selezionata.",
     ["Recorded spells"]="Incantesimi registrati",

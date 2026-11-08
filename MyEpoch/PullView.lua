@@ -127,7 +127,7 @@ function V.Record(page,c,r)
             local spells={};for _,spell in ipairs(source.detail and source.detail.spells or{})do if spell.totalAmount~=0 then spells[#spells+1]=spell end end
             table.sort(spells,function(a,b)return(a.totalAmount or-1)>(b.totalAmount or-1)end)
             local first,last,count=pages(spells,'pullSpellPage',6)
-            if #spells==0 then B.Text(page,E.L['No spell details were recorded.'],14)end
+            if #spells==0 then B.Text(page,E.L[source.detail and source.detail.spellsTrimmed and'Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights.'or'No spell details were recorded.'],14)end
             for i=first,last do local spell=spells[i];local target=spell.target or{}
                 local title=E.Display.SpellName(spell.spellID,spell.spellID and E.Format('Spell {id}',{id=spell.spellID})or E.L['Unidentified spell'])
                 local info=spell.spellID and A.Call('pullSpellIcon',C_Spell and C_Spell.GetSpellInfo,spell.spellID)

@@ -103,6 +103,7 @@ E.Localize({
     ["Partial details"]="部分详情",
     ["Player details"]="玩家详情",
     ["No spell details were recorded."]="未记录法术详情。",
+    ["Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights."]="仅为首领战、加星或有笔记的战斗以及最近 50 场战斗保留法术详情。",
     ["Related combat"]="相关战斗",
     ["Damage, duration and rates use the selected snapshot."]="伤害、持续时间和每秒数值均以所选快照为准。",
     ["Recorded spells"]="记录的法术",

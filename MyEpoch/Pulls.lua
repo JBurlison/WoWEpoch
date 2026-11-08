@@ -164,3 +164,70 @@ function P.Refresh()
 end
 local logout=C.handlers.PLAYER_LOGOUT
 C.handlers.PLAYER_LOGOUT=function(...)if logout then logout(...)end;if P.Close('Logged out; later meter continuity is unverified.')~=false then P.owner=nil end end
+-- Per-spell rows are most of a saved fight's size. Older ordinary fights keep
+-- their sources, totals and links but drop that breakdown. Boss encounters,
+-- starred, noted or memory-linked fights, fights still recording and the
+-- newest P.keepDetailed fights keep everything.
+P.keepDetailed=50
+local trim
+function P.StartTrim()
+    if not E.db or type(E.db.characters)~='table'then return end
+    trim={characters={},index=1}
+    for _,id in ipairs(E.SortedKeys(E.db.characters))do trim.characters[#trim.characters+1]=E.db.characters[id]end
+end
+local function stripSpells(r)
+    local trimmed=false
+    for _,rows in pairs(type(r.snapshots)=='table'and r.snapshots or{})do
+        for _,snapshot in ipairs(type(rows)=='table'and rows or{})do
+            for _,row in ipairs(type(snapshot)=='table'and type(snapshot.sources)=='table'and snapshot.sources or{})do
+                local detail=type(row)=='table'and row.detail
+                if type(detail)=='table'and detail.spells~=nil then detail.spells=nil;detail.spellsTrimmed=true;trimmed=true end
+            end
+        end
+    end
+    return trimmed
+end
+local function nearEncounter(times,from,through)
+    -- times is sorted; find the first encounter at or after from-5.
+    local low,high=1,#times
+    while low<=high do local mid=math.floor((low+high)/2);if times[mid]<from-5 then low=mid+1 else high=mid-1 end end
+    return times[low]~=nil and times[low]<=through+5
+end
+local function keepDetail(c,r,state)
+    if r.starred or c.notes[r.id]or c.notes['record:'..r.id]or state.linked[r.id]then return true end
+    if (c.state.activePullRecords or{})[r.id]then return true end
+    local through=type(r.observedThrough)=='number'and r.observedThrough or r.ts
+    return nearEncounter(state.encounters,r.ts,math.max(r.ts,through))
+end
+function P.TrimStep(budget)
+    local t=trim;if not t then return end
+    local remaining=budget or 400
+    while remaining>0 do
+        local c=t.characters[t.index]
+        if not c then trim=nil;return true end
+        if E.db.characters[c.id]~=c or type(c.order)~='table'then t.index=t.index+1;t.state=nil
+        else
+            local s=t.state
+            if not s then s={order=c.order,position=1,pulls={},encounters={},linked={},next=1,trimmed=0};t.state=s end
+            if s.order~=c.order then t.state=nil
+            elseif s.position<=#s.order then
+                -- First pass: collect fights, encounter times and memory links.
+                local r=c.records[s.order[s.position]];s.position=s.position+1;remaining=remaining-1
+                if type(r)=='table'then
+                    if r.kind=='pull'then s.pulls[#s.pulls+1]=r.id
+                    elseif r.kind=='encounter'and type(r.ts)=='number'then s.encounters[#s.encounters+1]=r.ts
+                    elseif r.kind=='memory'then for _,id in ipairs(type(r.refs)=='table'and r.refs or{})do s.linked[id]=true end end
+                end
+                if s.position>#s.order then table.sort(s.encounters)end
+            elseif s.next<=#s.pulls-P.keepDetailed then
+                local r=c.records[s.pulls[s.next]];s.next=s.next+1;remaining=remaining-1
+                if type(r)=='table'and r.kind=='pull'and type(r.ts)=='number'and not keepDetail(c,r,s)then
+                    if stripSpells(r)then s.trimmed=s.trimmed+1;remaining=remaining-20 end
+                end
+            else
+                if s.trimmed>0 then S.Touch(c,'pullDetailTrim',{fights=s.trimmed})end
+                t.index=t.index+1;t.state=nil
+            end
+        end
+    end
+end

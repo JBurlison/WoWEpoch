@@ -55,6 +55,26 @@ function A.Call(label,fn,...)
     A.status[label]=restricted and restrictedResult or "call succeeded; client behavior still needs validation"
     return unpack(out,1,out.n)
 end
+-- A.Call for a single argument and a single plain scalar result, without the
+-- result tables. Use on per-unit event paths that can run hundreds of times a second.
+function A.Call1(label,fn,arg)
+    if type(fn)~="function" then A.status[label]="unavailable"; return nil end
+    local ok,value=pcall(fn,arg)
+    if not ok then A.status[label]="call failed or access restricted"; return nil end
+    if A.Secret(value) or (type(canaccessvalue)=='function' and canaccessvalue(value)~=true) then
+        A.status[label]=restrictedResult; return nil
+    end
+    if type(value)=="table" then return (A.Call(label,fn,arg)) end
+    A.status[label]="call succeeded; client behavior still needs validation"
+    if type(value)=="string" or type(value)=="number" or type(value)=="boolean" then return value end
+end
+-- True only for a readable unit token other than the player, so per-unit
+-- events for nameplates, party and raid members can be skipped cheaply.
+function A.OtherUnit(unit)
+    if type(unit)~="string" or A.Secret(unit) then return false end
+    if type(canaccessvalue)=='function' and canaccessvalue(unit)~=true then return false end
+    return unit~="player"
+end
 -- A readable player GUID can outlive wallet availability while leaving the
 -- world. Keep teardown reads separate from a genuine, observed zero balance.
 function A.Wallet(label)
