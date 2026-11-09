@@ -78,11 +78,33 @@ local function markCorrection(c,r,now,delay)
         end
     end
 end
+-- Corrections only act on recaps and milestones. Remember which records have
+-- those kinds so each live correction reads new observations plus that short
+-- list, instead of the whole lifetime archive after every heartbeat.
+local summaryIndex=setmetatable({},{__mode='k'})
+local function summaryCandidate(r)return type(r)=='table'and(r.kind=='recap'or r.kind=='milestone')end
+local function summaryIndexFor(c)
+    local index=summaryIndex[c]
+    if not index or index.order~=c.order or index.records~=c.records then
+        index={order=c.order,records=c.records,through=0,ids={},seen={}};summaryIndex[c]=index
+    end
+    return index
+end
+local function rememberSummary(index,id)
+    if type(id)=='string'and not index.seen[id]then index.seen[id]=true;index.ids[#index.ids+1]=id end
+end
+J.SummaryIndex=function(c)return summaryIndex[c]end
 local function correctionScan(c,p)
     local order,last=c.order,#c.order
+    local index=summaryIndexFor(c)
     return E.RetentionWork.Start(function(work)
-        for index=1,last do
-            work();local r=c.records[order[index]]
+        for position=index.through+1,last do
+            work();local id=order[position];if summaryCandidate(c.records[id])then rememberSummary(index,id)end
+        end
+        if summaryIndex[c]==index and last>index.through then index.through=last end
+        local ids=index.ids
+        for position=1,#ids do
+            work();local r=c.records[ids[position]]
             if r then
                 if p.auctions and r.kind=='recap'then
                     if r.periodKind=='milestone'then
@@ -404,7 +426,11 @@ function J.Process(c,now,limit,background)
     return done
 end
 local function changed(c,r)
+    -- A revised record can become a recap or milestone after its position was
+    -- indexed; keep it in the correction list from then on.
+    local index=summaryIndex[c]
+    if index and index.records==c.records and summaryCandidate(r)then rememberSummary(index,r.id)end
     J.QueueRecord(c,r,A.Now(),r.kind=="play" and 30 or 2)
 end
 E.On("RECORD_ADDED",changed); E.On("RECORD_CHANGED",changed)
-E.On("RECORDS_REMOVED",function(c) J.Seed(c,A.Now()) end)
+E.On("RECORDS_REMOVED",function(c) summaryIndex[c]=nil;J.Seed(c,A.Now()) end)

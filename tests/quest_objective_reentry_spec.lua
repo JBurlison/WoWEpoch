@@ -1,4 +1,5 @@
-local function event(name,...) E.frame.scripts.OnEvent(E.frame,name,...) end
+-- Held quest-log reads run when frame time passes; advance it so every update is read.
+local function event(name,...) E.frame.scripts.OnEvent(E.frame,name,...);if name=="QUEST_LOG_UPDATE"then E.Collectors.Tick(1)end end
 local function row(label,n) return {text=label,type="monster",numFulfilled=n,numRequired=20,finished=false} end
 local values={[601]={2,3},[602]={1,0}}
 local during

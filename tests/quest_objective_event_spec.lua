@@ -1,6 +1,8 @@
 local A, B, C, H, S, V = E.API, E.Book, E.Collectors, E.History, E.Store, E.QuestView
+-- Held quest-log reads run when frame time passes; advance it so every update is read.
 local function event(name,...)
     E.frame.scripts.OnEvent(E.frame,name,...)
+    if name=="QUEST_LOG_UPDATE" then E.Collectors.Tick(1) end
 end
 local hidden = {}
 issecretvalue = function(value) return value == hidden end

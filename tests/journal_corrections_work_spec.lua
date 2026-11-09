@@ -26,6 +26,7 @@ local original=E.Copy(c.records);local revision=c.revision
 J.Step(c,now,0);local job=assert(J.corrections[c].worker)
 assert(job.operations==0,'callback does not scan history')
 local slices,maxInstructions,workers=0,0,1
+local workerSlices={0,0}
 local concurrent=false
 while J.corrections[c]do
  local state=J.corrections[c]
@@ -36,13 +37,17 @@ while J.corrections[c]do
  J.Step(c,now,61)
  assert(job.operations-operations<=61)
  maxInstructions=math.max(maxInstructions,instructions);slices=slices+1;assert(slices<1500)
+ workerSlices[workers]=(workerSlices[workers]or 0)+1
  if not concurrent and job.operations>25000 then
   -- The scan has passed this early milestone; the next batch must revisit it.
   J.QueueRecord(c,{kind='gathered',ts=first+50,recipient=c.id},now,2)
   concurrent=true
  end
 end
-assert(workers==2 and slices>900 and maxInstructions<25000)
+-- The first scan indexes the whole 28,000-record archive in bounded slices.
+-- The follow-up batch reads only the 4,000 indexed recaps and milestones.
+assert(workers==2 and workerSlices[1]>450 and workerSlices[2]<=4000/61+2 and maxInstructions<25000)
+assert(#J.SummaryIndex(c).ids==4000)
 local expected={['milestone:'..milestones[1001].id]=true,['milestone:'..milestones[1].id]=true}
 local count=0
 for key,job in pairs(J.pending[c])do if job.kind=='milestone'then assert(expected[key],key);count=count+1 end end

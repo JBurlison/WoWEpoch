@@ -32,6 +32,8 @@ SPECS = (
     'query_location_memory_spec.lua',
     'journal_boundary_clock_spec.lua',
     'idle_workers_spec.lua',
+    'snapshot_sharing_spec.lua',
+    'pull_detail_trim_spec.lua',
     'notification_idle_spec.lua',
     'notification_identity_spec.lua',
     'notification_edit_mode_spec.lua',
@@ -42,6 +44,7 @@ HOSTS = (
     'quest_completed_history_host.py',
     'recap_completed_periods_host.py',
     'recorder_owner_lifecycle_spec.py',
+    'event_throttle_host.py',
 )
 
 

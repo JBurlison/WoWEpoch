@@ -89,9 +89,29 @@ function MyEpoch_Focus()
     if reason then report(E.L[reason])end
     return active
 end
+-- Every handler for these events reads only the player. The client delivers
+-- them for each nameplate and group member unless registered per unit.
+local playerUnitEvents={UNIT_COMBAT=true,UNIT_MAXHEALTH=true,UNIT_FACTION=true,
+    UNIT_SPELLCAST_SUCCEEDED=true,UNIT_SPELLCAST_FAILED=true,UNIT_SPELLCAST_INTERRUPTED=true}
 local function register(event)
+    if playerUnitEvents[event] and type(frame.RegisterUnitEvent)=="function"
+        and pcall(frame.RegisterUnitEvent,frame,event,"player") then return end
     local ok=pcall(frame.RegisterEvent,frame,event)
     if not ok then E.API.status["event:"..event]="registration unavailable" end
+end
+-- Frequent events whose handlers never read quest state.
+local questNeutral={QUEST_LOG_UPDATE=true,UNIT_HEALTH=true,UNIT_MAXHEALTH=true,UNIT_COMBAT=true,UNIT_FACTION=true,
+    UNIT_SPELLCAST_SUCCEEDED=true,UNIT_SPELLCAST_FAILED=true,UNIT_SPELLCAST_INTERRUPTED=true,
+    DAMAGE_METER_COMBAT_SESSION_UPDATED=true,DAMAGE_METER_CURRENT_SESSION_UPDATED=true,
+    GET_ITEM_INFO_RECEIVED=true,BAG_UPDATE_DELAYED=true,BAG_CONTAINER_UPDATE=true}
+local chatRoutes={}
+local function chatRoute(event)
+    local route=chatRoutes[event]
+    if route==nil then
+        route=event:match("^CHAT_MSG_")~=nil and event~="CHAT_MSG_LOOT" and event~='CHAT_MSG_SYSTEM' and event~='CHAT_MSG_COMBAT_XP_GAIN'
+        chatRoutes[event]=route
+    end
+    return route
 end
 register("ADDON_LOADED"); register("PLAYER_LOGIN"); register("SAVED_VARIABLES_TOO_LARGE")
 register("GROUP_JOINED"); register("GROUP_FORMED"); register("GROUP_LEFT")
@@ -109,6 +129,7 @@ frame:SetScript("OnEvent",function(_,event,...)
         end
         return
     end
+    if playerUnitEvents[event] and E.API.OtherUnit((...)) then return end
     if openFailure then return end
     if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_LOGIN" then
         ownerLoggingOut=false
@@ -123,6 +144,11 @@ frame:SetScript("OnEvent",function(_,event,...)
     end
     if E.recordingGUID and not E.RecorderReady() then
         return
+    end
+    -- A held quest-log read runs before any event that can depend on it.
+    if E.current and not questNeutral[event] and not (event=="UNIT_FLAGS" and E.API.OtherUnit((...))) then
+        if E.Collectors.questLogPending then E.Collectors.FlushQuestLog() end
+        E.Collectors.questEventSinceRead=true
     end
     if event=="ADDON_LOADED" then
         if (...)~=name then
@@ -140,6 +166,8 @@ frame:SetScript("OnEvent",function(_,event,...)
             return
         end
         MyEpochDB=db
+        E.MilestoneSnapshot.StartSharing()
+        E.Pulls.StartTrim()
         E.Minimap.Start()
         if E.Controller then E.Controller.Start()end
         for key in pairs(E.Collectors.handlers) do register(key) end
@@ -180,7 +208,7 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif event=="PLAYER_REGEN_DISABLED" then E.Book.Combat(true)
     elseif event=="PLAYER_REGEN_ENABLED" then E.Book.Combat(false)
     elseif event=="DISPLAY_SIZE_CHANGED" or event=="UI_SCALE_CHANGED" then E.Book.Fit();E.Minimap.Position()
-    elseif event:match("^CHAT_MSG_") and event~="CHAT_MSG_LOOT" and event~='CHAT_MSG_SYSTEM' and event~='CHAT_MSG_COMBAT_XP_GAIN' then E.Collectors.Chat(event,...)
+    elseif chatRoute(event) then E.Collectors.Chat(event,...)
     elseif E.Collectors.handlers[event] then E.Collectors.handlers[event](...) end
 end)
 frame:SetScript("OnUpdate",function(_,delta)
@@ -189,6 +217,8 @@ frame:SetScript("OnUpdate",function(_,delta)
     E.TravelMoney.Tick()
     E.TrainerLearning.Tick()
     E.Query.ProcessPreparation(500)
+    E.MilestoneSnapshot.ShareStep(400)
+    E.Pulls.TrimStep(400)
     if E.Keepsakes then E.Keepsakes.Process(500)end
     E.Notifications.Tick(delta)
     E.KeepsakeView.Tick()
@@ -215,6 +245,7 @@ frame:SetScript("OnUpdate",function(_,delta)
     E.Archive.StepCleanupFrame()
     E.Archive.Tick(delta)
     if not E.current then return end
+    E.Collectors.Tick(delta)
     E.JournalJobs.Step(E.current,E.API.Now(),500)
     E.JournalJobs.StepWriters(E.current,E.API.Now(),500)
     E.JournalViews.Tick(E.API.Now())

@@ -103,6 +103,7 @@ E.Localize({
     ["Partial details"]="일부 세부 정보",
     ["Player details"]="플레이어 정보",
     ["No spell details were recorded."]="주문 세부 정보가 기록되지 않았어요.",
+    ["Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights."]="주문 세부 정보는 우두머리 전투, 별표나 메모가 있는 전투, 최근 50개 전투에만 남겨 둬요.",
     ["Related combat"]="관련 전투",
     ["Damage, duration and rates use the selected snapshot."]="피해, 지속 시간, 초당 수치는 선택한 기록을 기준으로 해요.",
     ["Recorded spells"]="기록된 주문",

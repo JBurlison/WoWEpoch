@@ -8,7 +8,8 @@ canaccessvalue=function(v)return not inaccessible[v]end
 GetBuildInfo=function()return '1.60.1','70532','',16001 end
 C_QuestLog={IsOnQuest=function(id)return members[id]end}
 C_CreatureInfo={GetCreatureID=function(guid)assert(not inaccessible[guid]);return npcs[guid]end}
-local function event(name,...)E.frame.scripts.OnEvent(E.frame,name,...)end
+-- Held quest-log reads run when frame time passes; advance it so every update is read.
+local function event(name,...)E.frame.scripts.OnEvent(E.frame,name,...);if name=='QUEST_LOG_UPDATE'then E.Collectors.Tick(1)end end
 MyEpochDB=nil;event('ADDON_LOADED','MyEpoch');TEST_NOW(1000);event('PLAYER_LOGIN')
 local c=E.current;ok(c and K.live and K.live.c==c,'actual PLAYER_LOGIN starts collector')
 ok(E.frame.events.PARTY_KILL,'PARTY_KILL is frame registered')

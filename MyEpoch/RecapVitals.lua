@@ -2,7 +2,7 @@ local _,E=...
 local V,A,S,C={},E.API,E.Store,E.Collectors;E.RecapVitals=V
 local function plain(v)local ok,value,hidden=pcall(A.Plain,v);if ok and not hidden then return value end end
 local function number(v)return type(v)=='number'and v==v and v>=0 and v<=9007199254740991 end
-local function player(unit)return plain(unit)=='player'end
+local function player(unit)return not A.OtherUnit(unit)and plain(unit)=='player'end
 local function record(kind,amount,source)
     local c=E.current;if not c then return end
     local label=kind=='damage'and'Damage taken'or'Health gained'

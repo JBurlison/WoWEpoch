@@ -103,6 +103,7 @@ E.Localize({
     ["Partial details"]="Détails partiels",
     ["Player details"]="Détails du joueur",
     ["No spell details were recorded."]="Aucun détail de sort n’a été enregistré.",
+    ["Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights."]="Les détails des sorts sont conservés pour les rencontres de boss, les combats étoilés ou annotés et les 50 combats les plus récents.",
     ["Related combat"]="Combat associé",
     ["Damage, duration and rates use the selected snapshot."]="Les dégâts, la durée et les valeurs par seconde proviennent du relevé sélectionné.",
     ["Recorded spells"]="Sorts enregistrés",

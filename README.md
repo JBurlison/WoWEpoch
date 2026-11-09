@@ -136,6 +136,8 @@ Gold and item-value reports distinguish actual money changes from estimated item
 
 History is kept **forever by default**. In **Archive**, you can set retention rules separately for each character and category. Starred memories and their linked source records are protected from routine cleanup.
 
+To keep the journal light, a full character snapshot (gear, stats, and skills) is saved with level-ups and other major milestones, including every 25 weapon or 75 profession skill points. Single skill points still record their old and new ranks. Older ordinary fights keep their sources and damage totals; the per-spell breakdown stays for boss encounters, starred or noted fights, fights linked to a memory, and your 50 most recent fights.
+
 Your journal is stored locally in WoW’s SavedVariables. WoW writes those files during its normal reload/logout process; a crash can lose recent unsaved activity. To back up your scrapbook, close the game and copy:
 
 ```text

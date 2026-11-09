@@ -103,6 +103,7 @@ E.Localize({
     ["Partial details"]="Неполные сведения",
     ["Player details"]="Сведения об игроке",
     ["No spell details were recorded."]="Сведения о заклинаниях не записаны.",
+    ["Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights."]="Сведения о заклинаниях сохраняются для встреч с боссами, отмеченных боёв, боёв с заметками и 50 последних боёв.",
     ["Related combat"]="Связанный бой",
     ["Damage, duration and rates use the selected snapshot."]="Урон, длительность и показатели в секунду взяты из выбранного снимка.",
     ["Recorded spells"]="Записанные заклинания",

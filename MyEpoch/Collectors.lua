@@ -72,7 +72,44 @@ function C.ObserveQuestCounters(c, q, ts, watch)
     if confirmed and current() then H.Objectives(c,q,rows,ts,watch and "QUEST_WATCH_UPDATE / C_QuestLog.GetQuestObjectives") end
     observeDisplayMap(c,q,ts,current)
 end
+-- QUEST_LOG_UPDATE arrives in bursts. Read the log at once, then hold later
+-- updates for a quarter second of frame time while only quest-neutral events
+-- (health, combat, casts) arrive. Any other event first runs a held read and
+-- makes the next update immediate, so no quest-relevant state is skipped.
+C.questWindow=0.25
+local readQuests
 function C.Quests(accepted)
+    C.questLogPending=nil;C.questReadAge=nil
+    readQuests(accepted)
+    C.questReadAge=0;C.questEventSinceRead=false
+end
+function C.QuestLogUpdated()
+    if C.questReadAge and C.questReadAge<C.questWindow and not C.questEventSinceRead then C.questLogPending=true;return end
+    C.Quests()
+end
+function C.FlushQuestLog()
+    if not C.questLogPending then return end
+    if not E.current then C.questLogPending=nil;return end
+    C.Quests()
+end
+-- Player flags can change several times a second in combat. Run the heartbeat
+-- at once, then at most once a second; a held change runs when that second ends.
+function C.FlagHeartbeat()
+    if C.flagBeatAge and C.flagBeatAge<1 then C.flagBeatPending=true;return end
+    C.flagBeatPending=nil;C.flagBeatAge=0;C.Heartbeat()
+end
+function C.Tick(delta)
+    if type(delta)~='number'or delta~=delta or delta<0 then return end
+    if C.questReadAge then
+        C.questReadAge=C.questReadAge+delta
+        if C.questReadAge>=C.questWindow then C.questReadAge=nil;C.FlushQuestLog()end
+    end
+    if C.flagBeatAge then
+        C.flagBeatAge=C.flagBeatAge+delta
+        if C.flagBeatAge>=1 then C.flagBeatAge=nil;if C.flagBeatPending then C.FlagHeartbeat()end end
+    end
+end
+readQuests=function(accepted)
     local c,ts=E.current,A.Now()
     local session=C.session
     local context=location({})
@@ -197,17 +234,19 @@ function C.Skills(baseline)
         local lastReading=last and last.character==c.id and last.skillID==info.skillID and type(last.weaponReading)=="table" and last.weaponReading
         local recorded
         if not baseline and previous and previous.rank~=info.rank then
-            if not captured then snapshot=E.MilestoneSnapshot and E.MilestoneSnapshot.Capture(c);captured=true end
             local kind=professions[info.skillID] and "profession" or "skill"
             local step=professions[info.skillID] and 75 or (A.weaponSkills[info.skillID] and 25 or nil)
             local crossed={}
             if step and info.rank>previous.rank then
                 for threshold=(math.floor(previous.rank/step)+1)*step,info.rank,step do crossed[#crossed+1]=threshold end
             end
+            -- Only threshold milestones carry a full character snapshot. Single
+            -- skill points still record their before/after ranks.
+            if #crossed>0 and not captured then snapshot=E.MilestoneSnapshot and E.MilestoneSnapshot.Capture(c);captured=true end
             if not skillOwner(c,session) then return end
             local details=location({title=(info.name or "Skill")..": "..previous.rank.." -> "..info.rank,
                 skillID=info.skillID,skillName=info.name,subject=c.id,milestoneType=kind,major=#crossed>0,thresholds=crossed,
-                before=previous.rank,after=info.rank,characterSnapshot=snapshot,weaponReading=reading,coverage="rank change observed; exact intermediate times unknown"})
+                before=previous.rank,after=info.rank,characterSnapshot=#crossed>0 and snapshot or nil,weaponReading=reading,coverage="rank change observed; exact intermediate times unknown"})
             if not skillOwner(c,session) then return end
             recorded=S.AddSkill(c,"milestone",A.Now(),details,info)
         elseif reading and newWeaponContext(lastReading,reading) then
@@ -399,7 +438,7 @@ function C.Start(identity,ownerOnly)
     if identity.level then recordQuestLevel(c,identity.level) end
     c.identity.build=build; c.state.level=identity.level
     readWallet(c,C.session,A.Now(),nil,ownerOnly and E.recordingTransition and identity.id)
-    C.rosterObserved=false; C.leftRosterAt=nil; C.removed={}
+    C.rosterObserved=false; C.leftRosterAt=nil; C.removed={}; C.flagBeatPending=nil; C.flagBeatAge=nil
     C.Roster(); E.Encounters.Start(c); C.Quests(); C.CompletedBaseline(); C.Skills(true); C.Zone(); E.Progress.Start(c); E.Merchant.Start(c); E.QuestAtlas.Start(c); E.Drops.Start(); E.Inventory.Start(c); C.Heartbeat()
     E.QuestieBridge.Start()
     E.Gathering.Start(c)
@@ -471,7 +510,7 @@ C.handlers={
     QUEST_FINISHED=function()questItemDialog=nil end,
     QUEST_DETAIL=function()questItemDialog=nil end,
     QUEST_COMPLETE=function()questItemDialog=nil end,
-    QUEST_LOG_UPDATE=function() C.Quests() end,
+    QUEST_LOG_UPDATE=function() C.QuestLogUpdated() end,
     QUEST_ACCEPTED=function(id) if not A.Secret(id) and type(id)=="number" then C.Quests(id) end end,
     QUEST_TURNED_IN=function(id,xp,money)
         id=A.Plain(id)
@@ -522,7 +561,7 @@ C.handlers={
             witnessCoverage="Group membership does not establish proximity or a confirmed witness; death cause is unknown."}))
     end,
     GROUP_ROSTER_UPDATE=C.Roster, PARTY_LEADER_CHANGED=C.Roster, ZONE_CHANGED_NEW_AREA=C.Zone, ZONE_CHANGED=C.Zone, SKILL_LINES_CHANGED=function() C.Skills(false) end,
-    UNIT_FLAGS=function(unit) if not A.Secret(unit) and unit=="player" then C.Heartbeat() end end,
+    UNIT_FLAGS=function(unit) if not A.Secret(unit) and unit=="player" then C.FlagHeartbeat() end end,
     CHAT_MSG_LOOT=C.Loot,
     GET_ITEM_INFO_RECEIVED=function(id,success) E.ItemCache.Received(id,success) end,
     PLAYER_LOGOUT=function() if E.Capture then E.Capture.Interrupt("Logging out before capture.") end; C.Heartbeat(); H.CloseObservation(E.current,A.Now()) end,

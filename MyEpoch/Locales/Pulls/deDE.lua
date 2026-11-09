@@ -103,6 +103,7 @@ E.Localize({
     ["Partial details"]="Unvollständige Details",
     ["Player details"]="Spielerdetails",
     ["No spell details were recorded."]="Keine Zauberdetails erfasst.",
+    ["Spell details are kept for boss encounters, starred or noted fights and the 50 most recent fights."]="Zauberdetails bleiben für Bossbegegnungen, markierte Kämpfe oder Kämpfe mit Notizen und die 50 neuesten Kämpfe erhalten.",
     ["Related combat"]="Zugehöriger Kampf",
     ["Damage, duration and rates use the selected snapshot."]="Schaden, Dauer und Werte pro Sekunde stammen aus der ausgewählten Aufnahme.",
     ["Recorded spells"]="Erfasste Zauber",

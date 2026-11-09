@@ -83,6 +83,11 @@ C.Skills(false);assert(serial==3)
 local changed={};for _,v in ipairs(E.Query.Kind(c,'milestone'))do if v.skillID then changed[#changed+1]=v end end
 assert(#changed==2 and changed[1].characterSnapshot.marker==3 and changed[2].characterSnapshot.marker==3)
 assert(changed[1].characterSnapshot~=changed[2].characterSnapshot)
+-- A single skill point stays recorded with its ranks but no character snapshot.
+A.Skills=function()return {{skillID=43,name='Swords',rank=56},{skillID=164,name='Smithing',rank=75}}end
+C.Skills(false);assert(serial==3,'minor skill points do not capture a snapshot')
+local minor;for _,v in ipairs(E.Query.Kind(c,'milestone'))do if v.skillID==43 and v.after==56 then minor=v end end
+assert(minor and minor.major==false and minor.before==55 and minor.characterSnapshot==nil)
 E.Encounters.Observe('BOSS_KILL',98765,'Snapshot boss');assert(serial==4)
 local victory;for _,v in ipairs(E.Query.Major(c))do if v.encounterID==98765 then victory=v end end
 assert(victory and victory.characterSnapshot.marker==4)

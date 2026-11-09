@@ -388,6 +388,7 @@ subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/calendar_notice_
 subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/group_notice_host.py')],check=True)
 
 subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/quest_turnin_owner_host.py')],check=True)
+subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/event_throttle_host.py')],check=True)
 
 subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/quest_writ_items_host.py')],check=True)
 
@@ -409,4 +410,4 @@ subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/pull_detai
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/controller_host.py')], check=True)
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/journal_memory_host.py')], check=True)
 runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('search_cache_release_spec.lua',))
-runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('query_location_memory_spec.lua','journal_boundary_clock_spec.lua','idle_workers_spec.lua'))
+runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('query_location_memory_spec.lua','journal_boundary_clock_spec.lua','idle_workers_spec.lua','snapshot_sharing_spec.lua'))
