@@ -14,7 +14,7 @@ end
 function V.BuildToast()
     if V.toast then return V.toast end
     local f=CreateFrame('Frame',nil,UIParent);V.toast=f
-    f:SetSize(370,106);f:SetFrameStrata('FULLSCREEN_DIALOG');f:SetFrameLevel(200);f:SetClampedToScreen(true);f:EnableMouse(true);T.DialogPaper(f)
+    f:SetSize(370,106);f:SetFrameStrata('FULLSCREEN_DIALOG');f:SetFrameLevel(200);f:SetClampedToScreen(true);f:EnableMouse(true);T.NotificationPaper(f)
     f.icon=f:CreateTexture(nil,'ARTWORK');f.icon:SetTexture(root..'emblem-small-v1.tga');f.icon:SetSize(36,36);f.icon:SetPoint('TOPLEFT',12,-16)
     f.heading=font(f,12);f.heading:SetTextColor(.58,.29,.14);f.heading:SetPoint('TOPLEFT',58,-12);f.heading:SetWidth(268)
     f.title=font(f,17);f.title:SetPoint('TOPLEFT',58,-32);f.title:SetWidth(298)

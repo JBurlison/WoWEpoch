@@ -35,7 +35,7 @@ function M.Build()
     if M.frame then return M.frame end
     local f=CreateFrame('Frame','MyEpochNotificationPosition',UIParent);M.frame=f
     f:SetSize(370,106);f:SetFrameStrata('FULLSCREEN_DIALOG');f:SetFrameLevel(190)
-    f:SetMovable(true);f:SetClampedToScreen(true);f:EnableMouse(true);f:RegisterForDrag('LeftButton');T.DialogPaper(f)
+    f:SetMovable(true);f:SetClampedToScreen(true);f:EnableMouse(true);f:RegisterForDrag('LeftButton');T.NotificationPaper(f)
     f.heading=text(f,17,'My Epoch notifications');f.heading:SetPoint('TOPLEFT',12,-14);f.heading:SetWidth(346)
     f.instruction=text(f,14,'Drag this area to move notifications.');f.instruction:SetWidth(346)
     f.scope=text(f,12,'Account defaults');f.scope:SetPoint('BOTTOMLEFT',12,12);f.scope:SetWidth(346)
@@ -43,7 +43,7 @@ function M.Build()
     local instructionHeight=f.instruction:GetStringHeight();f.instruction:SetHeight(instructionHeight)
     f.instruction:SetPoint('TOPLEFT',12,-(22+headingHeight))
     f:SetHeight(math.max(106,42+headingHeight+instructionHeight+f.scope:GetStringHeight()))
-    local panel=CreateFrame('Frame',nil,f);f.controls=panel;panel:SetSize(370,130);T.DialogPaper(panel)
+    local panel=CreateFrame('Frame',nil,f);f.controls=panel;panel:SetSize(370,130);T.NotificationPaper(panel)
     M.controls={}
     local controls=M.controls
     controls.apply=control(panel,'Apply position',112,M.Apply)
