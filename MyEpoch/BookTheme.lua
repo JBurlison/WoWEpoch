@@ -60,6 +60,19 @@ function T.DialogPaper(frame)
         rule:SetPoint(edge[1],edge[3],edge[4]);rule:SetPoint(edge[2],edge[5],edge[6]);if edge[7]then rule:SetHeight(2)else rule:SetWidth(2)end
     end
 end
+function T.NotificationPaper(frame)
+    -- Fixed-width layers keep the small gold frame crisp at every toast size.
+    -- These are background textures only: buttons and controller focus remain above them.
+    for index,color in ipairs({{.13,.085,.045},{.44,.29,.13},{.76,.57,.27},{.95,.81,.52},{.42,.27,.12}})do
+        local inset=index-1
+        local trim=frame:CreateTexture(nil,"BACKGROUND",nil,index-1)
+        trim:SetColorTexture(color[1],color[2],color[3],1)
+        trim:SetPoint("TOPLEFT",inset,-inset);trim:SetPoint("BOTTOMRIGHT",-inset,inset)
+    end
+    frame.paper=T.Texture(frame,"invoice-v1","BACKGROUND",5)
+    frame.paper:SetTexCoord(.18,.82,.20,.80)
+    frame.paper:SetPoint("TOPLEFT",5,-5);frame.paper:SetPoint("BOTTOMRIGHT",-5,5)
+end
 function T.Seal(frame,active)
     frame.seal=frame.seal or T.Texture(frame,"seal-v1","ARTWORK")
     frame.seal:SetTexture(root..(active and "seal-active-v1" or "seal-v1")..".tga")
