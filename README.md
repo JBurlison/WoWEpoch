@@ -14,8 +14,8 @@ Each character has a separate journal. Switch between them with the character pi
 | **Calendar** | Select a day to read its full diary and add your own notes. Switch to Events to filter quests, loot, mobs defeated, groups, milestones, recaps, and more. Routine movement samples stay out of the event list. |
 | **Recaps** | Daily, weekly, monthly, yearly, and milestone summaries of recorded activity and progress. |
 | **Quests** | Completed quest history, recorded attempts, notes, and kill history. Confirmed objective credit is separate from kills recorded while a quest was active. |
-| **Company** | Group sessions, companions, shared activity, recorded conversations, and available pull damage details. Open a whisper or add a companion as a friend. |
-| **Loot** | Item receipts, observed group drops, crafting and gathering records, and filters for exploring your finds. Follow an **Item story** through recorded acquisitions, milestone appearances, sales, and transfers. Mob reports show observed drop rates, kill counts, and item quantities. |
+| **Company** | Revisit group sessions, conversations and pull damage. Save companions to **Favorites**, keep notes, and organize them with tags and named rosters. Open a roster to invite a player. |
+| **Loot** | Browse receipts, observed group drops, crafting and gathering. Follow an **Item story** or check a mob’s observed drop rates. Turn on **Floating loot** to see your own recent finds grouped by source while you play. |
 | **Gold** | A dated ledger of recorded income and spending, balance charts, merchant receipts, trades, mail, auctions, and trading-cost reports. |
 | **Memories** | Write a story, gather **Adventure chapters**, keep a **Wish list**, and rediscover earlier adventures with **On This Day**. Choose illustrations and attach screenshot references. Optional writing prompts help you find a starting point. |
 | **Journey** | Explore recorded locations on the map and follow their links back into the journal. Death markers are hidden by default. |
@@ -110,7 +110,11 @@ Use **Share a wish list** to copy a share code for a friend. Notes are included 
 
 Major milestones, completed wishes, and newly available recaps can show a small parchment notification. Notifications wait until combat ends and never open the book by themselves. **Archive → Notifications** has an account-wide off switch, category controls, optional character overrides, sound, and position settings. Turning notifications off does not stop recording or remove unread indicators.
 
-A major milestone and its written recap share one notification. For example, leveling up alerts you once; finishing or retelling that level's recap does not alert you again. Existing duplicate notification state is reconciled automatically, preserving your saved history and notes. Daily, weekly, monthly, and yearly recaps keep their own notifications.
+A major milestone and its written recap share one notification. A level or skill milestone shows the rank you reached, such as **Cooking 75**. The toast fades during its final second. Hover over it to keep it on screen while you read. Daily, weekly, monthly, and yearly recaps have their own notifications.
+
+Under **Loot → Floating loot**, choose **Show floating loot** to keep recent finds visible with the book closed. The window starts with the last 30 minutes. Choose a preset or enter 1 to 1,440 minutes, then drag its title to place it where you like.
+
+Under **Company → Companions**, open a player and choose **Add to favorites**. In **Company → Favorites**, give companions a shared tag such as *Raid* and assign them to rosters such as *Raid 1* or *Raid 2*. Choose a roster, select a player, and click **Invite** beside their name to send that player an invitation.
 
 Open the game's **Edit Mode** to move the **My Epoch notifications** area, or select **Move notifications in Edit Mode** in Archive. Drag the area or use its direction buttons, then choose **Apply position**. **Reset position** previews the default location; Apply saves it. **Cancel position** or leaving Edit Mode discards unapplied changes. The position follows account defaults unless this character uses an override. During positioning, queued notifications and the current toast's remaining time are preserved. Controller users can also use the existing Left/Right/Up/Down position controls in Archive; native Edit Mode keeps ownership of controller input.
 

@@ -6,10 +6,31 @@ local function report(message)
 end
 local ownerLoggingOut=false
 local openFailure
+local lootOptionsCategory
+local function registerLootOptions()
+    if lootOptionsCategory or not E.db or not Settings or not Settings.RegisterCanvasLayoutCategory
+        or not Settings.RegisterAddOnCategory then return end
+    local panel=CreateFrame("Frame")
+    panel:Hide()
+    local title=panel:CreateFontString(nil,"ARTWORK","GameFontNormalLarge")
+    title:SetPoint("TOPLEFT",16,-16);title:SetText("My Epoch")
+    local button=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
+    button:SetPoint("TOPLEFT",title,"BOTTOMLEFT",0,-16)
+    button:SetText(E.L["Floating loot"])
+    button:SetSize(220,30)
+    button:SetScript("OnClick",function()
+        if E.FloatingLootView.OpenSettings() and SettingsPanel and SettingsPanel:IsShown() then
+            HideUIPanel(SettingsPanel)
+        end
+    end)
+    lootOptionsCategory=Settings.RegisterCanvasLayoutCategory(panel,"My Epoch")
+    Settings.RegisterAddOnCategory(lootOptionsCategory)
+end
 local function resumeKeepsakes(c,now)
     E.Notifications.Start(c)
     E.Wishes.Recover(c)
     E.Chapters.Ensure(c)
+    E.FloatingLootView.Sync(c)
 end
 local function bindVerifiedOwner(identity)
     local old=E.current
@@ -152,6 +173,7 @@ frame:SetScript("OnEvent",function(_,event,...)
     end
     if event=="ADDON_LOADED" then
         if (...)~=name then
+            if (...)=="Blizzard_Settings_Shared" or (...)=="Blizzard_Settings" then registerLootOptions()end
             if E.current then E.Production.InstallHooks();E.Auctions.InstallHooks() end
             if (...)=='QuestieDB' and E.current then E.QuestieBridge.Start() end
             return
@@ -166,6 +188,7 @@ frame:SetScript("OnEvent",function(_,event,...)
             return
         end
         MyEpochDB=db
+        registerLootOptions()
         E.MilestoneSnapshot.StartSharing()
         E.Pulls.StartTrim()
         E.Minimap.Start()

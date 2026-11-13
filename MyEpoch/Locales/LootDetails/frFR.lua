@@ -1,6 +1,16 @@
 local _,E=...
 if E.locale~="frFR" then return end
 E.Localize({
+    ["Floating loot"]="Fenêtre de butin",
+    ["Show floating loot"]="Afficher la fenêtre de butin",
+    ["Hide floating loot"]="Masquer la fenêtre de butin",
+    ["Last {minutes} min"]="Sur {minutes} min",
+    ["Time window in minutes (1–1440)"]="Période en minutes (1 à 1440)",
+    ["Enter a whole number from 1 to 1440."]="Saisissez un nombre entier compris entre 1 et 1440.",
+    ["Your loot, grouped by where it came from."]="Votre butin, regroupé par provenance.",
+    ["No personal loot in this time window."]="Aucun butin personnel sur cette période.",
+    ["Drag the title to move the window."]="Faites glisser la barre de titre pour déplacer la fenêtre.",
+    ["Preparing recent loot…"]="Chargement de votre butin récent…",
     ["A matching clear within two seconds was not observed."]="Aucun vidage correspondant observé dans les deux secondes.",
     ["A matching start was not recorded."]="Aucun début correspondant enregistré.",
     ["A new encounter start arrived before an end was observed; the earlier outcome is unknown."]="Une nouvelle rencontre a commencé avant qu’une fin soit observée ; l’issue précédente reste inconnue.",

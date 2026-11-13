@@ -42,10 +42,14 @@ function V.Toast(batch)
     local entry=batch.entries[1];local record=entry and batch.owner.records[entry.id]
     f.icon:SetTexture(record and record.icon or root..'emblem-small-v1.tga')
     local titleHeight=math.max(20,f.title:GetStringHeight());f.title:SetHeight(titleHeight)
-    f:SetHeight(math.max(106,32+titleHeight+42));V.PositionFrame(f,prefs);f:Show()
+    f:SetHeight(math.max(106,32+titleHeight+42));V.PositionFrame(f,prefs)
+    f:SetAlpha(N.Opacity(batch));f:Show()
     if E.ControllerAdapters then E.ControllerAdapters.RefreshNotifications()end
 end
 N.renderer=V.Toast
+N.setOpacity=function(alpha)
+    if V.toast then V.toast:SetAlpha(alpha)end
+end
 -- Forever 1.60.1.70790, eac30af597e5aaa43a60f6675ef5fdcea100375f:
 -- SoundDocumentation PlaySoundWithOptions supports an explicit volumeOverride.
 -- SharedXML loads [Family]/SoundKitConstants; do not guess a legacy channel.

@@ -1,0 +1,115 @@
+local F, V, S, A = E.FloatingLoot, E.FloatingLootView, E.Store, E.API
+local c = S.Character('floating-loot-test', {name='Fenna'})
+local alt = S.Character('floating-alt', {name='Fern'})
+local epoch = 1794000000
+local function save(kind, ts, values)
+    values.session = 'floating-session'; values.groupState = 'solo'
+    return S.Add(c, kind, epoch + ts, values)
+end
+local function receipt(ts, kind, id, n, extra)
+    local data = {itemID=id, title='Item '..id, recipient=c.id, quantity=n}
+    for k, v in pairs(extra or {}) do data[k] = v end
+    return save(kind, ts, data)
+end
+local function reward(ts, id, n)
+    return save('quest_reward', ts, {itemID=id, quantity=n, questID=109, observerGroupState='solo',
+        rewardType='item', sourceEvent='QUEST_LOOT_RECEIVED'})
+end
+local function check(report, key, id, n, inferred)
+    for _, row in ipairs(report.rows) do
+        if row.group.key == key and row.item.id == id then
+            assert(row.item.quantity == n, 'unexpected quantity for '..key)
+            assert((row.item.inferred == true) == (inferred == true), 'unexpected certainty for '..key)
+            return
+        end
+    end
+    error('missing '..key..'/'..id)
+end
+assert(not F.Preferences(c).enabled and F.Preferences(c).minutes == 30)
+assert(F.SetMinutes(c, '1') and not F.SetMinutes(c, '2.5') and not F.SetMinutes(c, 1441))
+assert(F.Preferences(alt).minutes == 30 and F.Preferences(c).minutes == 1)
+receipt(940,'loot',18,12) -- outside the half-open rolling window at 1000
+receipt(943,'loot',20,3,{npcID=31,npcName='Gnoll'})
+receipt(948,'loot',20,4,{npcID=31,npcName='Gnoll'})
+receipt(949,'loot',20,10,{recipient='someone else'})
+receipt(950,'crafted',25,3,{profession='Tailoring'})
+local gathered = receipt(951,'gathered',42,2,{profession='Mining',gathering={state='inferred'}})
+receipt(961,'loot',11,2); reward(962,11,2); reward(963,10,3)
+-- More than one notice can match. It cannot establish the quest source.
+receipt(970,'loot',12,1); reward(970,12,1); reward(971,12,1)
+-- Likewise one notice cannot be used to classify two independent receipts.
+receipt(980,'loot',13,1); receipt(981,'loot',13,1); reward(980,13,1)
+local window = save('loot_window', 990, {fishing=false, fromItem=false, mapID=1429, originEvidence=1})
+local drop = save('drop', 990, {source='loot_window', window=window.id, itemID=9, slot=1, snapshots={}})
+drop.snapshots[1] = {ts=epoch + 990,sequence=S.ReserveObservation(c),data={itemID=9,visibleQuantity=2,
+    slotSources={{kind='Creature',guid='Creature-0-1-2-3-32-0001',npcID=32,name='Bandit',quantity=2}}}}
+S.Changed(c,drop)
+receipt(991,'loot',9,2,{observedLootWindow=window.id,source='unknown',mapID=1429})
+local result = F.Build(c,epoch + 1000,1)
+check(result,'mob/31',20,7); check(result,'crafted/Tailoring',25,3); check(result,'gathered/Mining',42,2,true)
+check(result,'quest/109',11,2,true); check(result,'unknown',12,1); check(result,'unknown',13,2)
+check(result,'mob/32',9,2)
+assert(#result.rows == 7 and result.expires == epoch + 1003)
+check(F.Build(c,epoch + 1003,1),'mob/31',20,4)
+assert(#F.Build(c,epoch + 1051,1).rows == 0 and #F.Build(alt,epoch + 1000,1).rows == 0)
+
+local prev, now, ready = E.current, A.Now, E.RecorderReady
+E.current, A.Now, E.RecorderReady = c, function()return epoch + 1000 end, function()return true end
+assert(F.SetEnabled(c,true) and V.frame:IsShown())
+local function pump()
+    for i=1,150 do
+        E.Query.ProcessPreparation(500)
+        V.frame.scripts.OnUpdate(V.frame, .3)
+        E.Keepsakes.Process(500)
+    end
+end
+pump()
+assert(V.frame.rows[1].name:GetText() ~= '' and V.frame.rows[1].icon.itemID == 9)
+assert(V.frame.next:IsShown()); V.frame.next:Click()
+assert(V.frame.rows[1].icon.itemID == 20 and not V.frame.rows[2]:IsShown())
+-- Idle views do no history work. Corrections and time expiry refresh the
+-- existing frame without a new login or reopening the scrapbook.
+local oldBuild, builds = F.Build, 0
+F.Build = function(...) builds = builds + 1; return oldBuild(...) end
+pump(); assert(builds == 0)
+gathered.kind, gathered.gathering, gathered.profession = 'loot', nil, nil
+S.Changed(c,gathered)
+pump(); assert(builds == 1)
+check(F.Build(c,epoch + 1000,1),'unknown',42,2)
+E.RecorderReady = function()return false end
+V.frame.scripts.OnUpdate(V.frame,.3); assert(not V.frame.rows[1]:IsShown())
+E.RecorderReady = function()return true end
+pump(); assert(V.frame.rows[1]:IsShown())
+A.Now = function()return epoch + 1051 end
+pump(); assert(V.frame.empty:IsShown() and not V.frame.rows[1]:IsShown())
+F.Build = oldBuild
+E.current = alt; V.Sync(alt)
+assert(not V.frame:IsShown() and not F.Preferences(alt).enabled)
+E.current = c; V.Sync(c); V.frame.close:Click()
+assert(not F.Preferences(c).enabled and not V.frame:IsShown())
+E.current, A.Now, E.RecorderReady = prev, now, ready
+
+-- A late load of Blizzard Settings registers the same entry exactly once.
+local oldSettings, oldPanel, oldHide = Settings, SettingsPanel, HideUIPanel
+local panel, registrations, dismissed = nil, 0, 0
+Settings = {
+    RegisterCanvasLayoutCategory=function(p, name) assert(name=='My Epoch'); panel=p; return p end,
+    RegisterAddOnCategory=function(p) assert(p==panel); registrations=registrations+1 end,
+}
+SettingsPanel = CreateFrame('Frame')
+SettingsPanel:Show()
+HideUIPanel = function(p) assert(p==SettingsPanel); dismissed=dismissed+1; p:Hide() end
+local event = E.frame:GetScript('OnEvent')
+event(E.frame,'ADDON_LOADED','Blizzard_Settings_Shared')
+event(E.frame,'ADDON_LOADED','Blizzard_Settings')
+assert(registrations==1 and panel)
+local button=panel:GetChildren()
+local oldReady = E.RecorderReady
+E.RecorderReady = function() return false end
+button:Click()
+assert(dismissed==0)
+E.RecorderReady = function() return true end
+button:Click()
+assert(dismissed==1 and E.Book.chapter=='Loot' and E.Book.lootMode=='floating' and E.Book.Character()==E.current)
+Settings, SettingsPanel, HideUIPanel, E.RecorderReady = oldSettings, oldPanel, oldHide, oldReady
+print('PASS floating loot: rolling personal sources, live updates, character switching and native settings')

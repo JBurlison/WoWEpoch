@@ -1,6 +1,7 @@
 local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
+    ["{skill} {rank}"]="{skill} {rank}",
     ["Item {id}"]="아이템 {id}",
     ["Quest {id}"]="퀘스트 {id}",
     ["Map {id}"]="지도 {id}",

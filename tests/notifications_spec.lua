@@ -89,9 +89,22 @@ B.Render=render;N.Configure=configured
 N.Preview(c);assert(E.NotificationView.toast:IsShown()and N.Current().remaining==6)
 assert(E.NotificationView.toast:GetWidth()==370 and E.NotificationView.toast:GetHeight()>=106)
 assert(E.NotificationView.toast.open:GetWidth()==185 and E.NotificationView.toast.open:GetHeight()==26)
+local toast=E.NotificationView.toast
+N.Tick(5.25);assert(toast:GetAlpha()==.75,'Fade over the last second of the existing lifetime')
+N.Hover(true);N.Tick(20)
+assert(toast:GetAlpha()==1 and N.Current().remaining==.75,'Hover restores legibility and pauses the countdown')
+N.Hover(false);N.Tick(.25);assert(math.abs(toast:GetAlpha()-2/3)<.001,'Fade resumes smoothly from full opacity')
+N.Tick(.5);assert(not toast:IsShown())
+N.Preview(c);assert(toast:GetAlpha()==1,'The next toast starts fully opaque')
 N.Close();assert(not E.NotificationView.toast:IsShown())
 N.Stop();assert(N.Preview(c));N.Tick(1)
 assert(N.Current() and N.Current().remaining==5,'Settings preview survives paused recording')
 E.current=other;N.Tick(1);assert(not N.Current(),'Preview cannot follow a different character')
 E.current=oldCurrent;UnitAffectingCombat=oldCombat
+local rank={kind='milestone',major=true,milestoneType='profession',title='Cooking: 74 -> 75',skillName='Cooking',before=74,after=75,thresholds={75}}
+assert(E.Display.RecordTitle(rank)==E.Format('{skill} {rank}',{skill='Cooking',rank=75}))
+assert(rank.before==74 and rank.title=='Cooking: 74 -> 75','Old snapshot and original title are preserved')
+rank.milestoneType='skill';rank.skillName='Swords';rank.thresholds={25,50};rank.before=24;rank.after=51
+assert(E.Display.RecordTitle(rank)==E.Format('{skill} {rank}',{skill='Swords',rank=50}))
+assert(E.Display.RecordTitle({kind='milestone',milestoneType='level',before=12,after=13})==E.Format('Level {level}',{level=13}))
 print('PASS notifications readiness, combat batches, switches, corrections, delivery dedup and UI')

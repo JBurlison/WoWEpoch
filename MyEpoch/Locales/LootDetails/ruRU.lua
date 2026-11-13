@@ -1,6 +1,16 @@
 local _,E=...
 if E.locale~="ruRU" then return end
 E.Localize({
+    ["Floating loot"]="Окно добычи",
+    ["Show floating loot"]="Показать окно добычи",
+    ["Hide floating loot"]="Скрыть окно добычи",
+    ["Last {minutes} min"]="За {minutes} мин.",
+    ["Time window in minutes (1–1440)"]="Период в минутах (1–1440)",
+    ["Enter a whole number from 1 to 1440."]="Введите целое число от 1 до 1440.",
+    ["Your loot, grouped by where it came from."]="Ваша добыча с разбивкой по источникам.",
+    ["No personal loot in this time window."]="За это время вы не получили добычи.",
+    ["Drag the title to move the window."]="Чтобы переместить окно, потяните его за заголовок.",
+    ["Preparing recent loot…"]="Собираем записи о недавней добыче…",
     ["A matching clear within two seconds was not observed."]="В пределах двух секунд не замечено соответствующего очищения.",
     ["A matching start was not recorded."]="Соответствующее начало не записано.",
     ["A new encounter start arrived before an end was observed; the earlier outcome is unknown."]="Новый бой начался до записи окончания предыдущего; его исход неизвестен.",

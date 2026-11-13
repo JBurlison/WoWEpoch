@@ -244,7 +244,9 @@ function C.Skills(baseline)
             -- skill points still record their before/after ranks.
             if #crossed>0 and not captured then snapshot=E.MilestoneSnapshot and E.MilestoneSnapshot.Capture(c);captured=true end
             if not skillOwner(c,session) then return end
-            local details=location({title=(info.name or "Skill")..": "..previous.rank.." -> "..info.rank,
+            local title=(info.name or "Skill")..": "..previous.rank.." -> "..info.rank
+            if #crossed>0 then title=(info.name or "Skill").." "..crossed[#crossed] end
+            local details=location({title=title,
                 skillID=info.skillID,skillName=info.name,subject=c.id,milestoneType=kind,major=#crossed>0,thresholds=crossed,
                 before=previous.rank,after=info.rank,characterSnapshot=#crossed>0 and snapshot or nil,weaponReading=reading,coverage="rank change observed; exact intermediate times unknown"})
             if not skillOwner(c,session) then return end
@@ -552,7 +554,7 @@ C.handlers={
         local before=E.current.state.level; E.current.state.level=level; E.current.identity.level=level
         levelEvent={owner=E.current,session=C.session,level=level}
         recordQuestLevel(E.current,level)
-        C.Milestone("level","Character level "..tostring(before or "?").." -> "..level,A.Now(),{before=before,after=level,faction=A.Faction("player")},"level:"..level)
+        C.Milestone("level","Level "..level,A.Now(),{before=before,after=level,faction=A.Faction("player")},"level:"..level)
     end,
     PLAYER_DEAD=function()
         C.Roster()

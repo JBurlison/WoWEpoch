@@ -51,10 +51,14 @@ local kinds={quest='Quest',quest_attempt='Quest attempt',objective='Quest object
 kinds.chapter='Adventure chapter';kinds.goal='Wish';kinds.personal_record='Personal record'
 function D.Kind(kind)return E.L[kinds[kind]or kind or 'Unknown']end
 function D.MilestoneTitle(r)
-    if E.locale=='enUS'then return r.title end
     local kind=r.milestoneType
     if kind=='level'and r.after then
-        return E.Format('Character level {before} → {after}',{before=r.before or '?',after=r.after})
+        return E.Format('Level {level}',{level=r.after})
+    elseif (kind=='skill'or kind=='profession')and r.major and r.after then
+        local crossed=r.thresholds
+        local rank=type(crossed)=='table'and crossed[#crossed]or r.after
+        return E.Format('{skill} {rank}',{skill=D.Skill(r.skillID,r.skillName),rank=rank})
+    elseif E.locale=='enUS'then return r.title
     elseif kind=='discovery'and(r.mapID or r.zone)then
         return E.Format('First recorded visit: {place}',{place=D.Zone(r)})
     elseif (kind=='skill'or kind=='profession')and r.after then
