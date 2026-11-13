@@ -1,6 +1,19 @@
 local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
+    ["Open settings"]="설정 열기",
+    ["Loot time window"]="전리품 표시 기간",
+    ["Last 24 hours"]="최근 24시간",
+    ["Floating loot"]="전리품 창",
+    ["Show floating loot"]="전리품 창 표시",
+    ["Hide floating loot"]="전리품 창 숨기기",
+    ["Last {minutes} min"]="최근 {minutes}분",
+    ["Time window in minutes (1–1440)"]="표시 기간(1~1440분)",
+    ["Enter a whole number from 1 to 1440."]="1부터 1440까지의 정수를 입력하세요.",
+    ["Your loot, grouped by where it came from."]="내가 얻은 전리품을 어디서 얻었는지에 따라 모아 봅니다.",
+    ["No personal loot in this time window."]="이 기간에 획득한 전리품이 없습니다.",
+    ["Drag the title to move the window."]="제목 표시줄을 끌어 창을 옮기세요.",
+    ["Preparing recent loot…"]="최근 전리품을 모으는 중…",
     ["A matching clear within two seconds was not observed."]="2초 이내에 일치하는 칸 비우기가 관찰되지 않았어요.",
     ["A matching start was not recorded."]="일치하는 시작 기록이 없어요.",
     ["A new encounter start arrived before an end was observed; the earlier outcome is unknown."]="이전 전투의 종료를 확인하기 전에 새 전투가 시작되어 이전 결과를 알 수 없어요.",

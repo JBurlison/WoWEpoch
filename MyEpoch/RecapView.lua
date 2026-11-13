@@ -109,11 +109,9 @@ local function stamp(ts,value)
 end
 function V.Heading(r)
     if r.periodKind=="milestone" then
-        if E.locale~='enUS'then
-            local id=r.key and r.key:match('^milestone:(.+)$')
-            local c=B.Character();local source=id and c and c.records[id]
-            if source then return E.Display.RecordTitle(source)end
-        end
+        local id=r.key and r.key:match('^milestone:(.+)$')
+        local c=B.Character();local source=id and c and c.records[id]
+        if source then return E.Display.RecordTitle(source)end
         return (r.title or E.L["Milestone journey"]):gsub(" %- the journey$","")
     end
     local from=r.startStamp and A.ParseDay(r.startStamp.day) or r.from

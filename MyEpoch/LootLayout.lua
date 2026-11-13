@@ -329,10 +329,15 @@ function V.Render(left,right)
     local mode=B.lootMode or "receipts"
     title(left,E.L["CHAPTER VI  -  THE SPOILS OF THE ROAD"],mode=="mob_rates" and E.L["Mobs and their treasures"] or mode=="receipts" and E.L["Every little treasure"] or mode=="drops" and E.L["A glimpse of treasure"] or mode=="encounter_loot" and E.L["Encounter loot notices"] or mode=="quest_rewards" and E.L["Quest rewards"] or E.L["At the workbench"])
     B.Text(left,mode=="mob_rates" and E.L["Your observed item drops and recorded kills."] or mode=="receipts" and E.L["Loot, crafted items and gathered materials, recorded once."] or mode=="drops" and E.L["What the client let you observe, with uncertainty preserved."] or mode=="encounter_loot" and E.L["Encounter loot notifications seen by this character."] or mode=="quest_rewards" and E.L["Item and currency notifications from quests."] or E.L["Recorded gathering actions, recipe starts and crafting results."],15)
-    local choices={}; for _,p in ipairs({{"receipts",E.L["Item receipts"]},{"stories",E.L["Item story"]},{"quest_rewards",E.L["Quest rewards"]},{"crafting",E.L["Craft / gather log"]},{"drops",E.L["Observed drops"]},{"mob_rates",E.L["Mob drop rates"]},{"encounter_loot",E.L["Encounter loot notices"]}})do local key=p[1]
+    local choices={}; for _,p in ipairs({{"receipts",E.L["Item receipts"]},{"floating",E.L["Floating loot"]},{"stories",E.L["Item story"]},{"quest_rewards",E.L["Quest rewards"]},{"crafting",E.L["Craft / gather log"]},{"drops",E.L["Observed drops"]},{"mob_rates",E.L["Mob drop rates"]},{"encounter_loot",E.L["Encounter loot notices"]}})do local key=p[1]
         choices[#choices+1]={p[2],function()B.lootMode=key; B.selected=nil; B.Render(true)end,mode==key}
     end; B.Navigation.Subviews(choices)
-    if mode=='stories'then B.Clear(left);E.ItemStoryView.Render(left,right,B.Character())
+    if mode=='floating'then
+        B.Clear(left)
+        title(left,E.L["CHAPTER VI  -  THE SPOILS OF THE ROAD"],E.L["Floating loot"])
+        B.Text(left,E.L["Your loot, grouped by where it came from."],15)
+        E.FloatingLootView.Settings(left,right,B.Character())
+    elseif mode=='stories'then B.Clear(left);E.ItemStoryView.Render(left,right,B.Character())
     elseif mode=="mob_rates" then E.MobDropView.Render(left,right)
     elseif mode=="encounter_loot" then
         E.EncounterLoot.List(left,B.Character())

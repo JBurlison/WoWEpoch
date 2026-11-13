@@ -1,6 +1,19 @@
 local _,E=...
 if E.locale~="zhCN" then return end
 E.Localize({
+    ["Open settings"]="打开设置",
+    ["Loot time window"]="战利品显示时段",
+    ["Last 24 hours"]="最近 24 小时",
+    ["Floating loot"]="战利品浮窗",
+    ["Show floating loot"]="显示战利品浮窗",
+    ["Hide floating loot"]="隐藏战利品浮窗",
+    ["Last {minutes} min"]="最近 {minutes} 分钟",
+    ["Time window in minutes (1–1440)"]="显示时长（1 至 1440 分钟）",
+    ["Enter a whole number from 1 to 1440."]="请输入 1 至 1440 之间的整数。",
+    ["Your loot, grouped by where it came from."]="按来源查看你获得的战利品。",
+    ["No personal loot in this time window."]="这段时间没有收到战利品。",
+    ["Drag the title to move the window."]="拖动标题栏即可移动窗口。",
+    ["Preparing recent loot…"]="正在整理最近的战利品…",
     ["A matching clear within two seconds was not observed."]="两秒内未观察到匹配的格位清空。",
     ["A matching start was not recorded."]="未记录到对应的开始。",
     ["A new encounter start arrived before an end was observed; the earlier outcome is unknown."]="尚未观察到结束就收到了新首领战的开始通知；上一场结果未知。",

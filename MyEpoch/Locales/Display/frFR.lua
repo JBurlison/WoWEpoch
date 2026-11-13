@@ -1,6 +1,7 @@
 local _,E=...
 if E.locale~="frFR" then return end
 E.Localize({
+    ["{skill} {rank}"]="{skill} · {rank}",
     ["Item {id}"]="Objet {id}",
     ["Quest {id}"]="Quête {id}",
     ["Map {id}"]="Carte {id}",

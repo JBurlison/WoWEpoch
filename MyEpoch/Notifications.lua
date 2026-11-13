@@ -140,7 +140,7 @@ end
 function N.SuspendDelivery(token)
     if token==nil then return false end
     if suspendedDelivery==token then return true end
-    suspendedDelivery=token
+    suspendedDelivery=token;hovered=false
     if active then active.suspended=true end
     if N.renderer then N.renderer(nil)end
     return true
@@ -190,8 +190,17 @@ function N.Goal(c,goal,memory,options)
 end
 function N.Current()return active end
 function N.Pending(c)return state(c)and #state(c).pending or 0 end
-function N.Hover(value)hovered=value==true end
+function N.Hover(value)
+    hovered=value==true
+    if hovered and active and active.remaining<1 then
+        active.fadeDuration=active.remaining
+        if N.setOpacity then N.setOpacity(1)end
+    end
+end
 function N.Close()clearActive()end
+function N.Opacity(batch)
+    return hovered and 1 or math.min(1,math.max(0,batch.remaining)/(batch.fadeDuration or 1))
+end
 function N.Caption(batch)
     if batch.preview then return E.L['A little moment worth remembering']end
     if #batch.entries==1 then
@@ -251,13 +260,14 @@ function N.Tick(elapsed)
     -- No chart/history scan here: at most the small pending notification queue.
     local combat=A.Call('notificationCombat',UnitAffectingCombat,'player')
     if combat~=false then
-        if active and not active.suspended then active.suspended=true;if N.renderer then N.renderer(nil)end end
+        if active and not active.suspended then active.suspended=true;hovered=false;if N.renderer then N.renderer(nil)end end
         quietFor=2;return
     end
     if active then
         if active.suspended then active.suspended=nil;if N.renderer then N.renderer(active)end end
         if not hovered then active.remaining=active.remaining-elapsed end
-        if active.remaining<=0 then clearActive()end
+        if active.remaining<=0 then clearActive()
+        elseif not hovered and active.remaining<1 and N.setOpacity then N.setOpacity(N.Opacity(active))end
         return
     end
     quietFor=math.max(0,quietFor-elapsed)

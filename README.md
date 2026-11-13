@@ -14,13 +14,13 @@ Each character has a separate journal. Switch between them with the character pi
 | **Calendar** | Select a day to read its full diary and add your own notes. Switch to Events to filter quests, loot, mobs defeated, groups, milestones, recaps, and more. Routine movement samples stay out of the event list. |
 | **Recaps** | Daily, weekly, monthly, yearly, and milestone summaries of recorded activity and progress. |
 | **Quests** | Completed quest history, recorded attempts, notes, and kill history. Confirmed objective credit is separate from kills recorded while a quest was active. |
-| **Company** | Group sessions, companions, shared activity, recorded conversations, and available pull damage details. Open a whisper or add a companion as a friend. |
-| **Loot** | Item receipts, observed group drops, crafting and gathering records, and filters for exploring your finds. Follow an **Item story** through recorded acquisitions, milestone appearances, sales, and transfers. Mob reports show observed drop rates, kill counts, and item quantities. |
+| **Company** | Revisit group sessions, conversations and pull damage. Save companions to **Favorites**, keep notes, and organize them with tags and named rosters. Open a roster to invite a player. |
+| **Loot** | Browse receipts, observed group drops, crafting and gathering. Follow an **Item story** or check a mob’s observed drop rates. Turn on **Floating loot** to see your own recent finds grouped by source while you play. |
 | **Gold** | A dated ledger of recorded income and spending, balance charts, merchant receipts, trades, mail, auctions, and trading-cost reports. |
 | **Memories** | Write a story, gather **Adventure chapters**, keep a **Wish list**, and rediscover earlier adventures with **On This Day**. Choose illustrations and attach screenshot references. Optional writing prompts help you find a starting point. |
 | **Journey** | Explore recorded locations on the map and follow their links back into the journal. Death markers are hidden by default. |
 | **Search** | Find records, conversations, and personal notes across the selected character’s scrapbook. Enter words and press Enter or Search; Clear removes the results. |
-| **Archive** | Adjust the book’s size, combat behavior, and notifications; review storage and choose how long each character’s history is kept. |
+| **Archive** | Review storage, preview what would expire, and confirm cleanup. Shortcuts open your preferences in WoW’s AddOns settings. |
 
 ## Installation
 
@@ -57,7 +57,7 @@ Click the **My Epoch minimap button** or type `/myepoch` to open the book. Recor
 - Choose **Write a memory** to add your own story, or add notes to an existing entry.
 - Milestone notes offer thirteen optional writing prompts. The menu scrolls with the mouse wheel or controller, and choosing a prompt leaves your writing untouched.
 - Use **Illustrations** to browse the artwork. You can set a location’s default or choose a different illustration for an individual memory or milestone.
-- Open **Archive** to adjust scale or enable combat auto-close. It is off by default; when enabled, the book reopens after combat if combat closed it.
+- Open **Settings → AddOns → My Epoch** (or type `/myepoch settings`) to adjust book scale or enable combat auto-close. It is off by default; when enabled, the book reopens after combat if combat closed it.
 
 The window fits most of your screen and keeps its size as you switch chapters. Drag its title bar to move it. You can also drag the minimap button around the minimap.
 
@@ -78,7 +78,7 @@ Assign **Focus My Epoch with controller** to open or refocus the book, or use `/
 | West face button | Inspect a focused item or model when offered. |
 | North face button | Move the book; confirm or go back to finish. |
 
-Prompts follow your controller. The default Confirm/Back buttons are **A/B** on Xbox, **Cross/Circle** on PlayStation, and **B/A** on Switch Pro. In **Archive → Book settings**, you can swap Confirm and Back, choose a prompt style, turn controller navigation off, or recenter the book. These preferences apply across characters. Mouse and keyboard remain available.
+Prompts follow your controller. The default Confirm/Back buttons are **A/B** on Xbox, **Cross/Circle** on PlayStation, and **B/A** on Switch Pro. Under **Settings → AddOns → My Epoch → Controller navigation**, you can swap Confirm and Back, choose a prompt style, or turn scrapbook navigation off. Select **Center book** on the main My Epoch settings page to reset its position. These preferences apply across characters. Mouse and keyboard remain available.
 
 Select a text field to open the controller keyboard. It includes caret movement, selection, copy/cut/paste within My Epoch, undo, punctuation, and multiline writing. Bumpers move the caret; the west face button deletes; the north face button changes case. Notes keep their normal autosave behavior. Fields with an explicit Submit action keep that action. Back first cancels any unfinished composition, then leaves the editor; it does not undo text already saved.
 
@@ -106,13 +106,19 @@ In **Memories → Wish list**, write a personal goal or track levels, skill rank
 
 Use **Share a wish list** to copy a share code for a friend. Notes are included unless you turn that option off. Your friend can choose **Bring in a friend’s wishes**, paste the code, and review it before importing. Imported wishes start fresh: your progress, character identity, and completion memories stay yours.
 
-**Chronicle → Personal records** quietly keeps your best recorded days and death-free stretches. Choose which categories to track in that view. Missing prices, costs, or recording time remain unknown. Item stories describe recorded appearances and transactions, without claiming that two identical items are the same physical copy.
+**Chronicle → Personal records** quietly keeps your best recorded days and death-free stretches. Choose the categories to track in **Settings → AddOns → My Epoch → Personal records**. Missing prices, costs, or recording time remain unknown. Item stories describe recorded appearances and transactions, without claiming that two identical items are the same physical copy.
 
-Major milestones, completed wishes, and newly available recaps can show a small parchment notification. Notifications wait until combat ends and never open the book by themselves. **Archive → Notifications** has an account-wide off switch, category controls, optional character overrides, sound, and position settings. Turning notifications off does not stop recording or remove unread indicators.
+Major milestones, completed wishes, and newly available recaps can show a small parchment notification. Notifications wait until combat ends and never open the book by themselves. Under **Settings → AddOns → My Epoch**, the two **Notifications** pages let you set account defaults or override them for an individual character. You can turn notifications off, choose categories, adjust sound, or change their position. Turning notifications off does not stop recording or remove unread indicators.
 
-A major milestone and its written recap share one notification. For example, leveling up alerts you once; finishing or retelling that level's recap does not alert you again. Existing duplicate notification state is reconciled automatically, preserving your saved history and notes. Daily, weekly, monthly, and yearly recaps keep their own notifications.
+A major milestone and its written recap share one notification. A level or skill milestone shows the rank you reached, such as **Cooking 75**. The toast fades during its final second. Hover over it to keep it on screen while you read. Daily, weekly, monthly, and yearly recaps have their own notifications.
 
-Open the game's **Edit Mode** to move the **My Epoch notifications** area, or select **Move notifications in Edit Mode** in Archive. Drag the area or use its direction buttons, then choose **Apply position**. **Reset position** previews the default location; Apply saves it. **Cancel position** or leaving Edit Mode discards unapplied changes. The position follows account defaults unless this character uses an override. During positioning, queued notifications and the current toast's remaining time are preserved. Controller users can also use the existing Left/Right/Up/Down position controls in Archive; native Edit Mode keeps ownership of controller input.
+Under **Settings → AddOns → My Epoch**, enable **Show floating loot** to keep recent finds visible with the book closed. With a controller, highlight **My Epoch** and press **D-pad Right** to enter its settings. The tracker looks back **24 hours** by default; an existing saved duration is kept. Choose a preset or use the minutes slider for any duration from 1 to 1,440 minutes. Drag the tracker title to move it. The **Settings for character** selector lets you adjust a different journal without switching your active tracker.
+
+Click a mob or source name to fold or unfold its loot. The header counts every item you received from that source during the selected period. Underneath, each item has one icon with its total quantity. Hover over an icon for its item tooltip. Each character remembers which sources you folded.
+
+Under **Company → Companions**, open a player and choose **Add to favorites**. In **Company → Favorites**, give companions a shared tag such as *Raid* and assign them to rosters such as *Raid 1* or *Raid 2*. Choose a roster, select a player, and click **Invite** beside their name to send that player an invitation.
+
+Open the game's **Edit Mode** to move the **My Epoch notifications** area, or select **Move notifications in Edit Mode** in My Epoch’s notification settings. Drag the area or use its direction buttons, then choose **Apply position**. **Reset position** previews the default location; Apply saves it. **Cancel position** or leaving Edit Mode discards unapplied changes. The position follows account defaults unless this character uses an override. During positioning, queued notifications and the current toast's remaining time are preserved. Controller users can also use the position sliders in WoW’s AddOns settings; native Edit Mode keeps ownership of controller input.
 
 ## Capturing a moment
 
@@ -134,7 +140,7 @@ Gold and item-value reports distinguish actual money changes from estimated item
 
 ## Keeping your memories
 
-History is kept **forever by default**. In **Archive**, you can set retention rules separately for each character and category. Starred memories and their linked source records are protected from routine cleanup.
+History is kept **forever by default**. In **Settings → AddOns → My Epoch → How long to remember**, you can set retention rules separately for each character and category. Open **Archive** in the scrapbook to review affected entries and confirm manual cleanup. Starred memories and their linked source records are protected from routine cleanup.
 
 To keep the journal light, a full character snapshot (gear, stats, and skills) is saved with level-ups and other major milestones, including every 25 weapon or 75 profession skill points. Single skill points still record their old and new ranks. Older ordinary fights keep their sources and damage totals; the per-spell breakdown stays for boss encounters, starred or noted fights, fights linked to a memory, and your 50 most recent fights.
 
@@ -155,6 +161,7 @@ Wallet recording pauses during logout and world transitions, when the client may
 | Command | Action |
 | --- | --- |
 | `/myepoch` or `/epoch` | Open or close the scrapbook. |
+| `/myepoch settings` | Open My Epoch in WoW’s AddOns settings. |
 | `/myepoch focus` | Open or refocus the book for controller navigation. |
 | `/myepoch controller` | Report controller detection, focus, and input-capture status. |
 | `/myepoch close` | Close the book and cancel a pending automatic reopen after combat. |

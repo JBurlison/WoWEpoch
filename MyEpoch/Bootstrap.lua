@@ -10,6 +10,7 @@ local function resumeKeepsakes(c,now)
     E.Notifications.Start(c)
     E.Wishes.Recover(c)
     E.Chapters.Ensure(c)
+    E.FloatingLootView.Sync(c)
 end
 local function bindVerifiedOwner(identity)
     local old=E.current
@@ -62,6 +63,10 @@ local function reconcileRecordingOwner()
         report(E.failure)
     elseif bound then
         E.recordingMismatch=nil
+        if E.AddonSettings.registered and SettingsPanel and SettingsPanel:IsShown() then
+            E.AddonSettings:Character()
+            E.AddonSettings:Refresh()
+        end
         report("Now recording "..identity.name.."'s scrapbook.")
     end
 end
@@ -152,6 +157,7 @@ frame:SetScript("OnEvent",function(_,event,...)
     end
     if event=="ADDON_LOADED" then
         if (...)~=name then
+            if (...)=="Blizzard_Settings_Shared" or (...)=="Blizzard_Settings" then E.AddonSettings.Register()end
             if E.current then E.Production.InstallHooks();E.Auctions.InstallHooks() end
             if (...)=='QuestieDB' and E.current then E.QuestieBridge.Start() end
             return
@@ -166,6 +172,7 @@ frame:SetScript("OnEvent",function(_,event,...)
             return
         end
         MyEpochDB=db
+        E.AddonSettings.Register()
         E.MilestoneSnapshot.StartSharing()
         E.Pulls.StartTrim()
         E.Minimap.Start()
@@ -190,6 +197,7 @@ frame:SetScript("OnEvent",function(_,event,...)
             elseif command=="trades" then report(E.Trades.Diagnose())
             elseif command=="mail" then report(E.Mail.Diagnose())
             elseif command=="catalog" then E.QuestieBridge.Start();report(E.QuestieBridge.status)
+            elseif command=="settings" then E.AddonSettings.Open("general")
             elseif command=="focus" then MyEpoch_Focus()
             elseif command=="controller" then if E.Controller then for _,line in ipairs(E.Controller.Diagnose())do report(line)end end
             elseif command=="minimap show" then E.Minimap.SetShown(true);report("Minimap button shown.")
@@ -200,6 +208,7 @@ frame:SetScript("OnEvent",function(_,event,...)
             else E.Book.Toggle() end
         end
     elseif event=="PLAYER_LOGIN" then
+        E.AddonSettings.Register()
         E.Minimap.Start()
         E.Book.SyncCombat()
         if E.db and E.Collectors.Start() then E.Capture.Recover(E.current); resumeKeepsakes(E.current,E.API.Now()); E.JournalJobs.Login(E.current,E.API.Now()); report("Your journal is recording. Open it with /myepoch.") elseif E.failure then report(E.failure) end

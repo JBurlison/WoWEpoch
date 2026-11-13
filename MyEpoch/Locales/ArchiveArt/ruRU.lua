@@ -1,6 +1,16 @@
 local _,E=...
 if E.locale~="ruRU" then return end
 E.Localize({
+    ["Book scale"]="Масштаб дневника",
+    ["Show minimap button"]="Показывать кнопку у мини-карты",
+    ["Writing prompts"]="Подсказки для записей",
+    ["Settings for character"]="Настройки персонажа",
+    ["Controller navigation is turned off in Settings."]="Навигация с помощью геймпада отключена в настройках.",
+    ["Retention settings"]="Сроки хранения записей",
+    ["Notification settings"]="Настройки уведомлений",
+    ["Custom days…"]="Указать число дней…",
+    ["Horizontal position"]="Положение по горизонтали",
+    ["Vertical position"]="Положение по вертикали",
     ["Previous page"]="Предыдущая страница",
     ["Next page"]="Следующая страница",
     ["Retention for this character only"]="Срок хранения для этого персонажа",

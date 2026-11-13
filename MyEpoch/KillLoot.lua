@@ -127,7 +127,7 @@ local function choose(rows,work)
 end
 -- This is a separate association projection. Its private inferred source overlay
 -- is never saved or passed to the exact-only mob-drop statistics interface.
-function L.Build(c,work)
+function L.Build(c,work,sourceRecords)
  work=work or function()end;local out=empty();if not K.Owned(c)then return out end
  local records,windows,drops,receipts,byGUID,gaps={},{},{},{},{},{}
  local function edge(a,b)
@@ -135,7 +135,7 @@ function L.Build(c,work)
   local aa=out.evidence[a]or{};out.evidence[a]=aa;aa[b]=true
   local bb=out.evidence[b]or{};out.evidence[b]=bb;bb[a]=true
  end
- for id,r in pairs(c.records)do work()
+ for id,r in pairs(sourceRecords or c.records)do work()
   if owned(c,r)and r.id==id then
    records[id]=r
    if r.kind=='loot_window'then windows[id]={window=r,drops={},receipts={},items={},candidates={},encounters={},last=r.ts}

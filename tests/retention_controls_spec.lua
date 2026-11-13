@@ -44,7 +44,7 @@ assert(R.Apply(c,review.preview));assert(c.notes['day:2026-01-02'].text=='Edited
 policy('chat',nil);assert(c.retention.chat==nil and not c.records[chat.id],'Forever does not restore deleted history')
 -- Configurations survive SavedVariables-shaped copies without leaking into another character.
 local copy=E.Copy(c);assert(copy.retention.recaps==30 and next(other.retention)==nil)
--- Native controls preserve per-character drafts and offer an explicit review before removal.
+-- The scrapbook retains the explicit review and cleanup actions.
 B.ChangeCharacter(c.id);B.SetChapter('Archive');B.archiveCategory='chat';B.Render(true)
 local function settle()while R.reviewWorker do R.StepReview(1000)end;B.Render()end
 settle()
@@ -56,14 +56,12 @@ local function click(page,label)
  for i=1,page.used.archiveControl or 0 do local f=page.pool.archiveControl[i];if f.text:GetText()==label then f:Click();return end end
  return TEST_UI_CLICK(label)
 end
-click(B.right,'7 days');settle();assert(c.retention.chat==7 and other.retention.chat==nil)
-local edit=B.right.pool.edit[1];edit:SetText('bad');edit.scripts.OnEnterPressed(edit);assert(c.retention.chat==7)
-edit=B.right.pool.edit[1];edit:SetText('45');edit.scripts.OnTextChanged(edit,true)
-B.ChangeCharacter(other.id);assert(not B.archivePolicyDrafts or not B.archivePolicyDrafts.chat)
-settle()
-B.ChangeCharacter(c.id);assert(B.archivePolicyDrafts.chat=='45')
-settle()
-edit=B.right.pool.edit[1];edit.scripts.OnEnterPressed(edit);settle();assert(c.retention.chat==45)
+local originalOpen=E.AddonSettings.Open
+local owner
+E.AddonSettings.Open=function(category,who)assert(category=='retention');owner=who end
+B.frame:Show();click(B.left,'Retention settings');assert(owner==c)
+E.AddonSettings.Open=originalOpen
+policy('chat',45);settle()
 local doomed=S.Add(c,'chat',old,{text='Review me'})
 click(B.left,'Review cleanup');click(B.right,'Cancel review');assert(c.records[doomed.id])
 assert(not R.reviewWorker,'cancel stops an unfinished review')
@@ -83,7 +81,18 @@ B.inCombat=true;R.Tick(30);assert(c.records[nextRecord.id]);B.inCombat=false
 UnitAffectingCombat=function()return nil end;R.Tick(30);assert(c.records[nextRecord.id])
 UnitAffectingCombat=function()error('unavailable')end;R.Tick(30);assert(c.records[nextRecord.id])
 UnitAffectingCombat=function()return false end;B.frame:Show();R.Tick(30);assert(c.records[nextRecord.id]);B.frame:Hide()
-R.Tick(30);assert(c.records[nextRecord.id]and R.cleanupWorker)
+local originalPanel=SettingsPanel
+local settingsShown=true
+SettingsPanel={IsShown=function()return settingsShown end}
+R.Tick(30);assert(c.records[nextRecord.id] and not R.cleanupWorker)
+settingsShown=false
+R.Tick(30);assert(c.records[nextRecord.id] and R.cleanupWorker)
+settingsShown=true
+while R.cleanupWorker do R.StepCleanup(500)end
+assert(c.records[nextRecord.id], 'opening WoW Settings before commit defers automatic cleanup')
+settingsShown=false
+R.Tick(30);assert(R.cleanupWorker)
+SettingsPanel=originalPanel
 while R.cleanupWorker do R.StepCleanup(500)end
 assert(not c.records[nextRecord.id] and other.records[otherRecord.id]);assert(c.state.retentionLastDay==A.Day(now))
 local late=S.Add(c,'chat',old,{text='Wait until the next local day'});R.Tick(30);assert(c.records[late.id])
@@ -92,4 +101,4 @@ TEST_NOW(now+86400);R.Tick(30);while R.cleanupWorker do R.StepCleanup(500)end;as
 assert(R.SetAutomatic(c,false));local stop=S.Add(c,'chat',old,{text='Opted out'});TEST_NOW(now+2*86400);R.Tick(30);assert(c.records[stop.id])
 E.current=saved.current;B.inCombat=saved.combat;UnitAffectingCombat=saved.unit;if saved.shown then B.frame:Show()end
 TEST_NOW(now)
-print('PASS retention controls: separate character/category/note policies, strict validation, legacy notes, last-edit age, stars, stale/tampered review, deliberate cleanup, draft isolation, opt-in daily scheduler and combat/visibility/clock deferral')
+print('PASS retention controls: per-character policies, strict validation, legacy notes, last-edit age, stars, stale reviews, deliberate cleanup, opt-in daily scheduler and combat/book/Settings/clock deferral')

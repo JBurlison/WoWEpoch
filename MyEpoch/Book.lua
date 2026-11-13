@@ -17,7 +17,7 @@ local viewFields={"chapter","page","selected","lastDetail","day","search","killM
     "questReasonPage","questSourcePage","questMapPage","questProviderPage","questCompletedAttemptPage","questCompletedSeriesPage","lootMode","productionPreset","productionFrom","productionThrough",
     "productionQuery","productionFilter","productionPage","productionError","productionResourcePage","productionRecipePage","productionRelatedPage","productionCostPage",
     "dropPreset","dropFrom","dropThrough","dropDimension","dropSource","dropQuery","dropPage","dropListPage","dropBucket","dropError","dropRelatedPage","dropRollPage","dropSnapshotPage",
-    "archiveSettingsOpen","archiveTab","archiveSizePage","archiveStatusPage","archiveCategoryPage","archiveCategory","archiveProtected","archiveRecordPage","archiveMessage","archivePolicyDrafts",
+    "archiveTab","archiveSizePage","archiveStatusPage","archiveCategoryPage","archiveCategory","archiveProtected","archiveRecordPage","archiveMessage",
     "goldSection","inventoryQuery","inventoryPage","inventoryDetailPage","inventoryLocationPage","inventoryHelp","fifoPage","stockQuery","stockPage","stockItem","stockLotPage","stockHelp",
     "artMemoryID","artMemoryCharacter","memoryArtQuery","memoryArtPage","memoryArtPreview","artChooser","artType","artQuery","artCatalogQuery","artLocationPage","artLocation","artCollection","artPreview","artPage","artError",
     "calendarFilter","calendarPage","calendarDiaryOpen","calendarLegendOpen","calendarError",

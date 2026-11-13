@@ -277,9 +277,138 @@ function L.HighlightRecord(page,r)
         B.chapter="Company";B.companyMode="sessions";B.selected=r.group;B.companySessionFocus=r.group;B.groupTab="highlights";B.Render(true)
     end);page.y=y+46
 end
+
+local F=E.CompanyFavorites
+local favoriteViews=setmetatable({}, {__mode="k"})
+local function favoriteView(c)
+    if not favoriteViews[c] then favoriteViews[c]={} end
+    return favoriteViews[c]
+end
+local function openFavorite(c,id)
+    local view=favoriteView(c)
+    view.roster,view.tag,view.editRoster,view.message=nil,nil,nil,nil
+    view.person=id
+    B.companyMode="favorites";B.companyPage=1;B.selected=nil
+    detail()
+end
+local function favoriteFilter(page,labels,allLabel,selected,choose)
+    local options={{E.L[allLabel],function()choose(nil)end,selected==nil}}
+    for _,key in ipairs(E.SortedKeys(labels))do
+        local value=key
+        options[#options+1]={labels[key],function()choose(value)end,value==selected}
+    end
+    if #options>1 then B.Navigation.Grid(page,options,1)end
+end
+local function rosterEditor(page,c,view,active)
+    local key=view.editRoster
+    local names=F.RosterNames(c)
+    if key and key~="" and not names[key]then view.editRoster=nil;key=nil end
+    if key==nil then
+        B.Action(page,E.L["New roster"],function()
+            if active()then view.editRoster="";view.message=nil;B.Render()end
+        end)
+        if view.roster then B.Action(page,E.L["Edit roster"],function()
+            if active()then view.editRoster=view.roster;view.message=nil;B.Render()end
+        end)end
+        return
+    end
+    B.Text(page,E.L["Roster name (Enter to save)"],14)
+    local edit=B.Input(page,names[key] or "",function(text)
+        if not active()or view.editRoster~=key then return end
+        local saved,message=F.SaveRoster(c,key~="" and key or nil,text)
+        view.message=message and E.L[message]
+        if saved then view.roster=saved;view.editRoster=nil;view.tag=nil;B.companyPage=1 end
+        B.Render()
+    end)
+    edit.inputLabel="companyRoster:"..c.id..":"..key
+    B.Action(page,E.L["Cancel"],function()if active()then view.editRoster=nil;view.message=nil;B.Render()end end)
+    if key~="" then B.Action(page,E.L["Delete roster"],function()
+        if active()and view.editRoster==key then
+            F.DeleteRoster(c,key);view.editRoster=nil;view.roster=nil;view.message=nil;B.Render()
+        end
+    end)end
+end
+local function favorites(left,right,c)
+    local view=favoriteView(c)
+    local function active()
+        return B.frame:IsShown()and B.chapter=="Company"and B.companyMode=="favorites"
+            and B.Character()==c and not B.selected
+    end
+    local rosters,tags=F.RosterNames(c),F.TagNames(c)
+    if not rosters[view.roster]then view.roster=nil end
+    if not tags[view.tag]then view.tag=nil end
+    B.Navigation.Controls(function(page)
+        local function filter(field,key)
+            if active()then
+                view[field]=key;view.editRoster=nil;view.message=nil;B.companyPage=1;B.Render(true)
+            end
+        end
+        favoriteFilter(page,rosters,"All rosters",view.roster,function(key)filter("roster",key)end)
+        favoriteFilter(page,tags,"All companion tags",view.tag,function(key)filter("tag",key)end)
+    end)
+    local rows=F.List(c,view.roster,view.tag)
+    clamp("companyPage",#rows,8)
+    local first=(B.companyPage-1)*8+1
+    local selected
+    for i=first,math.min(#rows,B.companyPage*8)do
+        local favorite=rows[i]
+        if favorite.id==view.person then selected=favorite end
+    end
+    selected=selected or rows[first]
+    view.person=selected and selected.id
+    if view.roster then B.Text(left,rosters[view.roster],21)end
+    for i=first,math.min(#rows,B.companyPage*8)do
+        local favorite=rows[i]
+        local f=entry(left,personName(favorite),F.LabelText(c,favorite,"tags"),F.LabelText(c,favorite,"rosters"),function()
+            if active()then view.person=favorite.id;view.message=nil;detail()end
+        end,favorite==selected)
+        f.controllerID="company-favorite:"..favorite.id
+    end
+    pager(left,"companyPage",#rows,8,E.L["Previous companions"],E.L["More companions"])
+    if not selected then
+        B.Text(left,(view.tag or view.roster) and E.L["No favorites match these filters."] or E.L["Choose a companion to add to your favorites."],15)
+    end
+    B.Action(left,E.L["Add to favorites"],function()
+        if active()then B.companyMode="companions";B.companyQuery=nil;B.companyPage=1;B.Render(true)end
+    end)
+    rosterEditor(left,c,view,active)
+    if view.message then B.Text(left,view.message,14)end
+    if not selected then return end
+
+    local function current()
+        return active()and view.person==selected.id and F.Get(c,selected.id)==selected
+    end
+    B.Text(right,personName(selected),29)
+    if c==E.current then
+        local invite=B.Action(right,E.Format("Invite {name}",{name=selected.name or E.L["Unnamed companion"]}),function()
+            if current()then view.message=F.Invite(c,selected,view.roster,view.tag);B.Render()end
+        end)
+        invite.controllerID="company-invite:"..selected.id
+    end
+    for _,field in ipairs({"tags","rosters"})do
+        local category=field
+        B.Text(right,category=="tags"and E.L["Tags (separate with commas; Enter to save)"]or E.L["Rosters (separate with commas; Enter to save)"],14)
+        local edit=B.Input(right,F.LabelText(c,selected,category),function(text)
+            if current()then
+                B.Navigation.KeepDrafts()
+                F.SetLabels(c,selected,category,text);B.Render()
+            end
+        end)
+        edit.inputLabel="company:"..selected.id..":"..category
+    end
+    B.Note(right,"companion:"..selected.id,current)
+    B.Action(right,E.L["Remove from favorites"],function()
+        if current()then F.Remove(c,selected);view.person=nil;view.message=nil;B.Render()end
+    end)
+end
 function L.Profile(page,h)
     local p=h.person; B.Text(page,E.Format("In {name}'s book",{name=B.Character().identity.name or E.L["Your character"]}),11):SetTextColor(0.54,0.40,0.23)
     B.Text(page,personName(p),29)
+    local owner=B.Character()
+    B.Action(page,E.L[F.Get(owner,p.id) and "Open favorite" or "Add to favorites"],function()
+        if B.frame:IsShown()and B.Character()==owner and B.chapter=="Company"and B.companyMode=="companions"
+            and B.companionID==p.id and not B.selected and F.Add(owner,p.id)then openFavorite(owner,p.id)end
+    end)
     L.Stats(page,{{#p.sessions, E.L["Shared sessions"] },{#h.quests, E.L["Your quest turn-ins"] },{#h.milestones, E.L["Your major milestones"] },{#h.quotes, E.L["Saved group quotes"] }})
     local y=page.y
     control(page, E.L["Whisper - open composer"] ,0,y,230,function()B.socialMessage=E.Social.Whisper(p); B.Render()end)
@@ -307,14 +436,15 @@ end
 function L.Render(left,right)
     local c=B.Character(); B.companyMode=B.companyMode or "sessions"
     B.Text(left,B.companyMode=="sessions" and  E.L["CHAPTER V  -  THOSE BESIDE US"]  or  E.L["COMPANY  -  COMPANION HISTORY"] ,11):SetTextColor(0.54,0.40,0.23)
-    B.Text(left,B.companyMode=="sessions" and  E.L["Good company"]  or B.companyMode=="pulls" and  E.L["Battles remembered"]  or  E.L["Familiar faces"] ,30)
+    B.Text(left,B.companyMode=="sessions" and  E.L["Good company"]  or B.companyMode=="pulls" and  E.L["Battles remembered"]  or B.companyMode=="favorites" and E.L["Favorites"] or E.L["Familiar faces"] ,30)
     B.Text(left, E.L["The adventures you shared, and the people who made them."] ,15)
     local modes={}
-    for _,s in ipairs({{"sessions", E.L["Group sessions"] },{"companions", E.L["Companions"] },{"pulls", E.L["Pull history"] }})do local mode=s[1]
+    for _,s in ipairs({{"sessions", E.L["Group sessions"] },{"companions", E.L["Companions"] },{"favorites",E.L["Favorites"]},{"pulls", E.L["Pull history"] }})do local mode=s[1]
         modes[#modes+1]={s[2],function()B.companyMode=mode;B.selected=nil;B.companyPage=1;B.companyMessage=nil;B.Render(true)end,B.companyMode==mode}
     end
     B.Navigation.Subviews(modes)
-    if B.companyMode=="pulls" then E.PullView.List(left,right,c)
+    if B.companyMode=="favorites" then favorites(left,right,c)
+    elseif B.companyMode=="pulls" then E.PullView.List(left,right,c)
     elseif B.companyMode=="sessions" then
         local ordered=E.Query.Kind(c,"group"); local rows={}; for i=#ordered,1,-1 do rows[#rows+1]=ordered[i]end
         if not B.selected then local g=c.records[B.companySessionFocus] or rows[1]; if g and g.kind=="group" then B.selected=g.id end end

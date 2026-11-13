@@ -206,6 +206,7 @@ local function claimBook(forcePad)
     C.neutral=true
 end
 function C.CompetingNative()
+    if shown(SettingsPanel) then return blocker('native-panel',SettingsPanel) end
     -- Edit Mode remains native-owned even when it temporarily hides its
     -- manager for a locked sub-dialog. Unlike ordinary panels, an explicit
     -- book focus request must never reclaim its input or focus shortcut.
@@ -242,7 +243,7 @@ function C.RequestFocus()
     if not C.started then C.Start()end
     if C.Settings().mode=='off'then
         C.blocker=nil
-        C.reason='Controller navigation is turned off in Archive.';C.UpdateLegend()
+        C.reason='Controller navigation is turned off in Settings.';C.UpdateLegend()
         C.lastFocusRequest=diagnosticSnapshot()
         return false,C.reason
     end

@@ -1,6 +1,19 @@
 local _,E=...
 if E.locale~="esES" then return end
 E.Localize({
+    ["Open settings"]="Abrir ajustes",
+    ["Loot time window"]="Periodo del botín",
+    ["Last 24 hours"]="Últimas 24 horas",
+    ["Floating loot"]="Ventana de botín",
+    ["Show floating loot"]="Mostrar la ventana de botín",
+    ["Hide floating loot"]="Ocultar la ventana de botín",
+    ["Last {minutes} min"]="Periodo: {minutes} min",
+    ["Time window in minutes (1–1440)"]="Periodo en minutos (1–1440)",
+    ["Enter a whole number from 1 to 1440."]="Introduce un número entero entre 1 y 1440.",
+    ["Your loot, grouped by where it came from."]="Tu botín, agrupado por procedencia.",
+    ["No personal loot in this time window."]="No has recibido botín en este periodo.",
+    ["Drag the title to move the window."]="Arrastra la barra de título para mover la ventana.",
+    ["Preparing recent loot…"]="Reuniendo tu botín reciente…",
     ["A matching clear within two seconds was not observed."]="No se observó un vaciado correspondiente en dos segundos.",
     ["A matching start was not recorded."]="No se registró un inicio correspondiente.",
     ["A new encounter start arrived before an end was observed; the earlier outcome is unknown."]="Comenzó otro encuentro antes de observar el final del anterior; su resultado es desconocido.",

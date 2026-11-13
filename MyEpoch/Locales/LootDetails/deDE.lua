@@ -1,6 +1,19 @@
 local _,E=...
 if E.locale~="deDE" then return end
 E.Localize({
+    ["Open settings"]="Einstellungen öffnen",
+    ["Loot time window"]="Zeitraum für Beute",
+    ["Last 24 hours"]="Letzte 24 Stunden",
+    ["Floating loot"]="Beuteübersicht",
+    ["Show floating loot"]="Beutefenster einblenden",
+    ["Hide floating loot"]="Beutefenster ausblenden",
+    ["Last {minutes} min"]="Zeitraum: {minutes} Min.",
+    ["Time window in minutes (1–1440)"]="Zeitraum in Minuten (1–1440)",
+    ["Enter a whole number from 1 to 1440."]="Gib eine ganze Zahl zwischen 1 und 1440 ein.",
+    ["Your loot, grouped by where it came from."]="Hier siehst du deine Beute nach Herkunft sortiert.",
+    ["No personal loot in this time window."]="In dieser Zeit hast du keine Beute erhalten.",
+    ["Drag the title to move the window."]="Zieh das Fenster an der Titelleiste, um es zu verschieben.",
+    ["Preparing recent loot…"]="Deine jüngste Beute wird zusammengestellt…",
     ["A matching clear within two seconds was not observed."]="Innerhalb von zwei Sekunden wurde kein passendes Leeren beobachtet.",
     ["A matching start was not recorded."]="Kein passender Beginn erfasst.",
     ["A new encounter start arrived before an end was observed; the earlier outcome is unknown."]="Eine neue Begegnung begann, bevor ein Ende beobachtet wurde; der vorige Ausgang ist unbekannt.",

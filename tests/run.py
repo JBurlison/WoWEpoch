@@ -405,6 +405,7 @@ subprocess.run([sys.executable,'-B','-X','utf8',str(ROOT/'tests/mob_drop_view_ho
 runpy.run_path(str(ROOT / 'tests/run_milestone_snapshot.py'), run_name='__main__')
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/richer_memories_host.py')], check=True)
 settled_ui('notification_edit_mode_spec.lua')
+runpy.run_path(str(ROOT/'tests/quest_zone_entry_host.py'))['run'](('company_favorites_spec.lua','floating_loot_spec.lua','floating_loot_settings_spec.lua','native_archive_spec.lua'))
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/calendar_editing_host.py')], check=True)
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/pull_details_host.py')], check=True)
 subprocess.run([sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tests/controller_host.py')], check=True)

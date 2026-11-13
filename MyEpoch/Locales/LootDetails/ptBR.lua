@@ -1,6 +1,19 @@
 local _,E=...
 if E.locale~="ptBR" then return end
 E.Localize({
+    ["Open settings"]="Abrir configurações",
+    ["Loot time window"]="Período do saque",
+    ["Last 24 hours"]="Últimas 24 horas",
+    ["Floating loot"]="Janela de saque",
+    ["Show floating loot"]="Mostrar janela de saque",
+    ["Hide floating loot"]="Ocultar janela de saque",
+    ["Last {minutes} min"]="Período: {minutes} min",
+    ["Time window in minutes (1–1440)"]="Período em minutos (1–1440)",
+    ["Enter a whole number from 1 to 1440."]="Digite um número inteiro de 1 a 1440.",
+    ["Your loot, grouped by where it came from."]="Seu saque, separado por origem.",
+    ["No personal loot in this time window."]="Você não recebeu saque nesse período.",
+    ["Drag the title to move the window."]="Arraste a barra de título para mover a janela.",
+    ["Preparing recent loot…"]="Reunindo seu saque recente…",
     ["A matching clear within two seconds was not observed."]="Nenhum esvaziamento correspondente observado em dois segundos.",
     ["A matching start was not recorded."]="Nenhum início correspondente registrado.",
     ["A new encounter start arrived before an end was observed; the earlier outcome is unknown."]="Outro encontro começou antes de registrarmos o fim do anterior; o resultado anterior é desconhecido.",

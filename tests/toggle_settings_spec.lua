@@ -1,47 +1,64 @@
-local B,P,N=E.Book,E.PersonalRecords,E.ControllerNavigation
-local c=E.Store.Character('toggle-settings-owner',{name='Checkbox reader'})
-local other=E.Store.Character('toggle-settings-other',{name='Other reader'})
-B.ChangeCharacter(c.id);B.Open();TEST_PREPARE_BOOK()
-B.chronicleMode='records';B.personalRecordTab='Categories';B.SetChapter('Chronicle')
-local function toggle(text)
-    for i=1,B.left.used.toggle or 0 do local f=B.left.pool.toggle[i]
-        if f.text:GetText()==E.L[text]then return f end
-    end
-    error('Missing checkbox row: '..text)
+-- Exercise the real registration callbacks against the native list contract.
+-- The mock deliberately has no canvas category or custom navigation backend.
+local U,F,N=E.AddonSettings,E.FloatingLoot,E.Notifications
+local c=E.Store.Character('settings-owner',{name='Aster'})
+local alt=E.Store.Character('settings-alt',{name='Fern'})
+E.current=c;E.RecorderReady=function() return true end
+Settings={}
+assert(not U.Register(),'Wait for Blizzard settings to finish loading')
+local categories,registered,proxies={},0,{}
+local function category(parent,name)
+    local cat={parent=parent,name=name,id=#categories+1,GetID=function(s)return s.id end}
+    local layout={AddInitializer=function(s,row) s[#s+1]=row end}
+    cat.layout=layout;categories[#categories+1]=cat
+    return cat,layout
 end
-local function check(f,enabled)
-    assert(f:GetWidth()==B.Width(B.left)and f:GetHeight()>=44,'Checkbox rows share the notification row geometry')
-    assert(f.text:GetWidth()==B.Width(B.left)-60 and f.box:GetWidth()==24 and f.box.point[1]=='RIGHT','Labels reserve the right checkbox column')
-    assert(f.check:GetAlpha()==(enabled and 1 or 0),'The square mark reflects the saved value')
-    assert(N.Find(f)and N.IsValid(N.Find(f)),'Every checkbox remains in shared controller navigation')
+Settings.RegisterVerticalLayoutCategory=function(name)return category(nil,name)end
+Settings.RegisterVerticalLayoutSubcategory=category
+Settings.RegisterAddOnCategory=function(root)assert(root==categories[1]);registered=registered+1 end
+Settings.RegisterProxySetting=function(cat,id,kind,label,default,get,set)
+    assert(type(default)==kind and not proxies[id] and type(label)=='string')
+    local s={get=get,set=set,updates=0,category=cat,NotifyUpdate=function(self)self.updates=self.updates+1 end}
+    proxies[id]=s;return s
 end
-assert(B.left.used.toggle==#P.categories,'All personal-record categories use checkbox rows')
-for _,category in ipairs(P.categories)do check(toggle(category.label),true)end
-local category=P.categories[1];local f=toggle(category.label);local stale=f:GetScript('OnClick')
-assert(N.Focus(N.Find(f))and N.Activate(),'Controller confirm activates a checkbox row')
-assert(not P.Enabled(c,category.key)and P.Enabled(other,category.key),'Record preferences remain per character')
-check(toggle(category.label),false)
-assert(N.Current().frame==toggle(category.label),'A changed check mark preserves semantic focus through redraw')
-stale();assert(not P.Enabled(c,category.key),'A recycled frame rejects its previous callback')
-toggle(category.label):Click();check(toggle(category.label),true)
-stale=toggle(category.label):GetScript('OnClick');B.ChangeCharacter(other.id);stale()
-assert(P.Enabled(c,category.key)and P.Enabled(other,category.key),'Saved callbacks cannot change another character')
-B.ChangeCharacter(c.id);B.archiveTab='retention';B.archiveSettingsOpen=true;B.SetChapter('Archive')
-while E.Archive.reviewWorker do E.Archive.StepReview(1000)end;B.Render()
-local combat=E.db.settings.combatClose
-check(toggle('Combat auto-close'),combat);toggle('Combat auto-close'):Click()
-assert(E.db.settings.combatClose~=combat);check(toggle('Combat auto-close'),not combat)
-toggle('Combat auto-close'):Click();assert(E.db.settings.combatClose==combat)
-check(toggle('Automatic cleanup'),false);toggle('Automatic cleanup'):Click()
-assert(c.state.retentionAutomatic and not other.state.retentionAutomatic);check(toggle('Automatic cleanup'),true)
-toggle('Automatic cleanup'):Click();assert(not c.state.retentionAutomatic)
-local controller=E.Controller.Settings();local originalMode,originalSwap=controller.mode,controller.swapConfirm
-check(toggle('Controller navigation'),originalMode~='off');toggle('Controller navigation'):Click()
-assert(controller.mode==(originalMode=='off'and'auto'or'off'));check(toggle('Controller navigation'),controller.mode~='off')
-toggle('Controller navigation'):Click();assert(controller.mode==originalMode)
-check(toggle('Swap Confirm and Back'),originalSwap);toggle('Swap Confirm and Back'):Click()
-assert(controller.swapConfirm~=originalSwap);check(toggle('Swap Confirm and Back'),not originalSwap)
-toggle('Swap Confirm and Back'):Click();assert(controller.swapConfirm==originalSwap)
-B.archiveTab='notifications';B.Render();check(toggle('All notifications'),E.Notifications.Preferences(c).master)
-assert(B.left.pool.toggle[1].box and not B.left.used.notificationToggle,'Notifications use the same shared checkbox factory')
-print('PASS checkbox settings: shared appearance, character/account scope, controller activation/restoration, pooled callbacks, notifications and Archive booleans')
+local function initializer()
+    return {AddModifyPredicate=function(s,f)s.predicate=f end,SetParentInitializer=function(s,p,f)s.parent=p;s.predicate=f end}
+end
+local function row(cat,setting,options)
+    local r=initializer();r.setting=setting;r.options=options;cat.layout:AddInitializer(r);return r
+end
+Settings.CreateCheckbox=row;Settings.CreateDropdown=row;Settings.CreateSlider=row
+Settings.CreateControlTextContainer=function()return {Add=function(s,v,t)s[#s+1]={v,t}end,GetData=function(s)return s end}end
+MinimalSliderWithSteppersMixin={Label={Right=1}}
+Settings.CreateSliderOptions=function()return {SetLabelFormatter=function()end}end
+CreateSettingsButtonInitializer=initializer;CreateSettingsListSectionHeaderInitializer=initializer
+local shown,opened,hooks=false,nil,{}
+SettingsPanel={HookScript=function(_,k,v)hooks[k]=v end,IsShown=function()return shown end}
+Settings.OpenToCategory=function(id)opened=id;shown=true;hooks.OnShow()end
+assert(U.Register() and U.Register() and registered==1 and #categories==6)
+local function s(key)return assert(proxies['MYEPOCH_'..key],key) end
+local function set(key,value)s(key).set(value)end
+local function get(key)return s(key).get()end
+assert(U.Open('general',alt) and opened==U.categories.general:GetID() and U:Character()==alt)
+assert(E.Controller.CompetingNative(),'The book must yield while Blizzard Settings is visible')
+assert(get('floatingLootMinutes')==1440 and get('journal_general')==alt.id)
+set('floatingLootMinutes',41)
+assert(get('floatingLootPeriod')==41 and F.Preferences(c).minutes==1440 and s('floatingLootPeriod').updates>0)
+set('journal_general',c.id);set('journal_general','')
+assert(U:Character()==c and get('floatingLootPeriod')==1440,'Defaults must not redirect the journal')
+set('journal_records',alt.id)
+local key=E.PersonalRecords.categories[1].key
+set('record_'..key,false);assert(not E.PersonalRecords.Enabled(alt,key) and E.PersonalRecords.Enabled(c,key))
+set('retention_chat',17);set('retentionAutomatic',true)
+assert(alt.retention.chat==17 and alt.state.retentionAutomatic and not c.retention.chat and not c.state.retentionAutomatic)
+set('notification_character_sound',false)
+assert(N.Preferences(alt).sound,'Inherited preferences must not be changed')
+set('notification_character_override',true);set('notification_character_sound',false)
+assert(not N.Preferences(alt).sound and N.Preferences(c).sound)
+set('notification_account_master',false);assert(not N.Preferences(alt).master and not N.Preferences(c).master)
+set('combatClose',true);assert(E.db.settings.combatClose)
+set('controllerSwap',true);assert(E.Controller.Settings().swapConfirm)
+shown=false;hooks.OnHide();assert(U:Character()==c,'Closing Settings releases the target journal')
+U.Open('retention',alt);local third=E.Store.Character('settings-third',{name='Thistle'});E.current=third
+assert(U:Character()==third and get('retention_chat')==0,'A real character handoff cannot keep an old target')
+print('PASS native Settings registration, scoped proxies, exact duration, retention, overrides, controller handoff and character switches')
