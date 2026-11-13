@@ -82,7 +82,7 @@ function R.Open(chapter)
     if chapter=='Memories'then
         E.Book.memoryMode='saved';E.Book.selected=c.state.controllerMemory;E.Book.memoryFocus=c.state.controllerMemory
         E.Book.memoryEditing=true;E.Book.memoryEditID=c.state.controllerMemory
-    elseif chapter=='Archive'then E.Book.archiveSettingsOpen=true end
+    end
     E.Book.Render(true)
 end
 function R.Ready()

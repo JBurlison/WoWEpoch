@@ -2,6 +2,16 @@
 local _,E=...
 if E.locale~="esES" then return end
 E.Localize({
+    ["Book scale"]="Tamaño del diario",
+    ["Show minimap button"]="Mostrar el botón del minimapa",
+    ["Writing prompts"]="Ideas para escribir",
+    ["Settings for character"]="Ajustes del personaje",
+    ["Controller navigation is turned off in Settings."]="La navegación con mando está desactivada en los ajustes.",
+    ["Retention settings"]="Plazos de conservación",
+    ["Notification settings"]="Ajustes de notificaciones",
+    ["Custom days…"]="Indicar el número de días…",
+    ["Horizontal position"]="Posición horizontal",
+    ["Vertical position"]="Posición vertical",
     ["Previous page"]="Página anterior",
     ["Next page"]="Página siguiente",
     ["Retention for this character only"]="Conservación solo para este personaje",

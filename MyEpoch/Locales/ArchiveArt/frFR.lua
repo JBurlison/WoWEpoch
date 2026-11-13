@@ -2,6 +2,16 @@
 local _,E=...
 if E.locale~="frFR" then return end
 E.Localize({
+    ["Book scale"]="Taille du carnet",
+    ["Show minimap button"]="Afficher le bouton de la minicarte",
+    ["Writing prompts"]="Idées pour écrire",
+    ["Settings for character"]="Réglages du personnage",
+    ["Controller navigation is turned off in Settings."]="La navigation à la manette est désactivée dans les réglages.",
+    ["Retention settings"]="Durées de conservation",
+    ["Notification settings"]="Réglages des notifications",
+    ["Custom days…"]="Saisir un nombre de jours…",
+    ["Horizontal position"]="Position horizontale",
+    ["Vertical position"]="Position verticale",
     ["Previous page"]="Page précédente",
     ["Next page"]="Page suivante",
     ["Retention for this character only"]="Conservation pour ce personnage uniquement",

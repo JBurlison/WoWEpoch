@@ -57,62 +57,25 @@ local function protection(c,reason)
 end
 local function finiteDays(value)return type(value)=="number"and value>0 and value<math.huge end
 local pending=setmetatable({},{__mode='k'})
-local function policy(page,c,row)
-    B.Text(page,E.L['Retention for this character only'],18)
-    local function save(days)
-        local ok,reason=R.Configure(c,row.key,days)
-        B.archiveMessage=ok and E.L['Policy saved. No history was removed.']or reason
-        if ok then pending[c]=nil;B.archivePolicyDrafts=B.archivePolicyDrafts or{};B.archivePolicyDrafts[row.key]=nil end
-        B.Render()
-    end
-    local options={};for _,choice in ipairs({{E.L['Forever'],false},{E.L['7 days'],7},{E.L['30 days'],30},{E.L['90 days'],90},{E.L['1 year (365 days)'],365}})do
-        local days=choice[2];options[#options+1]={choice[1],function()save(days or nil)end,row.days== (days or nil)}
-    end;controls(page,options,3)
-    B.Text(page,E.L['Custom whole days (1–36500), then press Enter:'],13)
-    B.archivePolicyDrafts=B.archivePolicyDrafts or{}
-    local edit=B.Input(page,B.archivePolicyDrafts[row.key]or'',function(value)
-        local days=tonumber(value)
-        if not days then B.archiveMessage=E.L['Enter whole days from 1 to 36500, or choose Forever.'];B.Render();return end
-        save(days)
-    end)
-    edit:SetScript('OnTextChanged',function(self,user)if user then B.archivePolicyDrafts[row.key]=self:GetText()end end)
-    if row.personalNotes then B.Text(page,E.L['Personal notes expire by their last edit time, independently of generated summaries. Notes linked to protected records stay protected. Undated notes remain retained.'],13)end
-end
-local function settings(left)
-    controls(left,{{B.archiveSettingsOpen and E.L["Hide book settings"]or E.L["Book settings"],function()B.archiveSettingsOpen=not B.archiveSettingsOpen;B.Render()end,B.archiveSettingsOpen}},2)
-    if not B.archiveSettingsOpen then return end
-    B.Text(left,E.Format('Book scale: {percent}% of automatic fit',{percent=math.floor(E.db.settings.scale*100+.5)}),14)
-    local function scale(value)E.db.settings.scale=math.max(.65,math.min(1,value));B.Fit();B.Render()end
-    controls(left,{{E.L["Make book smaller"],function()scale(E.db.settings.scale-.05)end},{E.L["Make book larger"],function()scale(E.db.settings.scale+.05)end},{E.L["Reset book scale"],function()scale(1)end}})
-    B.Checkbox(left,E.L['Combat auto-close'],E.db.settings.combatClose,function()B.SetCombatClose(not E.db.settings.combatClose);B.Render()end)
-    B.Text(left,E.L["Combat auto-close starts off. When enabled, the book reopens after combat only if combat closed it. These book settings apply across characters."],13)
-    if E.Controller then
-        local controller=E.Controller;local prefs=controller.Settings()
-        local function setting(key,value)controller.Configure(key,value);B.Render()end
-        B.Checkbox(left,E.L['Controller navigation'],prefs.mode~='off',function()setting('mode',prefs.mode=='off'and'auto'or'off')end)
-        B.Text(left,E.L['Controller button prompts'],14)
-        controls(left,{{E.L['Automatic'],function()setting('glyphs','auto')end,prefs.glyphs=='auto'},
-            {'Xbox / Steam Deck',function()setting('glyphs','xbox')end,prefs.glyphs=='xbox'},
-            {'PlayStation',function()setting('glyphs','playstation')end,prefs.glyphs=='playstation'},
-            {'Switch Pro',function()setting('glyphs','switch')end,prefs.glyphs=='switch'}},2)
-        B.Checkbox(left,E.L['Swap Confirm and Back'],prefs.swapConfirm,function()setting('swapConfirm',not prefs.swapConfirm)end)
-        controls(left,{{E.L['Move book'],function()controller.ToggleMove()end},
-            {E.L['Center book'],function()controller.Recenter()end}},2)
-        B.Text(left,E.L['Assign Toggle My Epoch in the game key bindings, or open the book with its minimap button. Controller preferences apply to every character.'],13)
+local function openSettings(key,c)
+    return function()
+        if B.frame:IsShown()and B.chapter=='Archive'and B.Character()==c then
+            E.AddonSettings.Open(key,c)
+        end
     end
 end
 function V.Render(left,right)
     local c=B.Character();B.archiveTab=B.archiveTab or"retention";V.lastReview=nil
+    if B.archiveTab=="notifications"then B.archiveTab="retention"end
     local account=B.archiveTab=="accountStorage"
     local storage=account or B.archiveTab=="storage"
     local subject=account and E.db or c
     heading(left,E.L["CHAPTER XI - KEEP THE STORY SAFE"],E.L["The archive"])
     B.Text(left,E.L["Your history stays until you choose otherwise. Every category begins at Forever."],15)
     if R.saveSizeWarning then paper(left,E.L["Archive save warning"],E.L[R.saveSizeWarning])end
-    local tabs={};for _,tab in ipairs({{"retention",E.L["Retention review"]},{"notifications",E.L["Notifications"]},{"storage",E.L["Archive size"]},{"accountStorage",E.L["Account archive size"]},{"capabilities",E.L["Recording status"]}})do local key=tab[1]
+    local tabs={};for _,tab in ipairs({{"retention",E.L["Retention review"]},{"storage",E.L["Archive size"]},{"accountStorage",E.L["Account archive size"]},{"capabilities",E.L["Recording status"]}})do local key=tab[1]
         tabs[#tabs+1]={tab[2],function()B.archiveTab=key;B.selected=nil;B.Render(true)end,B.archiveTab==key}
     end;B.Navigation.Subviews(tabs)
-    if B.archiveTab=='notifications'then B.Clear(left);E.NotificationView.Render(left,right,c);return end
     if storage then
         paper(left,E.L["A growing collection."],account and E.L["All character scrapbooks and shared book settings are saved together. Measure the whole collection while recording continues."] or E.L["Measure this character's saved history in small batches while recording continues."])
         controls(left,{{account and E.L["Measure the account again"] or E.L["Measure this character again"],function()R.Start(subject);B.Render()end}},1)
@@ -125,13 +88,13 @@ function V.Render(left,right)
         B.Text(left,E.Format('Policies apply only to {name}. Saving a policy does not immediately remove history.',{name=c.identity.name or c.id}),13)
         controls(left,{{E.L['Review cleanup'],function()pending[c]=nil;R.StartReview(c,A.Now(),true);B.archiveMessage=nil;B.Render(true)end},
             {E.L['Refresh review'],function()pending[c]=nil;R.StartReview(c,A.Now());B.archiveMessage=nil;B.Render(true)end}},2)
-        B.Checkbox(left,E.L['Automatic cleanup'],c.state.retentionAutomatic,function()
-            R.SetAutomatic(c,not c.state.retentionAutomatic);pending[c]=nil;B.archiveMessage=nil;B.Render()
-        end)
-        B.Text(left,E.L['Automatic cleanup starts off. When enabled, this character is checked once per local day while logged in, out of combat, with the book closed. Finite policies permanently expire eligible history and notes. Unknown combat state defers cleanup.'],13)
         if B.archiveMessage then B.Text(left,E.L[B.archiveMessage],14)end
     end
-    left.y=left.y+10;settings(left);left.y=left.y+10
+    left.y=left.y+10
+    controls(left,{{E.L['Book settings'],openSettings('general',c)},
+        {E.L['Retention settings'],openSettings('retention',c)},
+        {E.L['Notification settings'],openSettings('notifications',c)}},3)
+    left.y=left.y+10
     B.Text(left,E.L["Keep the story, even without the picture."],20)
     B.Text(left,E.L["Screenshot references preserve time, context and captions. They do not manage image files on disk, and newly captured images may be unavailable inside the book."],14)
     if B.selected then return end
@@ -213,7 +176,7 @@ function V.Render(left,right)
         end
         heading(right,E.L["BEFORE ANYTHING EXPIRES"],E.L[row.label])
         controls(right,{{E.L["All categories"],function()B.archiveCategory=nil;B.selected=nil;B.Render(true)end}},2)
-        policy(right,c,row)
+        if row.personalNotes then B.Text(right,E.L['Personal notes expire by their last edit time, independently of generated summaries. Notes linked to protected records stay protected. Undated notes remain retained.'],13)end
         B.Text(right,finiteDays(row.days)and E.Format('Rolling cutoff: {date} (local time; each day is 24 hours).',{date=A.Date(report.preview.at-row.days*86400)})or E.L["Forever: no records in this category are eligible for age-based expiry."],14)
         local values={};if row.total>0 then values[#values+1]={tostring(row.total),E.L["RECORDED ENTRIES"]}end
         if #row.eligible>0 then values[#values+1]={tostring(#row.eligible),E.L["ELIGIBLE FOR EXPIRY"]}end
@@ -244,6 +207,7 @@ E.On('ARCHIVE_REVIEWED',function(c,report,confirm)
     if confirm and report then pending[c]=report end
     if B.frame and B.frame:IsShown()and B.chapter=='Archive'and B.Character()==c and B.archiveTab=='retention'then B.Render()end
 end)
+E.On('ARCHIVE_POLICY_CHANGED',function(c) pending[c]=nil end)
 E.On('ARCHIVE_CLEANED',function(c,ok,message,automatic)
     pending[c]=nil
     if not automatic and B.Character()==c then

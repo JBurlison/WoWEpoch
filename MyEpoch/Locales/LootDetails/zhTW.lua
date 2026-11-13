@@ -1,6 +1,9 @@
 local _,E=...
 if E.locale~="zhTW" then return end
 E.Localize({
+    ["Open settings"]="開啟設定",
+    ["Loot time window"]="戰利品顯示時段",
+    ["Last 24 hours"]="最近 24 小時",
     ["Floating loot"]="戰利品浮動視窗",
     ["Show floating loot"]="顯示戰利品浮動視窗",
     ["Hide floating loot"]="隱藏戰利品浮動視窗",

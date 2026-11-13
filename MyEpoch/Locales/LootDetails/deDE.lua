@@ -1,6 +1,9 @@
 local _,E=...
 if E.locale~="deDE" then return end
 E.Localize({
+    ["Open settings"]="Einstellungen öffnen",
+    ["Loot time window"]="Zeitraum für Beute",
+    ["Last 24 hours"]="Letzte 24 Stunden",
     ["Floating loot"]="Beuteübersicht",
     ["Show floating loot"]="Beutefenster einblenden",
     ["Hide floating loot"]="Beutefenster ausblenden",

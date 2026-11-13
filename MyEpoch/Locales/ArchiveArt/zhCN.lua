@@ -1,6 +1,16 @@
 local _,E=...
 if E.locale~="zhCN" then return end
 E.Localize({
+    ["Book scale"]="书册大小",
+    ["Show minimap button"]="显示小地图按钮",
+    ["Writing prompts"]="写作灵感",
+    ["Settings for character"]="角色设置",
+    ["Controller navigation is turned off in Settings."]="设置中的控制器导航已关闭。",
+    ["Retention settings"]="记录保留设置",
+    ["Notification settings"]="通知设置",
+    ["Custom days…"]="自定天数…",
+    ["Horizontal position"]="水平位置",
+    ["Vertical position"]="垂直位置",
     ["Previous page"]="上一页",
     ["Next page"]="下一页",
     ["Retention for this character only"]="仅此角色的保留期限",

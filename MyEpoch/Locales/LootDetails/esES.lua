@@ -1,6 +1,9 @@
 local _,E=...
 if E.locale~="esES" then return end
 E.Localize({
+    ["Open settings"]="Abrir ajustes",
+    ["Loot time window"]="Periodo del botín",
+    ["Last 24 hours"]="Últimas 24 horas",
     ["Floating loot"]="Ventana de botín",
     ["Show floating loot"]="Mostrar la ventana de botín",
     ["Hide floating loot"]="Ocultar la ventana de botín",

@@ -40,18 +40,19 @@ click('Measure this character again');assert(has(B.right,'previous completed est
 S.Note(c,'day:2001-01-01','Changed after measurement',E.API.Now());B.Render();assert(has(B.right,'Recording changed'))
 c.notes['day:2001-01-01']=nil;S.Touch(c)
 click('Recording status');assert(has(B.left,'this running session')and(B.right.used.archiveRow or 0)<=8)
-local oldScale,oldCombat=E.db.settings.scale,E.db.settings.combatClose
-click('Book settings');click('Reset book scale');click('Make book smaller');assert(math.abs(E.db.settings.scale-.95)<.00001)
-assert(B.frame:GetWidth()==1760 and B.frame:GetHeight()==940)
-click('Make book larger');assert(E.db.settings.scale==1)
-click('Combat auto-close');assert(E.db.settings.combatClose~=oldCombat)
-click('Combat auto-close');assert(E.db.settings.combatClose==oldCombat)
-E.db.settings.scale=oldScale;B.Fit()
+local originalOpen=E.AddonSettings.Open
+local opened={}
+E.AddonSettings.Open=function(key,owner) assert(owner==c);opened[key]=true end
+B.frame:Show()
+click('Book settings');click('Retention settings');click('Notification settings')
+assert(opened.general and opened.retention and opened.notifications)
+assert(not find(B.left,'Reset book scale') and not find(B.left,'Automatic cleanup'))
+E.AddonSettings.Open=originalOpen
 assert(c.seq==seq and E.Same(c.records,records)and E.Same(c.notes,notes)and E.Same(c.retention,retention),'archive views preserve records, notes and policies')
 local other=S.Character('archive-layout-empty',{name='Other'});B.ChangeCharacter(other.id);B.SetChapter('Archive')
 settle()
-assert(not B.archiveSettingsOpen and not B.archiveCategory and B.archiveTab=='retention')
+assert(not B.archiveCategory and B.archiveTab=='retention')
 assert(has(B.right,'All categories: Forever'));category('Group chat');assert(not B.right.used.archiveStat or B.right.used.archiveStat==0)
 click('Archive size');while R.worker do R.Step(500)end;B.Render();assert(B.right.used.archiveStat==1,'zero records and notes are omitted')
-B.ChangeCharacter(c.id);assert(B.archiveSettingsOpen and B.archiveTab=='capabilities')
+B.ChangeCharacter(c.id);assert(B.archiveTab=='capabilities')
 print('PASS Archive layout: category and record pagination, protected sources, nonzero metrics, estimates, stale status, settings, character isolation and unchanged history/policies')

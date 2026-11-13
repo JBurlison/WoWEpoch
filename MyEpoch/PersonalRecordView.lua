@@ -112,12 +112,7 @@ function V.Render(left,right,c)
  for _,r in ipairs(rows)do if r.valid~=false and(not best[r.recordType]or r.value>best[r.recordType].value)then best[r.recordType]=r end end
  if B.personalRecordTab=='Categories'then
   B.Text(left,E.L['Choose the records this character keeps.'],16)
-  for _,category in ipairs(P.categories)do
-   local key=category.key
-   B.Checkbox(left,E.L[category.label],P.Enabled(c,key),function()
-    if owned(c)then P.SetEnabled(c,key,not P.Enabled(c,key));B.Render()end
-   end)
-  end
+  B.Action(left,E.L['Open settings'],function() if owned(c) then E.AddonSettings.Open('records',c) end end)
  elseif B.personalRecordTab=='Record history'then list(left,c,rows,'personalRecordPage')
  else for _,category in ipairs(P.categories)do card(left,c,category,best[category.key])end end
  local selected=c.records[B.personalRecord]

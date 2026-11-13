@@ -168,22 +168,33 @@ function R.Configure(c,category,days)
     for _,key in pairs(S.categories)do if key==category then allowed=true end end
     if not allowed then return false,'Unknown retention category.'end
     if days~=nil and(type(days)~='number'or days~=days or days%1~=0 or days<1 or days>36500)then return false,'Enter whole days from 1 to 36500, or Forever.'end
-    if c.retention[category]~=days then c.retention[category]=days;c.state.retentionLastDay=nil;S.Touch(c);R.CancelReview(c)end
+    if c.retention[category]~=days then
+        c.retention[category]=days;c.state.retentionLastDay=nil;S.Touch(c);R.CancelReview(c)
+        E.Emit('ARCHIVE_POLICY_CHANGED',c)
+    end
     return true
 end
 function R.SetAutomatic(c,enabled)
     if not c or E.db.characters[c.id]~=c or type(enabled)~='boolean'then return false end
-    c.state.retentionAutomatic=enabled;c.state.retentionLastDay=nil;S.Touch(c);R.CancelReview(c);return true
+    if (c.state.retentionAutomatic==true)~=enabled then
+        c.state.retentionAutomatic=enabled;c.state.retentionLastDay=nil;S.Touch(c);R.CancelReview(c)
+        E.Emit('ARCHIVE_POLICY_CHANGED',c)
+    end
+    return true
 end
 function R.Apply(c,preview)
     local ok,result=pcall(S.ApplyExpiry,c,preview)
     if not ok then return false,'History, notes or protection changed. Review cleanup again.'end
     R.results[c]=nil;return true,result
 end
+local function browsing()
+    return E.Book and (E.Book.inCombat or E.Book.frame and E.Book.frame:IsShown())
+        or SettingsPanel and SettingsPanel:IsShown()
+end
 local function automaticSafe(c,now,day)
     if c~=E.current or E.db.characters[c.id]~=c or c.state.retentionAutomatic~=true then return false end
     if A.Now()<now or A.Day(A.Now())~=day then return false end
-    if E.Book and(E.Book.inCombat or E.Book.frame and E.Book.frame:IsShown())then return false end
+    if browsing()then return false end
     return A.Call('retentionCombat',UnitAffectingCombat,'player')==false
 end
 local livePreviews=setmetatable({},{__mode='k'})
@@ -323,7 +334,7 @@ function R.Tick(delta)
     local c=E.current;if not c or c.state.retentionAutomatic~=true then return end
     local now=A.Now();local day=A.Day(now)
     if c.state.retentionLastDay==day or c.state.retentionLastAt and now<c.state.retentionLastAt then return end
-    if E.Book and(E.Book.inCombat or E.Book.frame and E.Book.frame:IsShown())then return end
+    if browsing()then return end
     -- Unknown/restricted combat state defers cleanup; it never means out of combat.
     if A.Call('retentionCombat',UnitAffectingCombat,'player')~=false then return end
     local finite=false;for _,days in pairs(c.retention)do if type(days)=='number'and days>0 and days<math.huge then finite=true end end

@@ -1,6 +1,9 @@
 local _,E=...
 if E.locale~="ruRU" then return end
 E.Localize({
+    ["Open settings"]="Открыть настройки",
+    ["Loot time window"]="Период учёта добычи",
+    ["Last 24 hours"]="За последние 24 часа",
     ["Floating loot"]="Окно добычи",
     ["Show floating loot"]="Показать окно добычи",
     ["Hide floating loot"]="Скрыть окно добычи",

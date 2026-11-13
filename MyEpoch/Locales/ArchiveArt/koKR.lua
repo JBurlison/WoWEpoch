@@ -1,6 +1,16 @@
 local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
+    ["Book scale"]="일지 크기",
+    ["Show minimap button"]="미니맵 버튼 표시",
+    ["Writing prompts"]="글감 제안",
+    ["Settings for character"]="캐릭터 설정",
+    ["Controller navigation is turned off in Settings."]="설정에서 컨트롤러 탐색이 꺼져 있어요.",
+    ["Retention settings"]="기록 보관 설정",
+    ["Notification settings"]="알림 설정",
+    ["Custom days…"]="보관 일수 입력…",
+    ["Horizontal position"]="가로 위치",
+    ["Vertical position"]="세로 위치",
     ["Previous page"]="이전 쪽",
     ["Next page"]="다음 쪽",
     ["Retention for this character only"]="이 캐릭터의 보관 기간",

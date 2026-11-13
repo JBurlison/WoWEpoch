@@ -1,6 +1,9 @@
 local _,E=...
 if E.locale~="koKR" then return end
 E.Localize({
+    ["Open settings"]="설정 열기",
+    ["Loot time window"]="전리품 표시 기간",
+    ["Last 24 hours"]="최근 24시간",
     ["Floating loot"]="전리품 창",
     ["Show floating loot"]="전리품 창 표시",
     ["Hide floating loot"]="전리품 창 숨기기",

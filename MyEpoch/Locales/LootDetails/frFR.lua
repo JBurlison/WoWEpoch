@@ -1,6 +1,9 @@
 local _,E=...
 if E.locale~="frFR" then return end
 E.Localize({
+    ["Open settings"]="Ouvrir les réglages",
+    ["Loot time window"]="Période de butin affichée",
+    ["Last 24 hours"]="Dernières 24 heures",
     ["Floating loot"]="Fenêtre de butin",
     ["Show floating loot"]="Afficher la fenêtre de butin",
     ["Hide floating loot"]="Masquer la fenêtre de butin",

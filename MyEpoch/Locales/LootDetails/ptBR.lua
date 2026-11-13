@@ -1,6 +1,9 @@
 local _,E=...
 if E.locale~="ptBR" then return end
 E.Localize({
+    ["Open settings"]="Abrir configurações",
+    ["Loot time window"]="Período do saque",
+    ["Last 24 hours"]="Últimas 24 horas",
     ["Floating loot"]="Janela de saque",
     ["Show floating loot"]="Mostrar janela de saque",
     ["Hide floating loot"]="Ocultar janela de saque",

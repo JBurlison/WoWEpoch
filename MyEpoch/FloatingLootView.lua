@@ -97,7 +97,7 @@ end
 local function paint()
     if not frame or not owner then return end
     local settings = F.Preferences(owner)
-    frame.period:SetText(E.Format('Last {minutes} min', {minutes=E.Number(settings.minutes)}))
+    frame.period:SetText(F.PeriodLabel(settings.minutes))
     local sheet = pages[page]
     local used, y = 0, 50
     for i, section in ipairs(sheet or {}) do
@@ -265,35 +265,11 @@ E.On('KEEPSAKE_JOB_FAILED', function(c, key, errorMessage)
         paint()
     end
 end)
-function V.OpenSettings()
-    if not E.current or not E.RecorderReady() then return end
-    if B.Open() == false then return end
-    if B.Character() ~= E.current then B.ChangeCharacter(E.current.id) end
-    B.lootMode = 'floating'
-    B.SetChapter('Loot')
-    return true
-end
 function V.Settings(left, right, c)
-    local prefs = F.Preferences(c)
-    local function current() return B.Character() == c and K.Owned(c) and B.lootMode == 'floating' end
-    B.Action(left, E.L[prefs.enabled and 'Hide floating loot' or 'Show floating loot'], function()
-        if current() then F.SetEnabled(c, not F.Preferences(c).enabled); B.Render() end
-    end)
     B.Text(left, E.L['Drag the title to move the window.'], 13)
-    B.Text(right, E.L['Time window in minutes (1–1440)'], 20)
-    local function update(value)
-        if not current() then return end
-        V.invalid = not F.SetMinutes(c, value) and c or nil
-        B.Render()
-    end
-    local presets, values, selected = {}, {}, nil
-    for _, value in ipairs({5, 15, 30, 60}) do
-        local label = E.Format('Last {minutes} min', {minutes=value})
-        presets[#presets + 1] = label
-        values[label] = value
-        if value == prefs.minutes then selected = label end
-    end
-    B.Tabs(right, presets, selected, function(label) update(values[label]) end)
-    B.Input(right, tostring(prefs.minutes), update)
-    if V.invalid == c then B.Text(right, E.L['Enter a whole number from 1 to 1440.'], 13) end
+    B.Action(left, E.L['Open settings'], function()
+        if B.Character() == c and B.chapter == 'Loot' and B.lootMode == 'floating' then
+            E.AddonSettings.Open('general', c)
+        end
+    end)
 end

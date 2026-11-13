@@ -6,6 +6,7 @@ local kinds = { loot=true, crafted=true, gathered=true, quest_reward=true, kill=
     kill_observation=true, loot_window=true, drop=true, gather_action=true, gap=true }
 local receipts = { loot=true, crafted=true, gathered=true }
 local questTolerance = 2
+F.defaultMinutes = 1440
 
 local function minutes(value)
     value = tonumber(value)
@@ -14,9 +15,13 @@ end
 function F.Preferences(c)
     local saved = K.Owned(c) and c.state.floatingLoot or nil
     saved = type(saved) == 'table' and saved or {}
-    return { enabled=saved.enabled == true, minutes=minutes(saved.minutes) or 30,
+    return { enabled=saved.enabled == true, minutes=minutes(saved.minutes) or F.defaultMinutes,
         collapsed=type(saved.collapsed) == 'table' and saved.collapsed or {},
         x=K.Number(saved.x, 0, 1), y=K.Number(saved.y, 0, 1) }
+end
+function F.PeriodLabel(value)
+    if value == 1440 then return E.L['Last 24 hours'] end
+    return E.Format('Last {minutes} min', {minutes=E.Number(value)})
 end
 local function save(c, changes)
     if not K.Owned(c) then return false end
@@ -32,7 +37,9 @@ function F.SetEnabled(c, enabled)
 end
 function F.SetMinutes(c, value)
     value = minutes(value)
-    return value and save(c, {minutes=value}) or false
+    if not value or not K.Owned(c) then return false end
+    if value == F.Preferences(c).minutes then return true end
+    return save(c, {minutes=value})
 end
 function F.SetPosition(c, x, y)
     if not K.Number(x, 0, 1) or not K.Number(y, 0, 1) then return false end

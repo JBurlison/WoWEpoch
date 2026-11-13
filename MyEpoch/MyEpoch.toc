@@ -369,4 +369,7 @@ ControllerFocus.lua
 ControllerAdapters.lua
 JournalViewCache.lua
 RecorderHandoff.lua
+NativeLoot.lua
+NativeArchive.lua
+AddonSettings.lua
 Bootstrap.lua

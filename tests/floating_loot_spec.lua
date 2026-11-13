@@ -29,9 +29,9 @@ local function check(report, key, id, n, inferred)
     end
     error('missing '..key..'/'..id)
 end
-assert(not F.Preferences(c).enabled and F.Preferences(c).minutes == 30)
+assert(not F.Preferences(c).enabled and F.Preferences(c).minutes == 1440)
 assert(F.SetMinutes(c, '1') and not F.SetMinutes(c, '2.5') and not F.SetMinutes(c, 1441))
-assert(F.Preferences(alt).minutes == 30 and F.Preferences(c).minutes == 1)
+assert(F.Preferences(alt).minutes == 1440 and F.Preferences(c).minutes == 1)
 receipt(940,'loot',18,12) -- outside the half-open rolling window at 1000
 receipt(943,'loot',20,3,{npcID=31,npcName='Gnoll'})
 receipt(948,'loot',20,4,{npcID=31,npcName='Gnoll'})
@@ -127,27 +127,4 @@ V.frame.close:Click()
 assert(not F.Preferences(c).enabled and not V.frame:IsShown())
 E.current, A.Now, E.RecorderReady = prev, now, ready
 
--- A late load of Blizzard Settings registers the same entry exactly once.
-local oldSettings, oldPanel, oldHide = Settings, SettingsPanel, HideUIPanel
-local panel, registrations, dismissed = nil, 0, 0
-Settings = {
-    RegisterCanvasLayoutCategory=function(p, name) assert(name=='My Epoch'); panel=p; return p end,
-    RegisterAddOnCategory=function(p) assert(p==panel); registrations=registrations+1 end,
-}
-SettingsPanel = CreateFrame('Frame')
-SettingsPanel:Show()
-HideUIPanel = function(p) assert(p==SettingsPanel); dismissed=dismissed+1; p:Hide() end
-local event = E.frame:GetScript('OnEvent')
-event(E.frame,'ADDON_LOADED','Blizzard_Settings_Shared')
-event(E.frame,'ADDON_LOADED','Blizzard_Settings')
-assert(registrations==1 and panel)
-local button=panel:GetChildren()
-local oldReady = E.RecorderReady
-E.RecorderReady = function() return false end
-button:Click()
-assert(dismissed==0)
-E.RecorderReady = function() return true end
-button:Click()
-assert(dismissed==1 and E.Book.chapter=='Loot' and E.Book.lootMode=='floating' and E.Book.Character()==E.current)
-Settings, SettingsPanel, HideUIPanel, E.RecorderReady = oldSettings, oldPanel, oldHide, oldReady
-print('PASS floating loot: rolling personal sources, live updates, character switching and native settings')
+print('PASS floating loot: rolling personal sources, live updates, grouped tiles and character switching')
