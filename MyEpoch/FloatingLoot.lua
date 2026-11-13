@@ -15,6 +15,7 @@ function F.Preferences(c)
     local saved = K.Owned(c) and c.state.floatingLoot or nil
     saved = type(saved) == 'table' and saved or {}
     return { enabled=saved.enabled == true, minutes=minutes(saved.minutes) or 30,
+        collapsed=type(saved.collapsed) == 'table' and saved.collapsed or {},
         x=K.Number(saved.x, 0, 1), y=K.Number(saved.y, 0, 1) }
 end
 local function save(c, changes)
@@ -36,6 +37,14 @@ end
 function F.SetPosition(c, x, y)
     if not K.Number(x, 0, 1) or not K.Number(y, 0, 1) then return false end
     return save(c, {x=x, y=y})
+end
+function F.SetCollapsed(c, key, collapsed)
+    if not K.Owned(c) or type(key) ~= 'string' or key == '' or type(collapsed) ~= 'boolean' then return end
+    local prefs = F.Preferences(c)
+    if (prefs.collapsed[key] == true) == collapsed then return end
+    prefs.collapsed[key] = collapsed or nil
+    c.state.floatingLoot = prefs
+    E.Store.Touch(c, 'floatingLoot', {sourceToggled=key})
 end
 function F.Relevant(kind) return kinds[kind] == true end
 
@@ -111,7 +120,7 @@ local function source(r, mob, quest)
 end
 function F.Build(c, now, duration, work, throughSequence)
     work = work or function() end
-    local result = {groups={}, rows={}, expires=nil}
+    local result = {groups={}, expires=nil}
     duration = minutes(duration)
     if not K.Owned(c) or not duration then return result end
     local start = now - duration * 60
@@ -137,7 +146,7 @@ function F.Build(c, now, duration, work, throughSequence)
             local key, label, inferred = source(r, mobs[r.id], quests[r.id])
             local group = indexed[key]
             if not group then
-                group = {key=key, label=label, items={}, byItem={}}
+                group = {key=key, label=label, items={}, byItem={}, quantity=0}
                 indexed[key] = group
                 table.insert(result.groups, group)
             end
@@ -148,6 +157,7 @@ function F.Build(c, now, duration, work, throughSequence)
                 table.insert(group.items, item)
             end
             group.latest = r.ts
+            group.quantity = group.quantity + r.quantity
             item.quantity = item.quantity + r.quantity
             item.latest, item.name, item.link = r.ts, r.title, r.itemLink
             item.inferred = item.inferred or inferred
@@ -166,10 +176,6 @@ function F.Build(c, now, duration, work, throughSequence)
             return a.id < b.id
         end, work)
         group.byItem = nil
-        for _, item in ipairs(group.items) do
-            work()
-            result.rows[#result.rows + 1] = {group=group, item=item}
-        end
     end
     return result
 end

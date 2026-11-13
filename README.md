@@ -114,6 +114,8 @@ A major milestone and its written recap share one notification. A level or skill
 
 Under **Loot → Floating loot**, choose **Show floating loot** to keep recent finds visible with the book closed. The window starts with the last 30 minutes. Choose a preset or enter 1 to 1,440 minutes, then drag its title to place it where you like.
 
+Click a mob or source name to fold or unfold its loot. The header counts every item you received from that source during the selected period. Underneath, each item has one icon with its total quantity. Hover over an icon for its item tooltip. Each character remembers which sources you folded.
+
 Under **Company → Companions**, open a player and choose **Add to favorites**. In **Company → Favorites**, give companions a shared tag such as *Raid* and assign them to rosters such as *Raid 1* or *Raid 2*. Choose a roster, select a player, and click **Invite** beside their name to send that player an invitation.
 
 Open the game's **Edit Mode** to move the **My Epoch notifications** area, or select **Move notifications in Edit Mode** in Archive. Drag the area or use its direction buttons, then choose **Apply position**. **Reset position** previews the default location; Apply saves it. **Cancel position** or leaving Edit Mode discards unapplied changes. The position follows account defaults unless this character uses an override. During positioning, queued notifications and the current toast's remaining time are preserved. Controller users can also use the existing Left/Right/Up/Down position controls in Archive; native Edit Mode keeps ownership of controller input.

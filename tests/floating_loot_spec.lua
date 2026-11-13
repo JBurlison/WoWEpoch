@@ -16,11 +16,15 @@ local function reward(ts, id, n)
         rewardType='item', sourceEvent='QUEST_LOOT_RECEIVED'})
 end
 local function check(report, key, id, n, inferred)
-    for _, row in ipairs(report.rows) do
-        if row.group.key == key and row.item.id == id then
-            assert(row.item.quantity == n, 'unexpected quantity for '..key)
-            assert((row.item.inferred == true) == (inferred == true), 'unexpected certainty for '..key)
-            return
+    for _, group in ipairs(report.groups) do
+        if group.key == key then
+            for _, item in ipairs(group.items) do
+                if item.id == id then
+                    assert(item.quantity == n, 'unexpected quantity for '..key)
+                    assert((item.inferred == true) == (inferred == true), 'unexpected certainty for '..key)
+                    return group
+                end
+            end
         end
     end
     error('missing '..key..'/'..id)
@@ -47,11 +51,12 @@ S.Changed(c,drop)
 receipt(991,'loot',9,2,{observedLootWindow=window.id,source='unknown',mapID=1429})
 local result = F.Build(c,epoch + 1000,1)
 check(result,'mob/31',20,7); check(result,'crafted/Tailoring',25,3); check(result,'gathered/Mining',42,2,true)
-check(result,'quest/109',11,2,true); check(result,'unknown',12,1); check(result,'unknown',13,2)
+check(result,'quest/109',11,2,true); check(result,'unknown',12,1)
+assert(check(result,'unknown',13,2).quantity == 3)
 check(result,'mob/32',9,2)
-assert(#result.rows == 7 and result.expires == epoch + 1003)
+assert(#result.groups == 6 and result.expires == epoch + 1003)
 check(F.Build(c,epoch + 1003,1),'mob/31',20,4)
-assert(#F.Build(c,epoch + 1051,1).rows == 0 and #F.Build(alt,epoch + 1000,1).rows == 0)
+assert(#F.Build(c,epoch + 1051,1).groups == 0 and #F.Build(alt,epoch + 1000,1).groups == 0)
 
 local prev, now, ready = E.current, A.Now, E.RecorderReady
 E.current, A.Now, E.RecorderReady = c, function()return epoch + 1000 end, function()return true end
@@ -64,28 +69,61 @@ local function pump()
     end
 end
 pump()
-assert(V.frame.rows[1].name:GetText() ~= '' and V.frame.rows[1].icon.itemID == 9)
-assert(V.frame.next:IsShown()); V.frame.next:Click()
-assert(V.frame.rows[1].icon.itemID == 20 and not V.frame.rows[2]:IsShown())
+local frame = V.frame
+assert(frame.headers[1].label:GetText() == 'Bandit' and frame.headers[1].total:GetText() == '×2')
+assert(frame.tiles[1].itemID == 9 and frame.tiles[1].quantity:GetText() == '2')
+assert(frame.headers[2].source == 'unknown' and frame.headers[2].total:GetText() == '×3')
+assert(frame.tiles[4].itemID == 11 and frame.tiles[4].inference:IsShown())
+assert(frame.next:IsShown()); frame.next:Click()
+assert(frame.headers[3].source == 'mob/31' and frame.tiles[3].itemID == 20 and not frame.tiles[4]:IsShown())
+frame.previous:Click()
 -- Idle views do no history work. Corrections and time expiry refresh the
 -- existing frame without a new login or reopening the scrapbook.
 local oldBuild, builds = F.Build, 0
 F.Build = function(...) builds = builds + 1; return oldBuild(...) end
+pump(); assert(builds == 0)
+frame.headers[1]:Click()
+assert(F.Preferences(c).collapsed['mob/32'] and frame.headers[1].mark:GetText() == '+')
+assert(frame.tiles[1].itemID == 13 and frame.headers[1].total:GetText() == '×2')
+assert(not F.Preferences(alt).collapsed['mob/32'])
+frame.headers[1]:Click()
+assert(frame.tiles[1].itemID == 9 and not F.Preferences(c).collapsed['mob/32'])
 pump(); assert(builds == 0)
 gathered.kind, gathered.gathering, gathered.profession = 'loot', nil, nil
 S.Changed(c,gathered)
 pump(); assert(builds == 1)
 check(F.Build(c,epoch + 1000,1),'unknown',42,2)
 E.RecorderReady = function()return false end
-V.frame.scripts.OnUpdate(V.frame,.3); assert(not V.frame.rows[1]:IsShown())
+V.frame.scripts.OnUpdate(V.frame,.3); assert(not frame.headers[1]:IsShown() and not frame.tiles[1]:IsShown())
 E.RecorderReady = function()return true end
-pump(); assert(V.frame.rows[1]:IsShown())
+pump(); assert(frame.headers[1]:IsShown())
 A.Now = function()return epoch + 1051 end
-pump(); assert(V.frame.empty:IsShown() and not V.frame.rows[1]:IsShown())
+pump(); assert(frame.empty:IsShown() and not frame.headers[1]:IsShown())
 F.Build = oldBuild
+-- A large source continues under the same heading. Every stack appears once.
+for id=101,131 do receipt(1045,'loot',id,2,{npcID=88,npcName='Gnoll'}) end
+pump()
+local seen = {}
+for pg=1,2 do
+    assert(frame.headers[1].source == 'mob/88' and frame.headers[1].total:GetText() == '×62')
+    for _, tile in ipairs(frame.tiles) do
+        if tile:IsShown() then
+            assert(not seen[tile.itemID] and tile.quantity:GetText() == '2')
+            seen[tile.itemID] = true
+        end
+    end
+    if pg == 1 then assert(frame.next:IsEnabled()); frame.next:Click() end
+end
+for id=101,131 do assert(seen[id]) end
+frame.headers[1]:Click()
+assert(not frame.next:IsShown() and not frame.tiles[1]:IsShown())
 E.current = alt; V.Sync(alt)
 assert(not V.frame:IsShown() and not F.Preferences(alt).enabled)
-E.current = c; V.Sync(c); V.frame.close:Click()
+E.current = c; V.Sync(c); pump()
+assert(frame.headers[1].mark:GetText() == '+' and not frame.tiles[1]:IsShown())
+frame.headers[1]:Click()
+assert(frame.tiles[1]:IsShown() and frame.next:IsEnabled())
+V.frame.close:Click()
 assert(not F.Preferences(c).enabled and not V.frame:IsShown())
 E.current, A.Now, E.RecorderReady = prev, now, ready
 
