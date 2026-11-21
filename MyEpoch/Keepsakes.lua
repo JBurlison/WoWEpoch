@@ -72,6 +72,18 @@ end
 function K.Pending(c,key)
     local queue=queues[c];return queue and (key and queue.jobs[key]~=nil or not key and #queue.keys>0)or false
 end
+function K.HasOwners() return #owners>0 end
+function K.HasReadyWork()
+    for i=1,#owners do
+        local c=owners[i]; local queue=queues[c]
+        if not K.Owned(c) or not queue or #queue.keys==0 then return true end
+        for _,candidate in ipairs(queue.keys) do
+            local job=queue.jobs[candidate]
+            if job and (job.work or not job.ready or job.ready()) then return true end
+        end
+    end
+    return false
+end
 function K.Process(budget)
     local c,queue,key,job
     for attempt=1,#owners do

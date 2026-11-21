@@ -21,6 +21,10 @@ function V.Request(c,options)
     end
     return j.model,j.error
 end
+function V.HasWork()
+    local j=V.job
+    return j~=nil and j.work~=nil and not j.model and not j.error and (B.frame~=nil and B.frame:IsShown() or false)
+end
 function V.Tick()
     local j=V.job;if not j then return end
     -- A temporary hide keeps the staged view, but neither polls its context

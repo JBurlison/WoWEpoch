@@ -199,6 +199,7 @@ local function keepDetail(c,r,state)
     local through=type(r.observedThrough)=='number'and r.observedThrough or r.ts
     return nearEncounter(state.encounters,r.ts,math.max(r.ts,through))
 end
+function P.HasTrimWork() return trim~=nil end
 function P.TrimStep(budget)
     local t=trim;if not t then return end
     local remaining=budget or 400

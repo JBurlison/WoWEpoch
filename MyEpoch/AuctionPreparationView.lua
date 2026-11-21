@@ -64,7 +64,14 @@ function G.Gate(reset)
  else status('Preparing auction history')end
  return true
 end
+function G.HasWork()
+ return G.desired~=nil or G.job~=nil or G.resume~=nil or P.reusable~=nil
+end
+function G.HasFrameWork()
+ return G.resume~=nil or (G.desired~=nil and (not G.job or G.job.status=='preparing'))
+end
 function G.Process(budget)
+ if not G.desired and not G.job and not G.resume and not P.reusable then return end
  P.Prune();P.PruneListPlan(G.job)
  if not visible()then
   P.ReleaseReusable('hidden')

@@ -98,6 +98,7 @@ function C.FlagHeartbeat()
     if C.flagBeatAge and C.flagBeatAge<1 then C.flagBeatPending=true;return end
     C.flagBeatPending=nil;C.flagBeatAge=0;C.Heartbeat()
 end
+function C.HasTickWork() return C.questReadAge~=nil or C.flagBeatAge~=nil end
 function C.Tick(delta)
     if type(delta)~='number'or delta~=delta or delta<0 then return end
     if C.questReadAge then
@@ -112,7 +113,11 @@ end
 readQuests=function(accepted)
     local c,ts=E.current,A.Now()
     local session=C.session
-    local context=location({})
+    local context
+    local function getContext()
+        if not context then context=location({}) end
+        return context
+    end
     C.removed=C.removed or {}
     if accepted then C.removed[accepted]=nil end
     local previous={}
@@ -122,23 +127,35 @@ readQuests=function(accepted)
     for _,info in ipairs(log or {}) do if not C.removed[info.questID] then
         seen[info.questID]=true
         if previous[info.questID]==(c.state.activeQuests or {})[info.questID] then
-            local q=H.BeginQuest(c,info.questID,info.title,ts,accepted==info.questID,context)
-            q.title=info.title; q.level=info.level; H.QuestObserved(c,q,ts)
+            local existingID=(c.state.activeQuests or {})[info.questID]
+            local existing=existingID and c.records[existingID]
+            local needContext=not (existing and existing.id==existingID and existing.character==c.id and existing.kind=="quest_attempt" and existing.questID==info.questID and not existing.completion and not existing.ended)
+            local q=H.BeginQuest(c,info.questID,info.title,ts,accepted==info.questID,needContext and getContext() or nil)
+            local changedTitle=q.title~=info.title or q.level~=info.level
+            q.title=info.title; q.level=info.level
+            local interval=q.intervals and q.intervals[#q.intervals]
+            if changedTitle or not (q.membershipObserved==true and not q.observationGap and q.membershipObservedAt==ts and interval and not interval.closed and interval.through==ts) then
+                H.QuestObserved(c,q,ts)
+            end
             C.ObserveQuestCounters(c,q,ts,false)
         end
         if c~=E.current or session~=C.session then return end
     end end
     if accepted and not seen[accepted] and not C.removed[accepted]
         and previous[accepted]==(c.state.activeQuests or {})[accepted] then
-        H.BeginQuest(c,accepted,A.QuestTitle(accepted),ts,true,context); seen[accepted]=true
+        H.BeginQuest(c,accepted,A.QuestTitle(accepted),ts,true,getContext()); seen[accepted]=true
     end
     C.QuestMembership(seen)
 end
-function C.QuestMembership(seen)
+function C.QuestMembership(seen,fromHeartbeat)
     local c,ts=E.current,A.Now()
     for id,attemptID in pairs(c.state.activeQuests or {}) do if not (seen and seen[id]) then
         local q=c.records[attemptID]; local onQuest=A.OnQuest(id)
-        if q and onQuest==true then H.QuestObserved(c,q,ts)
+        if q and onQuest==true then
+            local interval=fromHeartbeat and q.membershipObserved==true and not q.observationGap and q.intervals and q.intervals[#q.intervals]
+            if not (interval and not interval.closed and type(interval.through)=="number" and ts>=interval.through and ts-interval.through<10) then
+                H.QuestObserved(c,q,ts)
+            end
         elseif q and onQuest==false then
             H.PauseQuest(c,q,ts,"quest absent when observed; exact removal time unknown")
             H.RemoveQuest(c,id,ts,C.session,"no longer active; end reason unconfirmed")
@@ -414,7 +431,7 @@ function C.Heartbeat()
     H.Play(c,now,afk,session)
     local sampled=readWallet(c,session,now,C.moneyContext)
     if not recording(c,session) or E.recordingGUID==c.id and not E.RecorderReady()then return end
-    C.QuestMembership()
+    C.QuestMembership(nil,true)
     if not sampled and recording(c,session)then C.Roster()end
     if not recording(c,session)then return end
     for id,entries in pairs(E.current.state.recentRemoved or {}) do
@@ -441,7 +458,7 @@ function C.Start(identity,ownerOnly)
     c.identity.build=build; c.state.level=identity.level
     readWallet(c,C.session,A.Now(),nil,ownerOnly and E.recordingTransition and identity.id)
     C.rosterObserved=false; C.leftRosterAt=nil; C.removed={}; C.flagBeatPending=nil; C.flagBeatAge=nil
-    C.Roster(); E.Encounters.Start(c); C.Quests(); C.CompletedBaseline(); C.Skills(true); C.Zone(); E.Progress.Start(c); E.Merchant.Start(c); E.QuestAtlas.Start(c); E.Drops.Start(); E.Inventory.Start(c); C.Heartbeat()
+    C.Roster(); E.Encounters.Start(c); C.Quests(); C.CompletedBaseline(); C.Skills(true); C.Zone(); E.Progress.Start(c); E.Merchant.Start(c); E.QuestAtlas.Start(c,true); E.Drops.Start(); E.Inventory.Start(c); C.Heartbeat()
     E.QuestieBridge.Start()
     E.Gathering.Start(c)
     E.GoldChecks.Ensure(c)

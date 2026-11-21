@@ -121,6 +121,7 @@ local function valid(entry)
         and r.from==entry.from and r.through==entry.through
         and not entry.dirty
 end
+function P.HasWork() return active~=nil end
 function P.Tick()
     local entry=active;if not entry then return end
     if not valid(entry)then active=nil;entry.job=nil;E.Emit('JOURNAL_WRITTEN',entry.owner);return end

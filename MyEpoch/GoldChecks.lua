@@ -160,6 +160,7 @@ function K.Ensure(c)
  return K.Status(c)
 end
 function K.Retry(c)if pending[c]then K.Request(c)end end
+function K.HasWork() return head<=tail end
 function K.Process()
  local state=queue[head];if not state then return end
  queue[head]=nil;head=head+1;if head>tail then queue={};head,tail=1,0 end

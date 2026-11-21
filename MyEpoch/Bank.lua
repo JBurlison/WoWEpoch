@@ -6,21 +6,27 @@ local function call(label,fn,...)
     local value=A.Call(label,fn,...)
     return value,A.status[label]==success
 end
+local function callTable(label,fn,...)
+    local value=A.CallTable(label,fn,...)
+    return value,A.status[label]==success
+end
 local function slot(counts,bag,index)
     local id,ok=call("bankItemID",C_Container and C_Container.GetContainerItemID,bag,index)
-    local info,infoOK=call("bankItem",C_Container and C_Container.GetContainerItemInfo,bag,index)
+    local info,infoOK=callTable("bankItem",C_Container and C_Container.GetContainerItemInfo,bag,index)
     local again,againOK=call("bankItemIDCheck",C_Container and C_Container.GetContainerItemID,bag,index)
     if not ok or not infoOK or not againOK or id~=again then return nil,"Bank item identity unavailable or changing" end
     if id==nil then
         if info~=nil then return nil,"Empty bank-slot observations disagree" end
         return true,0
     end
-    if type(info)=="table" and info.isLocked==true then return nil,"Bank item movement is locked",true end
-    if not integer(id,1,9007199254740991) or type(info)~="table" or info.itemID~=id or info.isLocked~=false
-        or not integer(info.stackCount,1,67108864) then return nil,"Bank item count unavailable or inconsistent" end
-    counts[id]=(counts[id] or 0)+info.stackCount
+    if type(info)~="table" then return nil,"Bank item count unavailable or inconsistent" end
+    local locked,itemID,stackCount=info.isLocked,info.itemID,info.stackCount
+    if locked==true then return nil,"Bank item movement is locked",true end
+    if not integer(id,1,9007199254740991) or itemID~=id or locked~=false
+        or not integer(stackCount,1,67108864) then return nil,"Bank item count unavailable or inconsistent" end
+    counts[id]=(counts[id] or 0)+stackCount
     if counts[id]>67108864 then return nil,"Bank item total exceeds accounting bounds" end
-    return true,info.stackCount
+    return true,stackCount
 end
 local function layout(bankType,carriedSizes)
     local n,nOK=call("bankTabCount",C_Bank.FetchNumPurchasedBankTabs,bankType)

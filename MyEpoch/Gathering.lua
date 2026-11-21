@@ -143,6 +143,7 @@ function G.Step(c,budget)
         if pending[c]~=state then return end
     end
 end
+function G.HasWork() return head<=tail end
 function G.Process()
     local state=queue[head];if not state then return end
     queue[head]=nil;head=head+1

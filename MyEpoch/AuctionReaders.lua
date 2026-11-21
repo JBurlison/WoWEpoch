@@ -800,6 +800,50 @@ local function indexRecord(index,r,work,detail)
     local stable=watch and previous==r and old.kind==r.kind and old.calendarStamp==stamp
         and old.calendarSequence==S.Sequence(r) and old.calendarTie==r.sequence and old.calendarOwner==r.character
         and old.calendarGroup==r.group and old.calendarGroupState==r.groupState
+    if old and previous==r and old.kind==r.kind and (r.kind=="play" or r.kind=="quest_attempt")
+        and not index.building and not work and not index.craftFrontier.members[r.id]
+        and not Q.LootWindowKey(r)
+        and not old.killBlock and not old.creditAttempt and not old.auction and not old.major
+        and not old.window and not old.actionRefs and not old.chatSlot and not old.encounterLoot
+        and not old.reward and not old.unanchoredOffer then
+        local bucket=stamp and math.floor(stamp/86400)
+        if bucket==old.bucket then
+            local calendarBucket
+            local slotValid=true
+            if keeper then
+                local calendarTime=E.CalendarView.IndexStamp(r)
+                local day=calendarTime and E.CalendarView.IndexKind(r.kind) and math.floor(calendarTime/86400)
+                calendarBucket=day or nil
+                local priorDay=old.calendarBucket or old.bucket
+                slotValid=(day==nil and not old.calendarSlot) or (day~=nil and old.calendarSlot~=nil and priorDay==day)
+            end
+            if slotValid and calendarBucket==old.calendarBucket then
+                if r.kind=="play" and playExtension and not r.group and not old.groups then
+                    old.previousKind="play";old.calendarEnd=r.ended
+                    if keeper then
+                        index.calendarChange={record=r,before=old.calendarBucket or old.bucket,after=calendarBucket or bucket,prior="play",stable=false,playExtension=true}
+                    end
+                    return
+                elseif r.kind=="quest_attempt" and stable then
+                    local sameGroup=(not r.group and not old.groups)
+                    if not sameGroup and r.group and old.groups and old.groups[r.group] then
+                        local first=next(old.groups)
+                        sameGroup=(first==r.group and next(old.groups,first)==nil)
+                    end
+                    local sameCounter=(not r.group and old.companyCounter==nil)
+                        or (r.group and ((not rawget(E,"History") and old.companyCounter==nil)
+                            or (rawget(E,"History") and old.companyCounter==companyCounter("quest_attempt",r.status=="completed"))))
+                    if sameGroup and sameCounter then
+                        old.previousKind="quest_attempt"
+                        if keeper then
+                            index.calendarChange={record=r,before=old.calendarBucket or old.bucket,after=calendarBucket or bucket,prior="quest_attempt",stable=true,playExtension=false}
+                        end
+                        return
+                    end
+                end
+            end
+        end
+    end
     if S.CraftRequestSource(r) or index.craftFrontier.members[r.id] then
         S.IndexCraftRequest(index.craftFrontier,r.id,S.CraftRequestSource(r) and r or nil)
     end
@@ -1024,6 +1068,7 @@ end
 -- Retention replaces that order and cancels preparation; no partial index leaks.
 function Q.IsWarm(c)return indexes[c]~=nil end
 function Q.Preparation(c)return warming[c]end
+function Q.HasPreparation()return warmHead<=warmTail end
 function Q.DepositSubjects(c)
     return indexes[c] and indexes[c].depositSubjects.rows.ids
 end
@@ -1445,11 +1490,13 @@ function Q.TimeStats(c,from,through,within,withRecords,work,playCut)
     local records=withRecords and {}or nil
     local active,afk,unknown,known={},{},{},{}
     local sessions={}
+    local type=type
     local function read(r)
         if work then work()end
-        if S.Timestamp(r) and r.ended>from and r.ts<through then
+        local ts,ended=r.ts,r.ended
+        if type(ts)=="number" and type(ended)=="number" and ended>from and ts<through and S.Timestamp(r) then
             if records then records[#records+1]=r end
-            local interval={math.max(from,r.ts),math.min(through,r.ended)}
+            local interval={math.max(from,ts),math.min(through,ended)}
             if r.status=="active" then active[#active+1]=interval; known[#known+1]=interval
                 if withRecords and type(r.session)=='string'then sessions[r.session]=sessions[r.session]or{};sessions[r.session][#sessions[r.session]+1]=interval end
             elseif r.status=="afk" then afk[#afk+1]=interval; known[#known+1]=interval
@@ -1462,10 +1509,26 @@ function Q.TimeStats(c,from,through,within,withRecords,work,playCut)
         for n=1,playCut.last do _auctionTick();
             if work then work()end
             local r=c.records[playCut.ids[n]]
-            if r and r.kind=="play" then read(r)end
+            if r and r.kind=="play" then
+                local ended=r.ended
+                if type(ended)=="number" and ended>from then
+                    local ts=r.ts
+                    if type(ts)=="number" and ts<through then read(r)end
+                end
+            end
         end
     else
-        for _,r in pairs(index(c).kinds.play or {})do _auctionTick(); read(r)end
+        local play=index(c).kinds.play
+        if play then
+            for _,r in pairs(play)do _auctionTick();
+                if work then work()end
+                local ended=r.ended
+                if type(ended)=="number" and ended>from then
+                    local ts=r.ts
+                    if type(ts)=="number" and ts<through then read(r)end
+                end
+            end
+        end
     end
     local exclusions={}; for _,i in ipairs(afk) do _auctionTick(); if work then work()end;exclusions[#exclusions+1]=i end
     for _,i in ipairs(unknown) do _auctionTick(); if work then work()end;exclusions[#exclusions+1]=i end
@@ -1542,7 +1605,7 @@ end
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Query",create=create}
-E.AuctionReaderSources["Query.lua"]="600edf473aea75ab39b64a571a26f58af7f49aa8d74fb9b4de7d4d501819944c"
+E.AuctionReaderSources["Query.lua"]="d57b17ff23f314144688ddcf8263b846e432f2be6e241b25a474726fd239de38"
 end
 
 -- Economy.lua
@@ -2528,6 +2591,7 @@ function T.Finish(r)
     S.Changed(c,r);release()
 end
 function T.Tick(delta)
+    if not T.current and not T.pending then return end
     if not live()then return end
     local now=A.Now()
     if T.lastTime and now<T.lastTime then T.Interrupt('The local clock moved backwards during the trade.')end;T.lastTime=now
@@ -2553,6 +2617,7 @@ local function recheck(c,r)
     local cache=dependencies[c];local old=E.Query.PreviousKind(c,r.id)
     local previous=cache and cache.windows[r.id]
     if r.kind=='wallet_window'and previous and previous.kind==r.kind and previous.session==r.session and previous.character==r.character then return end
+    if r.kind~='gold'and r.kind~='trade'and old~='trade'and not r.trade and not(cache and cache.rows[r.id])then return end
     refreshing=true
     local rows,seen={},{}
     local function add(id)local w=c.records[id];if w and w.kind=='gold'and not seen[id]then seen[id]=true;rows[#rows+1]=w end end
@@ -2578,7 +2643,7 @@ wrap('PLAYER_LOGOUT',function()T.Interrupt('Recording ended before reconciliatio
 
 end
 E.AuctionReaderFactories[#E.AuctionReaderFactories+1]={name="Trades",create=create}
-E.AuctionReaderSources["Trades.lua"]="b297f15936c66a1112ab7e49fbfb4510c18600c7d906c76b8e26e4750c700c5e"
+E.AuctionReaderSources["Trades.lua"]="e463cc9361b88ce261ed9d830eb3bbf57d41765c33152b4e11fe7467d32d2760"
 end
 
 -- Mail.lua

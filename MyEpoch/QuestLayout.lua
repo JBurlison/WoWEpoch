@@ -192,6 +192,7 @@ E.On('QUEST_ATLAS_CHANGED',function(c,checked)
     else return end
     if not pendingFacts or pendingFacts.ids~=ids then pendingFacts={owner=c,ids=ids,elapsed=0} end
 end)
+function V.HasCatalogRefresh() return catalogOwner~=nil or pendingFacts~=nil end
 function V.ProcessCatalogRefresh(delta)
     -- Catalog replacement and batches of newly observed player flags may both
     -- change the displayed rows. Let ongoing input survive a deferred redraw.
@@ -218,6 +219,7 @@ local function listPosition(report,id)
 end
 function V.Render(left,right)
     local c=B.Character()
+    if c==E.current and E.QuestAtlas.EnsureCatalogQueued then E.QuestAtlas.EnsureCatalogQueued(c) end
     B.questZone=B.questZone or "all"
     B.questFilter="completed"
     local current=B.questZone=="current" and A.Location() or c.state.lastLocation or {}

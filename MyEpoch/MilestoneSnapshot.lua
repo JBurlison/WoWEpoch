@@ -200,6 +200,7 @@ function X.StartSharing()
  pass={characters={},index=1,position=1}
  for _,id in ipairs(E.SortedKeys(E.db.characters))do pass.characters[#pass.characters+1]=E.db.characters[id]end
 end
+function X.HasWork() return pass~=nil end
 function X.ShareStep(budget)
  local p=pass;if not p then return end
  local remaining=budget or 400

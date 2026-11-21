@@ -1,6 +1,6 @@
 local name,E=...
 local frame=CreateFrame("Frame"); E.frame=frame
-local elapsed,workElapsed=0,0
+local elapsed,workElapsed,idleDelta=0,0,0
 local function report(message)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffd080My Epoch:|r "..message) end
 end
@@ -35,7 +35,7 @@ local function bindVerifiedOwner(identity)
     resumeKeepsakes(E.current,now)
     E.JournalJobs.Login(E.current,now)
     E.Book.SyncCombat()
-    elapsed,workElapsed=0,0
+    elapsed,workElapsed,idleDelta=0,0,0
     return true
 end
 local function reconcileRecordingOwner()
@@ -220,46 +220,107 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif chatRoute(event) then E.Collectors.Chat(event,...)
     elseif E.Collectors.handlers[event] then E.Collectors.handlers[event](...) end
 end)
+local function hasFrameWork()
+    if E.TravelMoney.pending~=nil
+        or E.TrainerLearning.HasWork()
+        or E.Query.HasPreparation()
+        or E.MilestoneSnapshot.HasWork()
+        or E.Pulls.HasTrimWork()
+        or (E.Keepsakes and E.Keepsakes.HasReadyWork())
+        or E.Notifications.HasWork()
+        or E.KeepsakeView.HasWork()
+        or E.ItemCache.HasWork()
+        or E.Search.HasTranscript()
+        or E.Gathering.HasWork()
+        or E.GoldChecks.HasWork()
+        or E.CalendarView.HasWork()
+        or (E.DiaryPresentation and E.DiaryPresentation.HasWork())
+        or E.Capture.HasWork()
+        or (E.current and E.Collectors.HasTickWork())
+        or E.Archive.worker~=nil or E.Archive.reviewWorker~=nil or E.Archive.cleanupWorker~=nil then
+        return true
+    end
+    local bookShown=E.Book.frame and E.Book.frame:IsShown()
+    if bookShown and (E.Book.preparingCharacter~=nil or E.Book.badgesWaiting~=nil) then return true end
+    if E.MobDropView and E.MobDropView.HasWork() then return true end
+    if E.CraftProjectionPreparation and (E.CraftProjectionPreparation.waiting~=nil or (E.CraftProjectionPreparation.job~=nil and E.CraftProjectionPreparation.job.status=="preparing")) then return true end
+    if E.AuctionPreparationView and E.AuctionPreparationView.HasFrameWork() then return true end
+    if E.current and E.JournalJobs.HasFrameWork(E.current) then return true end
+    return false
+end
 frame:SetScript("OnUpdate",function(_,delta)
     if openFailure then return end
+    delta=delta or 0
+    local nextElapsed=elapsed+delta
+    local nextWork=workElapsed+delta
+    local periodic=nextWork>=0.1
+    local heartbeat=nextElapsed>=5
+    local active=E.recordingMismatch or E.recordingTransition or hasFrameWork()
+    if not active and not periodic and not heartbeat then
+        elapsed=nextElapsed
+        workElapsed=nextWork
+        idleDelta=idleDelta+delta
+        return
+    end
     if not E.RecorderReady() then reconcileRecordingOwner(); return end
-    E.TravelMoney.Tick()
-    E.TrainerLearning.Tick()
-    E.Query.ProcessPreparation(500)
-    E.MilestoneSnapshot.ShareStep(400)
-    E.Pulls.TrimStep(400)
-    if E.Keepsakes then E.Keepsakes.Process(500)end
-    E.Notifications.Tick(delta)
-    E.KeepsakeView.Tick()
-    E.ItemCache.Tick()
-    E.Search.TranscriptTick(750)
-    E.Gathering.Process()
-    E.GoldChecks.Process()
-    E.Book.PreparationTick()
-    if E.DiaryPresentation then E.DiaryPresentation.Tick()end
-    if E.MobDropView then E.MobDropView.Tick()end
-    if E.CraftProjectionPreparation then E.CraftProjectionPreparation.Process(4000)end
-    if E.AuctionPreparationView then E.AuctionPreparationView.Process(4000)end
-    E.Capture.Tick(delta)
-    E.Production.Tick(delta)
-    E.Pulls.Tick(delta)
-    E.Auctions.Tick(delta)
-    E.Trades.Tick(delta)
-    E.Mail.Tick(delta)
-    E.Drops.Tick(delta)
-    E.QuestieBridge.Tick(delta)
-    E.Inventory.Process(delta)
-    E.Archive.Step(1000)
-    E.Archive.StepReview(1000)
-    E.Archive.StepCleanupFrame()
-    E.Archive.Tick(delta)
+    local stepDelta=idleDelta+delta
+    idleDelta=0
+    elapsed=nextElapsed
+    workElapsed=nextWork
+    if E.TravelMoney.pending then E.TravelMoney.Tick() end
+    if E.TrainerLearning.HasWork() then E.TrainerLearning.Tick() end
+    if E.Query.HasPreparation() then E.Query.ProcessPreparation(500) end
+    if E.MilestoneSnapshot.HasWork() then E.MilestoneSnapshot.ShareStep(400) end
+    if E.Pulls.HasTrimWork() then E.Pulls.TrimStep(400) end
+    if E.Keepsakes and E.Keepsakes.HasOwners() then E.Keepsakes.Process(500) end
+    if E.Notifications.HasWork() then E.Notifications.Tick(stepDelta) end
+    if E.KeepsakeView.HasWork() then E.KeepsakeView.Tick() end
+    if E.ItemCache.HasWork() then E.ItemCache.Tick() end
+    if E.Search.HasTranscript() then E.Search.TranscriptTick(750) end
+    if E.Gathering.HasWork() then E.Gathering.Process() end
+    if E.GoldChecks.HasWork() then E.GoldChecks.Process() end
+    local bookShown=E.Book.frame and E.Book.frame:IsShown()
+    if E.CalendarView.HasWork() or (bookShown and (E.Book.preparingCharacter~=nil or E.Book.badgesWaiting~=nil)) then
+        E.Book.PreparationTick()
+    end
+    if E.DiaryPresentation and E.DiaryPresentation.HasWork() then E.DiaryPresentation.Tick() end
+    if E.MobDropView and E.MobDropView.job then E.MobDropView.Tick() end
+    if E.CraftProjectionPreparation and (E.CraftProjectionPreparation.waiting or E.CraftProjectionPreparation.job) then
+        E.CraftProjectionPreparation.Process(4000)
+    end
+    if E.AuctionPreparationView and E.AuctionPreparationView.HasWork() then
+        E.AuctionPreparationView.Process(4000)
+    end
+    if E.Capture.HasWork() then E.Capture.Tick(stepDelta) end
+    if E.Production.window then E.Production.Tick(stepDelta) end
+    if E.Pulls.needsScan or E.Pulls.job or (E.Pulls.queue and #E.Pulls.queue>0) then E.Pulls.Tick(stepDelta) end
+    if E.Auctions.dirty or E.Auctions.job then E.Auctions.Tick(stepDelta) end
+    if E.Trades.current or E.Trades.pending then E.Trades.Tick(stepDelta) end
+    if E.Mail.open then E.Mail.Tick(stepDelta) end
+    if E.Drops.live and E.Drops.live.queue[E.Drops.live.head]~=nil then E.Drops.Tick(stepDelta) end
+    if E.QuestieBridge.worker then E.QuestieBridge.Tick(stepDelta) end
+    E.Inventory.Process(stepDelta)
+    if E.Archive.worker then E.Archive.Step(1000) end
+    if E.Archive.reviewWorker then E.Archive.StepReview(1000) end
+    if E.Archive.cleanupWorker then E.Archive.StepCleanupFrame() end
+    E.Archive.Tick(stepDelta)
     if not E.current then return end
-    E.Collectors.Tick(delta)
-    E.JournalJobs.Step(E.current,E.API.Now(),500)
-    E.JournalJobs.StepWriters(E.current,E.API.Now(),500)
-    E.JournalViews.Tick(E.API.Now())
-    elapsed=elapsed+delta
+    local now=E.API.Now()
+    if E.Collectors.HasTickWork() then E.Collectors.Tick(stepDelta) end
+    if E.JournalJobs.HasFrameWork(E.current) then
+        E.JournalJobs.Step(E.current,now,500)
+        E.JournalJobs.StepWriters(E.current,now,500)
+    end
+    if bookShown and (periodic or E.JournalViews.HasWork()) then
+        E.JournalViews.Tick(now)
+    end
     if elapsed>=5 then elapsed=0; E.Collectors.Heartbeat() end
-    workElapsed=workElapsed+delta
-    if workElapsed>=0.1 then E.Merchant.Process(workElapsed); E.QuestAtlas.Process(workElapsed); workElapsed=0; E.Progress.Process(E.current,E.API.Now(),2); E.JournalJobs.Process(E.current,E.API.Now(),1,true); E.Search.Process(500) end
+    if workElapsed>=0.1 then
+        local workDelta=workElapsed; workElapsed=0
+        if E.Merchant.open then E.Merchant.Process(workDelta) end
+        if E.QuestAtlas.HasWork() then E.QuestAtlas.Process(workDelta) end
+        if E.Progress.HasWork(E.current) then E.Progress.Process(E.current,now,2) end
+        E.JournalJobs.Process(E.current,now,1,true)
+        E.Search.Process(500)
+    end
 end)

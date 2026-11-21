@@ -291,6 +291,7 @@ function V.Catalog(c)
         end,function(result)result.generation=V.Generation(c);result.revision=result.generation;catalogs[c]=result;V.dirty=c end,function()return V.Generation(c)end)
     end
 end
+function V.HasWork() return V.dirty~=nil end
 function V.Tick()
     local c=V.dirty
     if K.Owned(c)and B.frame and B.frame:IsShown()and B.Character()==c then

@@ -204,29 +204,40 @@ function P.Achievement(achievementID,alreadyEarned)
     local flag; if not A.Secret(alreadyEarned) and type(alreadyEarned)=="boolean" then flag=alreadyEarned end
     observe("achievement",achievementID,{alreadyEarned=flag})
 end
+function P.HasWork(c)
+    if c~=E.current then return false end
+    if P.achievementScans[c] then return true end
+    local st=c.state.progress; if not st then return false end
+    return (st.pending and next(st.pending)~=nil) or (st.metadata and next(st.metadata)~=nil) or false
+end
 function P.Process(c,now,limit)
     if c~=E.current then return end
-    P.ScanAchievements(c,20)
-    local st=state(c); local work=0
+    if P.achievementScans[c] then P.ScanAchievements(c,20) end
+    local st=c.state.progress; if not st then return end
+    local work=0
     if not next(st.pending) and not next(st.metadata) then return end
-    for _,key in ipairs(E.SortedKeys(st.pending)) do local p=st.pending[key]
-        if p.due<=now or now<p.ts then
-            if now-p.ts>30 or now<p.ts then
-                local data=E.Copy(p.context); data.title="Unverified "..p.kind.." notification"; data.sourceID=p.sourceID; data.observedEvent=p.event
-                data.coverage=p.reason or "Character ownership could not be verified"; data.notificationCount=p.count; data.notifications=p.notifications; data.observationSequence=p.notifications[1].sequence
-                local linked={}; data.refs=data.refs or {}; for _,ref in ipairs(data.refs) do linked[ref]=true end
-                for _,n in ipairs(p.notifications) do if n.group and not linked[n.group] then data.refs[#data.refs+1]=n.group; linked[n.group]=true end end
-                S.Add(c,"gap",p.ts,data); st.pending[key]=nil
-                A.status[p.kind.."Observation"]="Unverified notifications retained as coverage gaps"
-            elseif resolve(c,p) then st.pending[key]=nil; S.Touch(c) else p.due=now+2 end
-            work=work+1; if work>=(limit or 2) then return end
+    if next(st.pending) then
+        for _,key in ipairs(E.SortedKeys(st.pending)) do local p=st.pending[key]
+            if p.due<=now or now<p.ts then
+                if now-p.ts>30 or now<p.ts then
+                    local data=E.Copy(p.context); data.title="Unverified "..p.kind.." notification"; data.sourceID=p.sourceID; data.observedEvent=p.event
+                    data.coverage=p.reason or "Character ownership could not be verified"; data.notificationCount=p.count; data.notifications=p.notifications; data.observationSequence=p.notifications[1].sequence
+                    local linked={}; data.refs=data.refs or {}; for _,ref in ipairs(data.refs) do linked[ref]=true end
+                    for _,n in ipairs(p.notifications) do if n.group and not linked[n.group] then data.refs[#data.refs+1]=n.group; linked[n.group]=true end end
+                    S.Add(c,"gap",p.ts,data); st.pending[key]=nil
+                    A.status[p.kind.."Observation"]="Unverified notifications retained as coverage gaps"
+                elseif resolve(c,p) then st.pending[key]=nil; S.Touch(c) else p.due=now+2 end
+                work=work+1; if work>=(limit or 2) then return end
+            end
         end
     end
-    for _,recordID in ipairs(E.SortedKeys(st.metadata)) do local job=st.metadata[recordID]
-        if job.due<=now then
-            local r=c.records[recordID]; job.tries=job.tries+1
-            if not r or enrich(c,r) or job.tries>=6 then st.metadata[recordID]=nil else job.due=now+5 end
-            work=work+1; if work>=(limit or 2) then return end
+    if next(st.metadata) then
+        for _,recordID in ipairs(E.SortedKeys(st.metadata)) do local job=st.metadata[recordID]
+            if job.due<=now then
+                local r=c.records[recordID]; job.tries=job.tries+1
+                if not r or enrich(c,r) or job.tries>=6 then st.metadata[recordID]=nil else job.due=now+5 end
+                work=work+1; if work>=(limit or 2) then return end
+            end
         end
     end
 end
