@@ -8,7 +8,9 @@ function E.On(event, fn)
     table.insert(E.listeners[event], fn)
 end
 function E.Emit(event, ...)
-    for _, fn in ipairs(E.listeners[event] or {}) do fn(...) end
+    local list=E.listeners[event]
+    if not list then return end
+    for i=1,#list do list[i](...) end
 end
 function E.Copy(value, seen)
     local t = type(value)

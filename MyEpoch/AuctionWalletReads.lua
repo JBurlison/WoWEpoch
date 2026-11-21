@@ -7,9 +7,9 @@ local R={};E.AuctionWalletReads=R
 -- Mail/trade live captures use A.Wallet without changing private read paths.
 R.Expected={
  ["Store.lua"]="bd58b6039f0fbafa6998c14694c823e9fe47c6a0b6c564c9a3f30a31c12ede9f",
- ["Query.lua"]="600edf473aea75ab39b64a571a26f58af7f49aa8d74fb9b4de7d4d501819944c",
+ ["Query.lua"]="d57b17ff23f314144688ddcf8263b846e432f2be6e241b25a474726fd239de38",
  ["Economy.lua"]="232ed4e75c6af891fd33f41c0dd3b9268b23c225c7bc8d70f7e0c06fb8fee34c",
- ["Trades.lua"]="b297f15936c66a1112ab7e49fbfb4510c18600c7d906c76b8e26e4750c700c5e",
+ ["Trades.lua"]="e463cc9361b88ce261ed9d830eb3bbf57d41765c33152b4e11fe7467d32d2760",
  ["Mail.lua"]="d2b97e9626f9f8d47f1c38f80f875b65ad0aca4f54e4785ee7d64dfd7361e0ad",
  ["Buyback.lua"]="cf90d6bc8f2390ae67b497e3847c0fbc45c90cfe4c81b7bcda72c004b8135cff",
  ["AuctionCosts.lua"]="14aeeff45425c0c0c7f287193eca2ee3321e301156d2a504edeec7c47ba914fc",

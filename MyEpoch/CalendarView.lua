@@ -529,6 +529,18 @@ end
 function V.Retry(c)
     if calendarCache and calendarCache.owner==c then calendarCache=nil;B.Render()end
 end
+function V.HasWork()
+    local state=calendarCache
+    if not state then return false end
+    if not current(state) then return true end
+    if (not state.error and (state.job~=nil or next(state.todo)~=nil))
+        or state.playJob~=nil or state.playDirty==true or state.playDay~=B.day or state.redraw==true then
+        return true
+    end
+    local view=displayed
+    return view~=nil and view.owner==state.owner and not view.editing and B.selected==view.selected and B.day==view.day
+        and (next(view.days)~=nil or view.play==true or view.journal~=nil or view.presentation~=nil or view.retell~=nil or view.detailText~=nil)
+end
 function V.Tick()
     local state=calendarCache
     if not state then return end

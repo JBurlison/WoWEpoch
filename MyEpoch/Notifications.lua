@@ -240,6 +240,13 @@ function N.Preview(c,scope)
     if N.sound and N.Preferences(c,scope).sound then N.sound()end
     return true
 end
+function N.HasWork()
+    if not E.db or suspendedDelivery then return false end
+    if active~=nil then return true end
+    local c=run and run.owner
+    local st=c and c.state.notifications
+    return st~=nil and st.pending~=nil and #st.pending>0
+end
 function N.Tick(elapsed)
     if not E.db or suspendedDelivery then return end
     -- Record/recap events populate the queue. An idle notifier has no display

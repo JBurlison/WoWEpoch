@@ -184,6 +184,7 @@ function T.Finish(r)
     S.Changed(c,r);release()
 end
 function T.Tick(delta)
+    if not T.current and not T.pending then return end
     if not live()then return end
     local now=A.Now()
     if T.lastTime and now<T.lastTime then T.Interrupt('The local clock moved backwards during the trade.')end;T.lastTime=now
@@ -209,6 +210,7 @@ local function recheck(c,r)
     local cache=dependencies[c];local old=E.Query.PreviousKind(c,r.id)
     local previous=cache and cache.windows[r.id]
     if r.kind=='wallet_window'and previous and previous.kind==r.kind and previous.session==r.session and previous.character==r.character then return end
+    if r.kind~='gold'and r.kind~='trade'and old~='trade'and not r.trade and not(cache and cache.rows[r.id])then return end
     refreshing=true
     local rows,seen={},{}
     local function add(id)local w=c.records[id];if w and w.kind=='gold'and not seen[id]then seen[id]=true;rows[#rows+1]=w end end

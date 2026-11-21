@@ -906,6 +906,7 @@ local function redraw(j)
     if #drafts>0 then b.QueueInputDrafts({owner=j.owner,chapter=j.chapter,selected=j.selected,drafts=drafts}) end
     b.Render()
 end
+function X.HasTranscript() return transcriptJob~=nil end
 function X.TranscriptTick(budget)
     local j=transcriptJob
     if not j then return end

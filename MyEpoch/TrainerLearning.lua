@@ -55,6 +55,7 @@ function T.Attempt(index)
  candidate(v.rows,v.quoteAt);candidate(v.previous,v.previousAt);candidate(currentRows,now)
  v.requests[#v.requests+1]=request
 end
+function T.HasWork() return T.visit~=nil and #T.visit.requests>0 end
 function T.Tick()
  local v=T.visit;local now=A.Now();if not valid(v)or #v.requests==0 then return end
  if Q.EnsureWarm(v.owner)~='ready'then return end

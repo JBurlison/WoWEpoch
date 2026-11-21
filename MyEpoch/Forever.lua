@@ -2,7 +2,6 @@ local _, E = ...
 local A={status={}}; E.API=A
 local unpack=unpack
 local restrictedResult = "restricted values omitted"
-local function pack(...) return {n=select("#",...),...} end
 function A.Secret(v) return issecretvalue and issecretvalue(v) or false end
 local function playerGUID()
     local guid=UnitGUID("player")
@@ -41,19 +40,108 @@ function A.Plain(v,seen)
     end
     seen[v]=nil; return out,restricted
 end
-function A.Call(label,fn,...)
-    if type(fn)~="function" then A.status[label]="unavailable"; return nil end
-    local result=pack(pcall(fn,...))
-    if not result[1] then A.status[label]="call failed or access restricted"; return nil end
-    local out={n=result.n-1}; local restricted=false
-    for i=2,result.n do
-        if A.Secret(result[i]) then restricted=true else
-            local copied,plain,hidden=pcall(A.Plain,result[i]); if copied then out[i-1]=plain end
-            if not copied or hidden then restricted=true end
+local defaultPlain=A.Plain
+function A.ValidateTable(v,seen)
+    if A.Secret(v) then return false end
+    if type(canaccessvalue)=='function' and canaccessvalue(v)~=true then return false end
+    if type(v)~="table" then return false end
+    if type(canaccesstable)=='function' and canaccesstable(v)~=true then return false end
+    for k,value in pairs(v) do
+        if A.Secret(k) or (type(canaccessvalue)=='function' and canaccessvalue(k)~=true) then return false end
+        if type(k)=="string" or type(k)=="number" then
+            if A.Secret(value) or (type(canaccessvalue)=='function' and canaccessvalue(value)~=true) then return false end
+            if type(value)=="table" then
+                seen=seen or {[v]=true}
+                if seen[value] then return false end
+                seen[value]=true
+                local ok=A.ValidateTable(value,seen)
+                seen[value]=nil
+                if not ok then return false end
+            end
         end
     end
-    A.status[label]=restricted and restrictedResult or "call succeeded; client behavior still needs validation"
-    return unpack(out,1,out.n)
+    return true
+end
+local function cleanValue(v)
+    if A.Plain~=defaultPlain then
+        if A.Secret(v) then return nil,true end
+        local copied,plain,hidden=pcall(A.Plain,v)
+        if copied then return plain,hidden==true end
+        return nil,true
+    end
+    if A.Secret(v) then return nil,true end
+    if type(canaccessvalue)=='function' then
+        local ok,allowed=pcall(canaccessvalue,v)
+        if not ok or allowed~=true then return nil,true end
+    end
+    local t=type(v)
+    if t=="nil" or t=="string" or t=="boolean" or t=="number" then return v,false end
+    if t~="table" then return nil,false end
+    local copied,plain,hidden=pcall(defaultPlain,v)
+    if copied then return plain,hidden==true end
+    return nil,true
+end
+local successStatus="call succeeded; client behavior still needs validation"
+local function finishCall(label,ok,...)
+    if not ok then A.status[label]="call failed or access restricted"; return nil end
+    local n=select("#",...)
+    if n==0 then
+        A.status[label]=successStatus; return
+    elseif n==1 then
+        local v1,r1=cleanValue((...))
+        A.status[label]=r1 and restrictedResult or successStatus
+        return v1
+    elseif n==2 then
+        local a1,a2=...
+        local v1,r1=cleanValue(a1)
+        local v2,r2=cleanValue(a2)
+        A.status[label]=(r1 or r2) and restrictedResult or successStatus
+        return v1,v2
+    elseif n==3 then
+        local a1,a2,a3=...
+        local v1,r1=cleanValue(a1)
+        local v2,r2=cleanValue(a2)
+        local v3,r3=cleanValue(a3)
+        A.status[label]=(r1 or r2 or r3) and restrictedResult or successStatus
+        return v1,v2,v3
+    elseif n==4 then
+        local a1,a2,a3,a4=...
+        local v1,r1=cleanValue(a1)
+        local v2,r2=cleanValue(a2)
+        local v3,r3=cleanValue(a3)
+        local v4,r4=cleanValue(a4)
+        A.status[label]=(r1 or r2 or r3 or r4) and restrictedResult or successStatus
+        return v1,v2,v3,v4
+    end
+    local out={}; local restricted=false
+    for i=1,n do
+        local v,r=cleanValue((select(i,...)))
+        out[i]=v
+        if r then restricted=true end
+    end
+    A.status[label]=restricted and restrictedResult or successStatus
+    return unpack(out,1,n)
+end
+function A.Call(label,fn,...)
+    if type(fn)~="function" then A.status[label]="unavailable"; return nil end
+    return finishCall(label,pcall(fn,...))
+end
+local function finishCallTable(label,ok,raw)
+    if not ok then A.status[label]="call failed or access restricted"; return nil end
+    if raw==nil then A.status[label]=successStatus; return nil end
+    if type(raw)=="table" then
+        local checked,valid=pcall(A.ValidateTable,raw)
+        if checked and valid then A.status[label]=successStatus; return raw end
+        A.status[label]=restrictedResult; return nil
+    end
+    local v,restricted=cleanValue(raw)
+    A.status[label]=restricted and restrictedResult or successStatus
+    return v
+end
+function A.CallTable(label,fn,...)
+    if A.Plain~=defaultPlain then return A.Call(label,fn,...) end
+    if type(fn)~="function" then A.status[label]="unavailable"; return nil end
+    return finishCallTable(label,pcall(fn,...))
 end
 -- A.Call for a single argument and a single plain scalar result, without the
 -- result tables. Use on per-unit event paths that can run hundreds of times a second.
@@ -90,7 +178,85 @@ function A.Wallet(label)
     return amount
 end
 function A.Now() return time() end
-function A.Day(ts) return date("%Y-%m-%d",ts) end
+local function epochOffset()
+    -- 1970-01-02 00:00:00 local time is always a positive time_t in every timezone (UTC-12..UTC+14).
+    local t=time({year=1970,month=1,day=2,hour=0,min=0,sec=0})
+    return type(t)=="number" and (86400-t) or 0
+end
+local function daysFromCivil(y,m,d)
+    if m<=2 then y=y-1 end
+    local era=math.floor(y/400)
+    local yoe=y-era*400
+    local doy=math.floor((153*(m+(m>2 and -3 or 9))+2)/5)+d-1
+    local doe=yoe*365+math.floor(yoe/4)-math.floor(yoe/100)+doy
+    return era*146097+doe-719468
+end
+local function civilFromDays(z)
+    z=z+719468
+    local era=math.floor(z/146097)
+    local doe=z-era*146097
+    local yoe=math.floor((doe-math.floor(doe/1460)+math.floor(doe/36524)-math.floor(doe/146096))/365)
+    local y=yoe+era*400
+    local doy=doe-(365*yoe+math.floor(yoe/4)-math.floor(yoe/100))
+    local mp=math.floor((5*doy+2)/153)
+    local d=doy-math.floor((153*mp+2)/5)+1
+    local m=mp+(mp<10 and 3 or -9)
+    if m<=2 then y=y+1 end
+    return y,m,d
+end
+local function localTable(ts)
+    local d=date("*t",ts)
+    if type(d)=="table" then return d end
+    if type(ts)~="number" or ts~=ts or ts<=-math.huge or ts>=math.huge then return nil end
+    local loc=math.floor(ts)+epochOffset()
+    local days=math.floor(loc/86400)
+    local rem=loc-days*86400
+    local y,m,day=civilFromDays(days)
+    local hour=math.floor(rem/3600); rem=rem-hour*3600
+    local min=math.floor(rem/60); local sec=rem-min*60
+    local wday=((days+4)%7)+1
+    return {year=y,month=m,day=day,hour=hour,min=min,sec=sec,wday=wday,isdst=false}
+end
+local function localTime(d)
+    local t=time(d)
+    if t~=nil then return t end
+    if type(d)~="table" or type(d.year)~="number" or type(d.month)~="number" or type(d.day)~="number" then return nil end
+    local y,m=d.year,d.month
+    local extra=math.floor((m-1)/12); y=y+extra; m=m-extra*12
+    local days=daysFromCivil(y,m,1)+(d.day-1)
+    return days*86400+((d.hour or 0)*3600)+((d.min or 0)*60)+(d.sec or 0)-epochOffset()
+end
+local cachedDayStart,cachedNextDayStart,cachedDayString,cachedDateFn,cachedTimeFn
+local function resolveDay(ts)
+    if date~=cachedDateFn or time~=cachedTimeFn then
+        cachedDayStart=nil; cachedDateFn=date; cachedTimeFn=time
+    end
+    if type(ts)=="number" and ts==ts and cachedDayStart and ts>=cachedDayStart and ts<cachedNextDayStart then
+        return cachedDayString,cachedDayStart
+    end
+    local dayStr=date("%Y-%m-%d",ts)
+    if type(ts)=="number" and ts==ts and ts>-math.huge and ts<math.huge then
+        local d=localTable(ts)
+        if dayStr==nil and type(d)=="table" then
+            dayStr=string.format("%04d-%02d-%02d",d.year,d.month,d.day)
+        end
+        if type(d)=="table" then
+            d.hour,d.min,d.sec=0,0,0; d.isdst=nil
+            local start=localTime(d)
+            d.day=d.day+1; d.isdst=nil
+            local finish=localTime(d)
+            if type(start)=="number" and type(finish)=="number" and start<finish and ts>=start and ts<finish then
+                cachedDayStart,cachedNextDayStart,cachedDayString=start,finish,dayStr
+                return dayStr,start
+            end
+        end
+    end
+    return dayStr,nil
+end
+function A.Day(ts)
+    if ts==nil then return date("%Y-%m-%d") end
+    local s=resolveDay(ts); return s
+end
 function A.Date(ts) return E.Display and E.Display.Date(ts)or date("%d %b %Y %H:%M",ts) end
 function A.RecordDate(r)
     local ts=E.Store.Timestamp(r)
@@ -99,14 +265,22 @@ function A.RecordDate(r)
 end
 function A.ClockStamp(ts)
     local ok,offset=pcall(date,"%z",ts)
-    if not ok or not offset:match("^[+-]%d%d%d%d$") then offset=nil end
+    if not ok or type(offset)~="string" or not offset:match("^[+-]%d%d%d%d$") then offset=nil end
     return {day=A.Day(ts),clock=date("%H:%M:%S",ts),utcOffset=offset}
 end
 function A.DayStart(ts)
-    local d=date("*t",ts); d.hour,d.min,d.sec=0,0,0; d.isdst=nil; return time(d)
+    if type(ts)=="number" then
+        local _,start=resolveDay(ts)
+        if start~=nil then return start end
+    end
+    local d=localTable(ts)
+    if not d then return nil end
+    d.hour,d.min,d.sec=0,0,0; d.isdst=nil; return localTime(d)
 end
 function A.ShiftDay(ts,delta)
-    local d=date("*t",ts); d.day=d.day+delta; d.isdst=nil; return time(d)
+    local d=localTable(ts)
+    if not d then return nil end
+    d.day=d.day+delta; d.isdst=nil; return localTime(d)
 end
 function A.ParseDay(text)
     if type(text)~="string" then return nil,"Use YYYY-MM-DD." end
@@ -119,17 +293,21 @@ end
 function A.ShiftPeriod(ts,kind,delta)
     local from=A.Period(ts,kind)
     if kind=="weekly" then return A.ShiftDay(from,7*delta) end
-    local d=date("*t",from); d.isdst=nil
+    local d=localTable(from)
+    if not d then return nil end
+    d.isdst=nil
     if kind=="monthly" then d.month=d.month+delta elseif kind=="yearly" then d.year=d.year+delta else d.day=d.day+delta end
-    return time(d)
+    return localTime(d)
 end
 function A.Period(ts,kind)
-    local d=date("*t",ts); d.hour,d.min,d.sec=0,0,0; d.isdst=nil
+    local d=localTable(ts)
+    if not d then return nil,nil end
+    d.hour,d.min,d.sec=0,0,0; d.isdst=nil
     if kind=="weekly" then
-        local start=A.ShiftDay(time(d),-((d.wday-3)%7)); return start,A.ShiftDay(start,7)
-    elseif kind=="monthly" then d.day=1; local start=time(d); d.month=d.month+1; return start,time(d)
-    elseif kind=="yearly" then d.day,d.month=1,1; local start=time(d); d.year=d.year+1; return start,time(d) end
-    local start=time(d); return start,A.ShiftDay(start,1)
+        local start=A.ShiftDay(localTime(d),-((d.wday-3)%7)); return start,A.ShiftDay(start,7)
+    elseif kind=="monthly" then d.day=1; local start=localTime(d); d.month=d.month+1; return start,localTime(d)
+    elseif kind=="yearly" then d.day,d.month=1,1; local start=localTime(d); d.year=d.year+1; return start,localTime(d) end
+    local start=localTime(d); return start,A.ShiftDay(start,1)
 end
 function A.Faction(unit)
     local faction=A.Call("identityFaction",UnitFactionGroup,unit)

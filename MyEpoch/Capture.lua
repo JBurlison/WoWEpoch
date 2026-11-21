@@ -82,6 +82,7 @@ function C.Recover(c)
             added=setmetatable({},{__mode="k"})}
     end
 end
+function C.HasWork() return C.pending~=nil or recovery~=nil end
 function C.Tick(delta)
     local p=C.pending; if not p then stepRecovery();return end
     if E.current~=p.character then C.Interrupt("The recording character changed before capture."); return end

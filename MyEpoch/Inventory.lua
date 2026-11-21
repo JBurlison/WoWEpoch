@@ -8,6 +8,11 @@ local function call(label,fn,...)
     if A.status[label]~=success then return nil,false end
     return value,true
 end
+local function callTable(label,fn,...)
+    local value=A.CallTable(label,fn,...)
+    if A.status[label]~=success then return nil,false end
+    return value,true
+end
 function I.Snapshot()
     local cursor,cursorOK=call("inventoryCursor",CursorHasItem)
     if not cursorOK or type(cursor)~="boolean" then return nil,"Cursor contents unavailable" end
@@ -21,16 +26,18 @@ function I.Snapshot()
         out.sizes[bag]=n
         for slot=1,n do
             local id,idOK=call("inventoryID",C_Container and C_Container.GetContainerItemID,bag,slot)
-            local info,infoOK=call("inventoryItem",C_Container and C_Container.GetContainerItemInfo,bag,slot)
+            local info,infoOK=callTable("inventoryItem",C_Container and C_Container.GetContainerItemInfo,bag,slot)
             local again,againOK=call("inventoryIDCheck",C_Container and C_Container.GetContainerItemID,bag,slot)
             if not idOK or not infoOK or not againOK or id~=again then return nil,"Item identity changed or became inaccessible" end
             if id==nil then
                 if info~=nil then return nil,"Empty-slot observations disagree" end
             else
-                if type(info)=="table" and info.isLocked==true then return nil,"Item movement is locked",true end
-                if not integer(id,1,9007199254740991) or type(info)~="table" or info.itemID~=id or info.isLocked~=false
-                    or not integer(info.stackCount,1,67108864) then return nil,"Item counts unavailable, locked or inconsistent" end
-                local count=(out.counts[id] or 0)+info.stackCount
+                if type(info)~="table" then return nil,"Item counts unavailable, locked or inconsistent" end
+                local locked,itemID,stackCount=info.isLocked,info.itemID,info.stackCount
+                if locked==true then return nil,"Item movement is locked",true end
+                if not integer(id,1,9007199254740991) or itemID~=id or locked~=false
+                    or not integer(stackCount,1,67108864) then return nil,"Item counts unavailable, locked or inconsistent" end
+                local count=(out.counts[id] or 0)+stackCount
                 if count>67108864 then return nil,"Item total exceeds accounting bounds" end
                 out.counts[id]=count
             end
@@ -39,14 +46,15 @@ function I.Snapshot()
     out.carried=E.Copy(out.counts)
     local first,lastSlot=A.Plain(INVSLOT_FIRST_EQUIPPED),A.Plain(INVSLOT_LAST_EQUIPPED)
     if not integer(first,1,40) or not integer(lastSlot,first,40) then return nil,"Equipment boundaries unavailable" end
-    local slots,bagSlots={},{}; for slot=first,lastSlot do slots[slot]=true end
+    local slots,slotList,bagSlots={},{},{}; for slot=first,lastSlot do slots[slot]=true; slotList[#slotList+1]=slot end
     for bag=1,last do
         local slot,ok=call("inventoryBagSlot",C_Container and C_Container.ContainerIDToInventoryID,bag)
         if not ok or not integer(slot,1,100) or slots[slot] then return nil,"Equipped bag mapping unavailable or inconsistent" end
         slots[slot]=true
+        slotList[#slotList+1]=slot
         bagSlots[slot]=bag
     end
-    for _,slot in ipairs(E.SortedKeys(slots))do
+    for _,slot in ipairs(slotList)do
         local id,idOK=call("equipmentItemID",GetInventoryItemID,"player",slot)
         local count,countOK=call("equipmentItemCount",GetInventoryItemCount,"player",slot)
         local locked,lockOK=call("equipmentItemLocked",IsInventoryItemLocked,slot)
@@ -78,7 +86,7 @@ local function live()return I.live and I.live.c==E.current and I.live.session==C
 function I.Gap(reason)
     local w=live(); if not w then return end
     E.Bank.End(w,reason)
-    w.candidate=nil; w.continuous=false
+    w.candidate=nil; w.lastSnapshot=nil; w.continuous=false
     local state=w.c.state.inventory
     if state and not w.gap then
         local refs=state.record and w.c.records[state.record] and {state.record} or {}
@@ -346,7 +354,7 @@ local function accept(w,snapshot,now)
     E.Bank.Accept(w,snapshot,previous,record,baseline,now)
     c.state.inventory={counts=E.Copy(snapshot.counts),carried=E.Copy(snapshot.carried),equipment=E.Copy(snapshot.equipment),scope=snapshot.scope,
         ts=now,accountingTime=accountingTime,record=record and record.id or previous and previous.record,session=w.session}
-    S.Touch(c,not record and'inventoryUnchanged'or nil); w.continuous=true; w.gap=nil; w.candidate=nil; w.dirty=false
+    S.Touch(c,not record and'inventoryUnchanged'or nil); w.continuous=true; w.gap=nil; w.candidate=nil; w.lastSnapshot=snapshot; w.dirty=false
     A.status.inventory="Combined bag/equipment counts observed; bank cost continuity is inferred from matching observations."
     return record
 end
@@ -354,15 +362,19 @@ function I.Process(delta)
     local w=live(); if not w or w.suspended then return end
     w.elapsed=w.elapsed+delta; w.quiet=w.quiet+delta
     if w.elapsed<(w.dirty and 0.25 or 5) or w.quiet<0.25 then return end
+    local wasDirty=w.dirty
     w.elapsed=0; local now=A.Now(); local previous=w.c.state.inventory
     if w.continuous and previous and (now<previous.ts or now-previous.ts>15) then I.Gap("Clock change or recording interruption") end
     local snapshot,reason,transient=I.Snapshot()
     if not snapshot then
-        w.candidate=nil; w.dirty=true
+        w.candidate=nil
         if transient and w.continuous and previous and now>=previous.ts and now-previous.ts<=15 then
-            A.status.inventory=reason.."; awaiting stable counts"
-        else I.Gap(reason)end
+            w.dirty=true; A.status.inventory=reason.."; awaiting stable counts"
+        else I.Gap(reason); w.dirty=transient==true end
         return
+    end
+    if not wasDirty and w.continuous and w.lastSnapshot and E.Same(w.lastSnapshot,snapshot) then
+        return accept(w,snapshot,now)
     end
     if not w.candidate or not E.Same(w.candidate,snapshot) then w.candidate=snapshot; w.dirty=true; return end
     return accept(w,snapshot,now)

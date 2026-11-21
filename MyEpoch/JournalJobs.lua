@@ -1,7 +1,10 @@
 local _,E=...
 local J,A,D,S={pending={},lastBoundaryDay={}},E.API,E.Diary,E.Store; E.JournalJobs=J
 local recapKind={level=true,skill=true,profession=true}
-local dailyKind={quest=true,milestone=true,crafted=true,gathered=true,loot=true,group=true,death=true,spell=true,play=true,encounter=true,gold=true,damage=true,health=true,auction=true}
+local diaryKind={play=true}
+for kind in pairs(E.Query.DailySourceKinds)do diaryKind[kind]=true end
+local dailyKind={gold=true,damage=true,health=true,auction=true}
+for kind in pairs(diaryKind)do dailyKind[kind]=true end
 for kind in pairs(E.Query.RecapExtraKinds)do dailyKind[kind]=true end
 local queues=setmetatable({},{__mode='k'})
 J.seeds=setmetatable({},{__mode='k'})
@@ -11,6 +14,8 @@ J.spans=setmetatable({},{__mode='k'})
 J.dailyWriters=setmetatable({},{__mode='k'})
 local liveTurns=setmetatable({},{__mode='k'})
 local boundarySamples=setmetatable({},{__mode='k'})
+local seedBuilding=setmetatable({},{__mode='k'})
+local lastPlayState=setmetatable({},{__mode='k'})
 local function before(a,b)return a.due<b.due or a.due==b.due and a.queueKey<b.queueKey end
 local function exchange(q,a,b)
     q.rows[a],q.rows[b]=q.rows[b],q.rows[a]
@@ -58,14 +63,59 @@ local function queue(c,key,job,due)
 end
 -- Coalesce live corrections without querying or sorting a lifetime archive in an
 -- event callback. Events received while a scan runs form the next bounded batch.
-local function markCorrection(c,r,now,delay)
+local summaryIndex=setmetatable({},{__mode='k'})
+local function summaryCandidate(r)return type(r)=='table'and(r.kind=='recap'or r.kind=='milestone')end
+local function summaryIndexFor(c)
+    local index=summaryIndex[c]
+    if not index or index.order~=c.order or index.records~=c.records then
+        index={order=c.order,records=c.records,through=0,ids={},seen={},milestoneRecaps={},maxMilestoneThrough=-math.huge,seeded=false};summaryIndex[c]=index
+    end
+    return index
+end
+local function updateMaxMilestoneThrough(index)
+    local maxThrough=-math.huge
+    for _,through in pairs(index.milestoneRecaps)do
+        if type(through)=='number'and through>maxThrough then maxThrough=through end
+    end
+    index.maxMilestoneThrough=maxThrough
+end
+local function rememberSummary(index,id)
+    if type(id)=='string'and not index.seen[id]then index.seen[id]=true;index.ids[#index.ids+1]=id end
+end
+local function trackSummary(index,c,r)
+    if type(r)~='table'or type(r.id)~='string'then return end
+    local live=c.records[r.id]==r
+    if live and summaryCandidate(r)then rememberSummary(index,r.id)end
+    index.milestoneRecaps=index.milestoneRecaps or {}
+    local was=index.milestoneRecaps[r.id]
+    if live and r.kind=='recap'and r.periodKind=='milestone'and type(r.through)=='number'then
+        index.milestoneRecaps[r.id]=r.through
+        if r.through>(index.maxMilestoneThrough or -math.huge)then
+            index.maxMilestoneThrough=r.through
+        elseif was and was==index.maxMilestoneThrough and r.through<was then
+            updateMaxMilestoneThrough(index)
+        end
+    elseif was then
+        index.milestoneRecaps[r.id]=nil
+        if was==index.maxMilestoneThrough then updateMaxMilestoneThrough(index)end
+    end
+end
+J.SummaryIndex=function(c)return summaryIndex[c]end
+local function markCorrection(c,r,now,delay,corrFrom)
+    local from=corrFrom or r.ts
+    local last=r.kind=="play"and(r.ended or r.ts)or r.ts
+    local index=summaryIndex[c]
+    if index and index.seeded and index.records==c.records and index.order==c.order
+        and r.kind~='auction'and not(r.kind=='milestone'and r.major)
+        and from>(index.maxMilestoneThrough or -math.huge)then
+        return
+    end
     local state=J.corrections[c]
     if not state then state={};J.corrections[c]=state end
     local p=state.pending
-    local last=r.kind=="play"and(r.ended or r.ts)or r.ts
     local due=now+(delay or 2)
-    if not p then p={from=r.ts,through=last,due=due,families={}};state.pending=p
-    else p.from=math.min(p.from,r.ts);p.through=math.max(p.through,last);p.due=math.min(p.due,due)end
+    if not p then p={from=from,through=last,due=due,families={}};state.pending=p
+    else p.from=math.min(p.from,from);p.through=math.max(p.through,last);p.due=math.min(p.due,due)end
     if r.kind=='auction'then p.auctions=true end
     if r.kind=="milestone"and r.major then
         local key=D.Family(r);local f=p.families[key]
@@ -81,25 +131,13 @@ end
 -- Corrections only act on recaps and milestones. Remember which records have
 -- those kinds so each live correction reads new observations plus that short
 -- list, instead of the whole lifetime archive after every heartbeat.
-local summaryIndex=setmetatable({},{__mode='k'})
-local function summaryCandidate(r)return type(r)=='table'and(r.kind=='recap'or r.kind=='milestone')end
-local function summaryIndexFor(c)
-    local index=summaryIndex[c]
-    if not index or index.order~=c.order or index.records~=c.records then
-        index={order=c.order,records=c.records,through=0,ids={},seen={}};summaryIndex[c]=index
-    end
-    return index
-end
-local function rememberSummary(index,id)
-    if type(id)=='string'and not index.seen[id]then index.seen[id]=true;index.ids[#index.ids+1]=id end
-end
-J.SummaryIndex=function(c)return summaryIndex[c]end
 local function correctionScan(c,p)
     local order,last=c.order,#c.order
     local index=summaryIndexFor(c)
     return E.RetentionWork.Start(function(work)
         for position=index.through+1,last do
-            work();local id=order[position];if summaryCandidate(c.records[id])then rememberSummary(index,id)end
+            work();local id=order[position];local row=c.records[id]
+            if summaryCandidate(row)then trackSummary(index,c,row)end
         end
         if summaryIndex[c]==index and last>index.through then index.through=last end
         local ids=index.ids
@@ -155,12 +193,17 @@ local function stepCorrections(c,budget)
     end
     return result
 end
-local function queueDays(c,day,last,eligible,due,work)
+local function queueDays(c,day,last,eligible,due,work,forDiary)
+    local cutoff=eligible and c.state.recapLoginThrough
+    local today=eligible and A.DayStart(A.Now())
+    local allowedThrough=type(cutoff)=="number"and type(today)=="number"and math.min(cutoff,today)or nil
     repeat
         if work then work()end
         local after=A.ShiftDay(day,1)
-        queue(c,"day:"..A.Day(day),{kind="daily",from=day,through=after},due)
-        if eligible then
+        if forDiary~=false then
+            queue(c,"day:"..A.Day(day),{kind="daily",from=day,through=after},due)
+        end
+        if eligible and allowedThrough and after<=allowedThrough then
             local dailyKey='daily:'..A.Day(day)
             queue(c,dailyKey,{kind='dailyRecap',key=dailyKey,from=day,through=after},due)
             for _,kind in ipairs({"weekly","monthly","yearly"}) do
@@ -171,7 +214,7 @@ local function queueDays(c,day,last,eligible,due,work)
         day=after
     until day>last
 end
-local function deferSpan(c,r,day,last,due)
+local function deferSpan(c,r,day,last,due,forDiary)
     local state=J.spans[c]
     if not state then state={pending={}};J.spans[c]=state end
     local key=r.id or r;local pending=state.pending[key]
@@ -179,8 +222,9 @@ local function deferSpan(c,r,day,last,due)
         -- Keep every affected date if a still-pending observation is revised.
         pending.day=math.min(pending.day,day);pending.last=math.max(pending.last,last)
         pending.due=math.min(pending.due,due)
+        if forDiary then pending.forDiary=true end
     else
-        pending={key=key,day=day,last=last,due=due};state.pending[key]=pending
+        pending={key=key,day=day,last=last,due=due,forDiary=forDiary};state.pending[key]=pending
         if state.tail then state.tail.next=pending else state.head=pending end
         state.tail=pending
     end
@@ -190,7 +234,7 @@ local function stepSpan(c,budget)
     if not state.worker then
         local entry=state.head
         state.worker=E.RetentionWork.Start(function(work)
-            queueDays(c,entry.day,entry.last,true,entry.due,work);return true
+            queueDays(c,entry.day,entry.last,true,entry.due,work,entry.forDiary~=false);return true
         end)
         if not state.worker then A.status.journalScheduling="Background play-interval preparation unavailable; recorded facts are retained.";return end
         state.head=entry.next;if not state.head then state.tail=nil end
@@ -216,7 +260,7 @@ local function stepLive(c,budget)
     return result
 end
 
-function J.QueueRecord(c,r,now,delay,seeding,work)
+function J.QueueRecord(c,r,now,delay,seeding,work,corrFrom)
     if not dailyKind[r.kind] or not S.Timestamp(r) then return end
     local eligible=r.kind=="play" or (r.kind=="crafted" or r.kind=="gathered" or r.gatheringOriginal) and r.recipient==c.id
         or r.kind=="milestone" and r.subject==c.id and recapKind[r.milestoneType]
@@ -224,12 +268,13 @@ function J.QueueRecord(c,r,now,delay,seeding,work)
         or r.kind=='gold'or r.kind=='auction'
         or r.kind=='quest'and r.status=='completed'or r.kind=='loot'and r.recipient==c.id
         or (r.kind=='xp'or r.kind=='travel'or r.kind=='duel'or r.kind=='battleground'or r.kind=='roll_win')and r.subject==c.id
+    local forDiary=diaryKind[r.kind]==true
     local last=r.kind=="play" and (r.ended or r.ts) or r.ts
     local day=A.DayStart(r.ts)
     if not work and not seeding and last>=A.ShiftDay(day,1)then
-        deferSpan(c,r,day,last,now+(delay or 2))
-    else queueDays(c,day,last,eligible,now+(delay or 2),work)end
-    if eligible and not seeding then markCorrection(c,r,now,delay)end
+        deferSpan(c,r,day,last,now+(delay or 2),forDiary)
+    else queueDays(c,day,last,eligible,now+(delay or 2),work,forDiary)end
+    if eligible and not seeding then markCorrection(c,r,now,delay,corrFrom)end
     if r.kind=="milestone" and r.major and eligible then
         queue(c,"milestone:"..r.id,{kind="milestone",event=r.id},now+(delay or 2))
     end
@@ -245,14 +290,17 @@ local function scan(c,now,seeding)
     -- consult live records so deletions are skipped and changes use current facts.
     -- New/changed observations are also queued by their normal event handlers.
     local order,last=c.order,#c.order
+    local building=seeding and{order=c.order,records=c.records,through=last,ids={},seen={},milestoneRecaps={},maxMilestoneThrough=-math.huge,seeded=false}or nil
+    if building then seedBuilding[c]=building end
     local job=E.RetentionWork.Start(function(work)
         for index=1,last do
             work();local r=c.records[order[index]]
             if r then
+                if building and summaryCandidate(r)then trackSummary(building,c,r)end
                 if seeding then
                     J.QueueRecord(c,r,now,0,true,work)
                     if r.kind=='recap'and r.periodKind=='daily'and not r.inProgress and r.facts and r.facts.rollupVersion==1 then
-                        queueDays(c,r.from,r.through-1,true,now,work)
+                        queueDays(c,r.from,r.through-1,true,now,work,false)
                     end
                 end
                 closeSummary(c,r,now)
@@ -260,7 +308,10 @@ local function scan(c,now,seeding)
         end
         return true
     end)
-    if not job then A.status.journalScheduling='Background journal preparation unavailable; automatic backlog reconstruction is deferred.'end
+    if not job then
+        if seeding then seedBuilding[c]=nil end
+        A.status.journalScheduling='Background journal preparation unavailable; automatic backlog reconstruction is deferred.'
+    end
     return job
 end
 function J.Login(c,now)
@@ -273,6 +324,7 @@ function J.Seed(c,now)
     if not c or E.db.characters[c.id]~=c then return end
     D.CancelDaily(J.dailyWriters[c]);J.dailyWriters[c]=nil
     J.pending[c]={};queues[c]=nil;J.boundaries[c]=nil;J.corrections[c]=nil;J.spans[c]=nil;liveTurns[c]=nil
+    summaryIndex[c]=nil;seedBuilding[c]=nil
     J.lastBoundaryDay[c]=A.Day(now);boundarySamples[c]={at=now,day=J.lastBoundaryDay[c]};J.seeds[c]=scan(c,now,true)
     if J.seeds[c]then A.status.journalScheduling='Preparing diary and recap jobs in small batches.'end
 end
@@ -289,13 +341,19 @@ function J.Boundary(c,now)
 end
 function J.Step(c,now,budget)
     if not c then return end
-    if E.db.characters[c.id]~=c then J.seeds[c]=nil;J.boundaries[c]=nil;J.pending[c]=nil;queues[c]=nil;J.corrections[c]=nil;J.spans[c]=nil;liveTurns[c]=nil;boundarySamples[c]=nil;return end
+    if E.db.characters[c.id]~=c then J.seeds[c]=nil;J.boundaries[c]=nil;J.pending[c]=nil;queues[c]=nil;J.corrections[c]=nil;J.spans[c]=nil;liveTurns[c]=nil;boundarySamples[c]=nil;summaryIndex[c]=nil;seedBuilding[c]=nil;return end
     J.Boundary(c,now)
     local workers=J.seeds[c]and J.seeds or J.boundaries;local job=workers[c]
     if not job then return stepLive(c,budget)end
     local state,reason=E.RetentionWork.Step(job,budget)
     if state then
         workers[c]=nil
+        if workers==J.seeds then
+            local building=seedBuilding[c];seedBuilding[c]=nil
+            if state=='done'and building and building.records==c.records and building.order==c.order then
+                building.seeded=true;summaryIndex[c]=building
+            end
+        end
         if state=='failed'then A.status.journalScheduling='Journal preparation stopped; the original history is retained.';A.status.journalSchedulingError=tostring(reason)
         elseif not J.seeds[c]and not J.boundaries[c]and not J.corrections[c]and not J.spans[c]then A.status.journalScheduling='Diary and recap jobs prepared.'end
     end
@@ -312,7 +370,10 @@ function J.StepWriter(c,now,budget)
         local _,_,stale
         if state.recap then _,_,stale=D.FinishRecap(state)else _,_,stale=D.FinishDaily(state)end
         if stale=='continuing'then J.dailyWriters[c]=state;return end
-        if stale=='stale'or state.dirty and stale~='invalid'then queue(c,state.job.queueKey,state.job,now)end
+        if stale=='stale'or state.dirty and stale~='invalid'then
+            local due=stale=='stale'and now or(now+(state.dirtyDelay or 0))
+            queue(c,state.job.queueKey,state.job,due)
+        end
         A.status.journalWriting='Diary and recap preparation is available.';A.status.journalWritingError=nil
     else
         D.CancelDaily(state);queue(c,state.job.queueKey,state.job,now+30)
@@ -425,12 +486,29 @@ function J.Process(c,now,limit,background)
     end
     return done
 end
+function J.HasFrameWork(c)
+    return (c~=nil and(J.seeds[c]~=nil or J.boundaries[c]~=nil or J.corrections[c]~=nil or J.spans[c]~=nil or J.dailyWriters[c]~=nil))
+        or manualActive~=nil or manualHead~=nil or(E.JournalViews~=nil and E.JournalViews.HasWork())
+end
 local function changed(c,r)
     -- A revised record can become a recap or milestone after its position was
     -- indexed; keep it in the correction list from then on.
+    if seedBuilding[c]and seedBuilding[c].records==c.records then
+        if summaryCandidate(r)or(seedBuilding[c].milestoneRecaps and seedBuilding[c].milestoneRecaps[r.id])then trackSummary(seedBuilding[c],c,r)end
+    end
     local index=summaryIndex[c]
-    if index and index.records==c.records and summaryCandidate(r)then rememberSummary(index,r.id)end
-    J.QueueRecord(c,r,A.Now(),r.kind=="play" and 30 or 2)
+    if index and index.records==c.records then
+        if summaryCandidate(r)or(index.milestoneRecaps and index.milestoneRecaps[r.id])then trackSummary(index,c,r)end
+    end
+    local corrFrom
+    if r.kind=="play" then
+        local prev=lastPlayState[r]
+        if prev and prev.ts==r.ts and prev.status==r.status and type(prev.ended)=="number"and type(r.ended)=="number"and r.ended>=prev.ended then
+            corrFrom=prev.ended
+        end
+        lastPlayState[r]={ts=r.ts,ended=r.ended,status=r.status}
+    end
+    J.QueueRecord(c,r,A.Now(),r.kind=="play" and 30 or 2,nil,nil,corrFrom)
 end
 E.On("RECORD_ADDED",changed); E.On("RECORD_CHANGED",changed)
 E.On("RECORDS_REMOVED",function(c) summaryIndex[c]=nil;J.Seed(c,A.Now()) end)

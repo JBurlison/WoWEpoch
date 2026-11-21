@@ -607,6 +607,11 @@ end
 function T.Queue(c,id,priority)
     local w=T.worker; if c~=E.current or not w or w.c~=c or not valid(id) then return end
     if priority then w.priority=id end
+    if w.requireQuestsOpen then
+        if not w.liveQueued[id] then w.liveQueued[id]=true; w.liveQueue[#w.liveQueue+1]=id end
+        w.queued[id]=true
+        return
+    end
     if not w.queued[id] then w.queued[id]=true; w.queue[#w.queue+1]=id end
 end
 -- Prioritize the open zone without probing more quests per update or
@@ -625,6 +630,7 @@ end
 function T.ViewedZone(c,map,report,selected,page,followupPage)
     local w=T.worker
     if not w or w.c~=c or c~=E.current then return end
+    if w.catalogDeferred then T.EnsureCatalogQueued(c) end
     local global=type(map)~="number" and not report.dungeonName
     local shown,key
     if global then
@@ -680,20 +686,51 @@ function T.Profile(c)
     state(c).profile={level=valid(c.identity.level) and c.identity.level or A.Call("questProfileLevel",UnitLevel,"player"),classID=classID,raceID=raceID,faction=faction,observedAt=A.Now()}
     S.Touch(c,'questAtlas')
 end
-function T.Refresh(c)
+local function queueCatalog(c,w)
+    if not w or w.c~=c or c~=E.current or w.catalogQueued then return end
+    w.catalogQueued=true; w.catalogDeferred=nil
+    -- Queue observation IDs without constructing display rows or evaluating
+    -- eligibility for every quest. Those belong to the requested atlas view.
+    local catalog,history=K.Merge(c),T.History(c)
+    for id in pairs(knownIDs(c,catalog,history))do
+        if valid(id) and not w.queued[id] then w.queued[id]=true; w.queue[#w.queue+1]=id end
+    end
+    for _,entry in pairs(catalog.quests)do
+        for _,rule in ipairs(K.stateRules)do
+            local id=entry.eligibility and entry.eligibility[rule.key]
+            if valid(id) and not w.queued[id] then w.queued[id]=true; w.queue[#w.queue+1]=id end
+        end
+        for _,field in ipairs({"requiresAll","requiresAny","excludes","chain","prerequisiteCandidates","prerequisiteThreshold"})do
+            for _,id in ipairs(K.Relations(entry,field))do
+                if valid(id) and not w.queued[id] then w.queued[id]=true; w.queue[#w.queue+1]=id end
+            end
+        end
+    end
+end
+function T.EnsureCatalogQueued(c)
+    local w=T.worker
+    if not w or w.c~=c or c~=E.current or w.session~=C.session then return false end
+    if w.catalogDeferred then queueCatalog(c,w); return true end
+    return false
+end
+function T.Refresh(c,deferCatalog)
     if c~=E.current then return false end
     T.worker={c=c,session=C.session,queue={},head=1,queued={},requested={},elapsed=0}; T.Profile(c)
     c.state.questEverTurnedIn=c.state.questEverTurnedIn or {}
     for id,h in pairs(T.History(c))do if #h.completions>0 then c.state.questEverTurnedIn[id]=true end end
-    -- Queue observation IDs without constructing display rows or evaluating
-    -- eligibility for every quest. Those belong to the requested atlas view.
-    local catalog,history=K.Merge(c),T.History(c)
-    for id in pairs(knownIDs(c,catalog,history))do T.Queue(c,id) end
-    for _,entry in pairs(catalog.quests)do
-        for _,rule in ipairs(K.stateRules)do if entry.eligibility then T.Queue(c,entry.eligibility[rule.key])end end
-        for _,field in ipairs({"requiresAll","requiresAny","excludes","chain","prerequisiteCandidates","prerequisiteThreshold"})do
-            for _,id in ipairs(K.Relations(entry,field))do T.Queue(c,id)end
+    local w=T.worker
+    if not w or w.c~=c then return true end
+    if deferCatalog then
+        w.catalogDeferred=true; w.requireQuestsOpen=true
+        w.liveQueue={}; w.liveHead=1; w.liveQueued={}
+        for id in pairs(c.state.activeQuests or {})do
+            if valid(id) and not w.liveQueued[id] then
+                w.liveQueued[id]=true; w.liveQueue[#w.liveQueue+1]=id
+                w.queued[id]=true
+            end
         end
+    else
+        queueCatalog(c,w)
     end
     return true
 end
@@ -702,29 +739,66 @@ local function verifiedReader(w,c)
     local guid=A.RecordingPlayerGUID()
     return guid==c.id and E.current==c and E.db.characters[c.id]==c and w==T.worker and w.session==C.session
 end
+local function seriesPending(c)
+    if not c or not reading(c) or not E.BundledQuestSeries or not E.runtime then return false end
+    local scan=seriesScans[c]
+    return not scan or scan.order~=c.order or scan.records~=c.records
+        or scan.revision~=K.revision or scan.build~=E.runtime.build or scan.interface~=E.runtime.interface
+        or scan.next<=#c.order
+end
+function T.HasWork()
+    if E.QuestView and E.QuestView.HasCatalogRefresh and E.QuestView.HasCatalogRefresh() then return true end
+    local w=T.worker
+    if not w or w.c~=E.current or w.session~=C.session then return false end
+    local c=w.c
+    if seriesPending(c) then return true end
+    local book=E.Book
+    local shown=book and book.frame and book.frame:IsShown()
+    if shown then
+        local selected=book.Character()
+        if selected and selected~=c and seriesPending(selected) then return true end
+    end
+    if w.priority or (w.liveQueue and w.liveHead<=#w.liveQueue) then return true end
+    local questsOpen=shown and book.chapter=="Quests" and book.Character()==c
+    if questsOpen and (w.catalogDeferred or (w.viewQueue and w.viewHead<=#w.viewQueue)) then return true end
+    if (not w.requireQuestsOpen or questsOpen) and w.head<=#w.queue then return true end
+    return false
+end
 function T.Process(delta)
     if E.QuestView and E.QuestView.ProcessCatalogRefresh then E.QuestView.ProcessCatalogRefresh(delta)end
     local w=T.worker; if not w or w.c~=E.current or w.session~=C.session then return end
     w.elapsed=w.elapsed+delta; if w.elapsed<0.25 then return end; w.elapsed=0
     local c=w.c; T.ProcessSeries(c)
     local book=E.Book
-    if book and book.frame and book.frame:IsShown() then
+    local shown=book and book.frame and book.frame:IsShown()
+    if shown then
         local selected=book.Character()
         if selected and selected~=c then T.ProcessSeries(selected) end
     end
-    if not w.priority and w.head>#w.queue then return end
+    local questsOpen=shown and book.chapter=="Quests" and book.Character()==c
+    if questsOpen and w.catalogDeferred then T.EnsureCatalogQueued(c) end
+    if not w.priority and not(w.liveQueue and w.liveHead<=#w.liveQueue)
+        and not(w.viewQueue and questsOpen and E.QuestView.viewIDs==w.viewIDs and w.viewHead<=#w.viewQueue)
+        and (w.head>#w.queue or (w.requireQuestsOpen and not questsOpen)) then return end
     local changed=false; local requested=false;local checked={}
     for count=1,2 do
         local id=w.priority; w.priority=nil
-        if not id and w.viewQueue and book and book.frame and book.frame:IsShown() and book.chapter=="Quests"
-            and book.Character()==c and E.QuestView.viewIDs==w.viewIDs then
+        if not id and w.liveQueue then
+            id=w.liveQueue[w.liveHead]
+            if id then w.liveQueue[w.liveHead]=false; w.liveHead=w.liveHead+1 end
+        end
+        if not id and w.viewQueue and questsOpen and E.QuestView.viewIDs==w.viewIDs then
             id=w.viewQueue[w.viewHead]
             if id then w.viewHead=w.viewHead+1 end
         end
-        if not id then id=w.queue[w.head]; w.queue[w.head]=false; w.head=w.head+1 end
+        if not id and (not w.requireQuestsOpen or questsOpen) then
+            id=w.queue[w.head]
+            if id then w.queue[w.head]=false; w.head=w.head+1 end
+        end
         if not id then break end
         if w.queued[id] then
             w.queued[id]=nil
+            if w.liveQueued then w.liveQueued[id]=nil end
             if not verifiedReader(w,c) then w.queued[id]=true;w.priority=id;break end
             local f=facts(c)[id] or {}
             local oldTitle,metadata=f.title,f.metadata
@@ -768,6 +842,7 @@ function T.Process(delta)
             checked[#checked+1]=id;changed=true
         end
     end
+    if w.liveQueue and w.liveHead>#w.liveQueue then w.liveQueue={}; w.liveHead=1 end
     if w.head>#w.queue then w.queue={}; w.head=1 end
     if changed then
         local prior=c.revision
@@ -796,4 +871,12 @@ end)
 wrap("PLAYER_LEVEL_UP",function()T.Profile(E.current)end)
 wrap("SKILL_LINES_CHANGED",function()if E.current then T.ProfessionProfile(E.current); E.Emit("QUEST_ATLAS_CHANGED",E.current)end end)
 wrap("UNIT_FACTION",function(unit)if not A.Secret(unit) and unit=="player" then T.Profile(E.current)end end)
-E.On("QUEST_CATALOG_CHANGED",function()if E.current then T.Refresh(E.current); E.Emit("QUEST_ATLAS_CHANGED",E.current)end end)
+E.On("QUEST_CATALOG_CHANGED",function()
+    if E.current then
+        local book=E.Book
+        local shown=book and book.frame and book.frame:IsShown() and book.chapter=="Quests" and book.Character()==E.current
+        local keepDeferred=T.worker and T.worker.c==E.current and T.worker.requireQuestsOpen and not shown
+        T.Refresh(E.current,keepDeferred)
+        E.Emit("QUEST_ATLAS_CHANGED",E.current)
+    end
+end)

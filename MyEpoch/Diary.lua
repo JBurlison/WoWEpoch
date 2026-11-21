@@ -608,7 +608,11 @@ local function captureChange(c,r)
         state=writers[c]
         if state and state.from and(state.view.records[r.id]or state.boundaryFamily and r.kind=='milestone'and r.subject==c.id and D.Family(r)==state.boundaryFamily
             or S.Timestamp(r) and (r.kind=='play'and r.ended>state.from and r.ts<state.through
-                or (state.sources or dailySources)[r.kind]and r.ts>=state.from and r.ts<state.through))then state.dirty=true end
+                or (state.sources or dailySources)[r.kind]and r.ts>=state.from and r.ts<state.through))then
+            state.dirty=true
+            local d=r.kind=='play'and 30 or 2
+            state.dirtyDelay=state.dirtyDelay and math.min(state.dirtyDelay,d)or d
+        end
     end
 end
 E.On('RECORD_ADDED',captureChange);E.On('RECORD_CHANGED',captureChange)

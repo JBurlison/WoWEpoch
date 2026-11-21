@@ -151,6 +151,9 @@ function K.Received(id,success)
     -- Deliver changes during the frame service. A burst of cache callbacks
     -- shares the same per-frame fanout limit as a single popular item.
 end
+function K.HasWork()
+    return state~=nil and (state.removals~=nil or state.scan~=nil or state.first<=state.lastJob)
+end
 function K.Tick()
     local s=state;if not s then return end
     if not valid(s) or s.records~=s.owner.records or s.order~=s.owner.order then state=nil;return end
